@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -18,7 +18,25 @@
     "tsconfig.json"
   ],
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./tailwind-preset": "./tailwind-preset.js",
+    "./lib/utils": "./src/lib/utils.ts",
+    "./lib/money": "./src/lib/money.ts",
+    "./lib/medusa-error": "./src/lib/medusa-error.ts",
+    "./lib/payment-constants": "./src/lib/payment-constants.ts",
+    "./lib/dual-price": "./src/lib/dual-price.tsx",
+    "./primitives/field": "./src/primitives/field.tsx",
+    "./primitives/select-field": "./src/primitives/select-field.tsx",
+    "./primitives/ui/button": "./src/primitives/ui/button.tsx",
+    "./primitives/ui/input": "./src/primitives/ui/input.tsx",
+    "./primitives/ui/label": "./src/primitives/ui/label.tsx",
+    "./primitives/ui/select": "./src/primitives/ui/select.tsx",
+    "./primitives/ui/dialog": "./src/primitives/ui/dialog.tsx",
+    "./primitives/ui/sheet": "./src/primitives/ui/sheet.tsx",
+    "./primitives/ui/tabs": "./src/primitives/ui/tabs.tsx",
+    "./primitives/ui/accordion": "./src/primitives/ui/accordion.tsx",
+    "./primitives/ui/collapsible": "./src/primitives/ui/collapsible.tsx",
+    "./primitives/ui/popover": "./src/primitives/ui/popover.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -31,10 +49,28 @@
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.9",
+    "tailwindcss": "3.4",
     "typescript": "^5.6.0"
   },
   "packageManager": "bun@1.2.0",
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.8.0",
+    "tailwind-merge": "^3.5.0"
   }
 }
