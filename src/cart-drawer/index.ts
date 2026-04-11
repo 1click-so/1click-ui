@@ -20,6 +20,7 @@ export {
   defaultCartDrawerLabels,
   type CartDrawerLabels,
 } from "./labels"
+export { bulgarianCartDrawerLabels } from "./labels-bg"
 
 export { CartDrawer } from "./cart-drawer"
 export { CartDrawerHeader } from "./header"
