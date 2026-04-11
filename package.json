@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -54,7 +54,30 @@
     "./data/util/env": "./src/data/util/env.ts",
     "./data/util/compare-addresses": "./src/data/util/compare-addresses.ts",
     "./data/util/get-locale-header": "./src/data/util/get-locale-header.ts",
-    "./middleware/region-proxy": "./src/middleware/region-proxy.ts"
+    "./middleware/region-proxy": "./src/middleware/region-proxy.ts",
+    "./cart-drawer": "./src/cart-drawer/index.ts",
+    "./cart-drawer/context": "./src/cart-drawer/context.tsx",
+    "./cart-drawer/labels": "./src/cart-drawer/labels.ts",
+    "./cart-drawer/cart-drawer": "./src/cart-drawer/cart-drawer.tsx",
+    "./cart-drawer/header": "./src/cart-drawer/header.tsx",
+    "./cart-drawer/promo-banner": "./src/cart-drawer/promo-banner.tsx",
+    "./cart-drawer/tiered-progress": "./src/cart-drawer/tiered-progress.tsx",
+    "./cart-drawer/item": "./src/cart-drawer/item/index.tsx",
+    "./cart-drawer/item/quantity": "./src/cart-drawer/item/quantity.tsx",
+    "./cart-drawer/item/variant": "./src/cart-drawer/item/variant.tsx",
+    "./cart-drawer/item/upsell": "./src/cart-drawer/item/upsell.tsx",
+    "./cart-drawer/free-gift": "./src/cart-drawer/free-gift.tsx",
+    "./cart-drawer/gift-wrap": "./src/cart-drawer/gift-wrap.tsx",
+    "./cart-drawer/notes": "./src/cart-drawer/notes.tsx",
+    "./cart-drawer/rewards-points": "./src/cart-drawer/rewards-points.tsx",
+    "./cart-drawer/cross-sell-sidebar": "./src/cart-drawer/cross-sell-sidebar.tsx",
+    "./cart-drawer/cross-sell-carousel": "./src/cart-drawer/cross-sell-carousel.tsx",
+    "./cart-drawer/summary-breakdown": "./src/cart-drawer/summary-breakdown.tsx",
+    "./cart-drawer/sticky-footer": "./src/cart-drawer/sticky-footer.tsx",
+    "./cart-drawer/payment-badges": "./src/cart-drawer/payment-badges.tsx",
+    "./cart-drawer/continue-shopping": "./src/cart-drawer/continue-shopping.tsx",
+    "./cart-drawer/empty": "./src/cart-drawer/empty.tsx",
+    "./cart-drawer/template": "./src/cart-drawer/template.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
