@@ -1,8 +1,16 @@
 // @1click/ui — main entry
 //
-// Re-exports the most commonly used pieces from the library. Stores can
-// import either from the top-level entry (this file) or from subpaths
-// (e.g. `@1click/ui/primitives/ui/button`) for tree-shaking.
+// Re-exports the most commonly used CLIENT-SAFE pieces from the library.
+// Data layer (`@1click/ui/data/*`) is NOT re-exported here — those are
+// Next.js server actions marked `"use client"` vs `"use server"` and must
+// be imported from their specific subpaths so Next.js can route them
+// correctly. Always use:
+//
+//   import { addToCart, retrieveCart } from "@1click/ui/data/cart"
+//   import { listProducts } from "@1click/ui/data/products"
+//   import { getRegion, listRegions } from "@1click/ui/data/regions"
+//
+// ...and so on. The main entry is for client-safe UI primitives only.
 
 // ── Utilities ──────────────────────────────────────────────────────────
 export { cn } from "./lib/utils"

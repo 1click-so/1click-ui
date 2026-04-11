@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -36,7 +36,25 @@
     "./primitives/ui/tabs": "./src/primitives/ui/tabs.tsx",
     "./primitives/ui/accordion": "./src/primitives/ui/accordion.tsx",
     "./primitives/ui/collapsible": "./src/primitives/ui/collapsible.tsx",
-    "./primitives/ui/popover": "./src/primitives/ui/popover.tsx"
+    "./primitives/ui/popover": "./src/primitives/ui/popover.tsx",
+    "./data/config": "./src/data/config.ts",
+    "./data/cookies": "./src/data/cookies.ts",
+    "./data/cart": "./src/data/cart.ts",
+    "./data/products": "./src/data/products.ts",
+    "./data/regions": "./src/data/regions.ts",
+    "./data/orders": "./src/data/orders.ts",
+    "./data/customer": "./src/data/customer.ts",
+    "./data/fulfillment": "./src/data/fulfillment.ts",
+    "./data/payment": "./src/data/payment.ts",
+    "./data/categories": "./src/data/categories.ts",
+    "./data/collections": "./src/data/collections.ts",
+    "./data/variants": "./src/data/variants.ts",
+    "./data/locale-actions": "./src/data/locale-actions.ts",
+    "./data/locales": "./src/data/locales.ts",
+    "./data/util/env": "./src/data/util/env.ts",
+    "./data/util/compare-addresses": "./src/data/util/compare-addresses.ts",
+    "./data/util/get-locale-header": "./src/data/util/get-locale-header.ts",
+    "./middleware/region-proxy": "./src/middleware/region-proxy.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -47,6 +65,7 @@
     "next": "^16.0.0"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.27",
@@ -59,6 +78,8 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@medusajs/js-sdk": "^2.13.6",
+    "@medusajs/types": "^2.13.6",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -71,6 +92,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.5.0"
   }
 }
