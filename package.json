@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -77,7 +77,24 @@
     "./cart-drawer/payment-badges": "./src/cart-drawer/payment-badges.tsx",
     "./cart-drawer/continue-shopping": "./src/cart-drawer/continue-shopping.tsx",
     "./cart-drawer/empty": "./src/cart-drawer/empty.tsx",
-    "./cart-drawer/template": "./src/cart-drawer/template.tsx"
+    "./cart-drawer/template": "./src/cart-drawer/template.tsx",
+    "./checkout": "./src/checkout/index.ts",
+    "./checkout/context": "./src/checkout/context.tsx",
+    "./checkout/labels": "./src/checkout/labels.ts",
+    "./checkout/error-message": "./src/checkout/error-message.tsx",
+    "./checkout/stripe-wrapper": "./src/checkout/stripe-wrapper.tsx",
+    "./checkout/payment-wrapper": "./src/checkout/payment-wrapper.tsx",
+    "./checkout/payment-button": "./src/checkout/payment-button.tsx",
+    "./checkout/econt-office-selector": "./src/checkout/econt-office-selector.tsx",
+    "./checkout/address-select": "./src/checkout/address-select.tsx",
+    "./checkout/company-details": "./src/checkout/company-details.tsx",
+    "./checkout/discount-section": "./src/checkout/discount-section.tsx",
+    "./checkout/line-item-card": "./src/checkout/line-item-card.tsx",
+    "./checkout/order-summary": "./src/checkout/order-summary.tsx",
+    "./checkout/address-form": "./src/checkout/address-form.tsx",
+    "./checkout/shipping-method-list": "./src/checkout/shipping-method-list.tsx",
+    "./checkout/payment-method-list": "./src/checkout/payment-method-list.tsx",
+    "./checkout/checkout-client": "./src/checkout/checkout-client.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -112,6 +129,8 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@stripe/react-stripe-js": "^6.1.0",
+    "@stripe/stripe-js": "^9.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",

@@ -1,0 +1,206 @@
+"use client"
+
+import type { HttpTypes } from "@medusajs/types"
+
+import { DualPrice } from "../lib/dual-price"
+import { cn } from "../lib/utils"
+import { useCheckoutLabels } from "./context"
+import {
+  EcontOfficeSelector,
+  type EcontOffice,
+} from "./econt-office-selector"
+import { ErrorMessage } from "./error-message"
+
+/**
+ * CheckoutShippingMethodList — radio-style list of shipping options.
+ * When the user selects an Econt office option, the office selector
+ * expands inline inside that row.
+ *
+ * Detecting "is this an Econt office option" is name-based today (matches
+ * the mindpages behavior). The detection keywords are exposed via the
+ * `detectEcontOption` prop so stores can override or disable Econt-specific
+ * rendering.
+ *
+ * Presentational — state + handlers come from parent CheckoutClient.
+ *
+ * Extracted from mindpages-storefront checkout-client/index.tsx — the
+ * `Начин на доставка` section (roughly lines 888-1008).
+ */
+
+type CheckoutShippingMethodListProps = {
+  shippingMethods: HttpTypes.StoreCartShippingOption[]
+  selectedShippingMethodId: string | null
+  calculatedPricesMap: Record<string, number>
+  isLoadingPrices: boolean
+  shippingLoading: boolean
+  shippingError: string | null
+  onSelect: (id: string) => void
+  addressReady: boolean
+  currencyCode: string
+  /** Optional: Econt office state + handler for inline-expand rows */
+  econt?: {
+    detect?: (option: HttpTypes.StoreCartShippingOption) => boolean
+    selectedOffice: EcontOffice | null
+    onSelectOffice: (office: EcontOffice | null) => void
+    userCity: string
+    userAddress: string
+  }
+}
+
+const defaultEcontDetect = (option: HttpTypes.StoreCartShippingOption): boolean => {
+  const name = option.name?.toLowerCase() ?? ""
+  return (
+    name.includes("офис") ||
+    name.includes("еконт") ||
+    name.includes("econt")
+  )
+}
+
+export function CheckoutShippingMethodList({
+  shippingMethods,
+  selectedShippingMethodId,
+  calculatedPricesMap,
+  isLoadingPrices,
+  shippingLoading,
+  shippingError,
+  onSelect,
+  addressReady,
+  currencyCode,
+  econt,
+}: CheckoutShippingMethodListProps) {
+  const labels = useCheckoutLabels()
+  const detectEcont = econt?.detect ?? defaultEcontDetect
+
+  return (
+    <div
+      className={cn(
+        "mt-8 transition-opacity duration-300",
+        !addressReady && "opacity-30 pointer-events-none select-none"
+      )}
+    >
+      <h2 className="text-lg font-semibold text-text-base mb-4 tracking-tight">
+        {labels.shippingServices}
+      </h2>
+
+      {!addressReady ? (
+        <div className="p-4 bg-surface-muted rounded-lg border border-border">
+          <p className="text-sm text-text-muted">{labels.deliveryDisabled}</p>
+        </div>
+      ) : shippingMethods.length === 0 ? (
+        <div className="p-4 bg-surface-muted rounded-lg border border-border">
+          <p className="text-sm text-text-muted">{labels.noShippingOptions}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {shippingMethods.map((option) => {
+            const cantCalc =
+              option.price_type === "calculated" &&
+              !isLoadingPrices &&
+              typeof calculatedPricesMap[option.id] !== "number"
+            const selected = option.id === selectedShippingMethodId
+            const price =
+              option.price_type === "flat"
+                ? option.amount
+                : calculatedPricesMap[option.id]
+            const isFree = price === 0
+            const isEcontOffice = econt && detectEcont(option)
+            const hasExpanded = selected && isEcontOffice
+
+            return (
+              <div
+                key={option.id}
+                className={cn(
+                  "rounded-lg border overflow-hidden transition-colors duration-150",
+                  selected
+                    ? "border-accent bg-accent/5"
+                    : "border-border bg-surface hover:border-text-subtle"
+                )}
+              >
+                <button
+                  type="button"
+                  disabled={cantCalc || shippingLoading}
+                  onClick={() => onSelect(option.id)}
+                  className={cn(
+                    "flex items-center w-full px-4 py-3.5 text-left",
+                    cantCalc && "opacity-40 cursor-not-allowed"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center flex-shrink-0 mr-3 transition-colors",
+                      selected ? "border-accent" : "border-border"
+                    )}
+                  >
+                    {selected && (
+                      <div className="w-2 h-2 rounded-full bg-accent" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-text-base">
+                      {option.name}
+                    </span>
+                    {selected && isEcontOffice && econt?.selectedOffice && (
+                      <p className="text-xs text-text-muted mt-0.5">
+                        {econt.selectedOffice.name}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      "text-sm font-semibold ml-4 flex-shrink-0",
+                      isFree ? "text-success" : "text-text-base"
+                    )}
+                  >
+                    {price !== undefined ? (
+                      isFree ? (
+                        labels.shippingFree
+                      ) : (
+                        <DualPrice amount={price} currencyCode={currencyCode} />
+                      )
+                    ) : isLoadingPrices ? (
+                      <svg
+                        className="animate-spin w-4 h-4 text-text-subtle"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                    ) : (
+                      "-"
+                    )}
+                  </span>
+                </button>
+
+                {hasExpanded && econt && (
+                  <EcontOfficeSelector
+                    userCity={econt.userCity}
+                    userAddress={econt.userAddress}
+                    selectedOffice={econt.selectedOffice}
+                    onSelect={econt.onSelectOffice}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <ErrorMessage
+        error={shippingError}
+        data-testid="delivery-error-message"
+      />
+    </div>
+  )
+}

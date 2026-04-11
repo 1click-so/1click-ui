@@ -1,0 +1,174 @@
+"use client"
+
+import type { HttpTypes } from "@medusajs/types"
+import type { ChangeEvent } from "react"
+
+import { Field } from "../primitives/field"
+import { SelectField } from "../primitives/select-field"
+import { AddressSelect } from "./address-select"
+import { CompanyDetails } from "./company-details"
+import { useCheckoutLabels } from "./context"
+import { ErrorMessage } from "./error-message"
+
+/**
+ * CheckoutAddressForm — the delivery address + email section of the
+ * checkout. Presentational: state and handlers come from the parent
+ * (`CheckoutClient`).
+ *
+ * Extracted from mindpages-storefront checkout-client/index.tsx — the
+ * `Информация за доставка` section (roughly lines 746-886).
+ */
+
+type CheckoutAddressFormProps = {
+  formData: Record<string, string>
+  onChange: (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+  onBlur: () => void
+  /** Saved addresses from the customer profile (optional) */
+  savedAddresses?: HttpTypes.StoreCustomerAddress[]
+  /** Handler for selecting a saved address */
+  onSelectSavedAddress?: (
+    address: HttpTypes.StoreCartAddress | undefined,
+    email?: string
+  ) => void
+  /** Region countries for the country select */
+  countries: Array<{ iso_2: string; display_name: string }>
+  /** Current address input (for saved-address match detection) */
+  addressInput: HttpTypes.StoreCartAddress | null
+  addressError: string | null
+}
+
+export function CheckoutAddressForm({
+  formData,
+  onChange,
+  onBlur,
+  savedAddresses,
+  onSelectSavedAddress,
+  countries,
+  addressInput,
+  addressError,
+}: CheckoutAddressFormProps) {
+  const labels = useCheckoutLabels()
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold text-text-base mb-5 tracking-tight">
+        {labels.deliveryInfo}
+      </h2>
+
+      {savedAddresses && savedAddresses.length > 0 && onSelectSavedAddress && (
+        <div className="mb-5 p-4 bg-surface-muted rounded-xl border border-border">
+          <p className="text-sm text-text-muted mb-3">{labels.useSavedAddress}</p>
+          <AddressSelect
+            addresses={savedAddresses}
+            addressInput={addressInput}
+            onSelect={onSelectSavedAddress}
+          />
+        </div>
+      )}
+
+      <div className="space-y-2.5">
+        <Field
+          label={labels.email}
+          name="email"
+          type="email"
+          autoComplete="email"
+          value={formData.email ?? ""}
+          onChange={onChange}
+          onBlur={onBlur}
+          required
+        />
+
+        <SelectField
+          label={labels.country}
+          name="shipping_address.country_code"
+          autoComplete="country"
+          value={formData["shipping_address.country_code"] ?? ""}
+          onChange={onChange}
+          required
+        >
+          <option value="" disabled />
+          {countries.map((c) => (
+            <option key={c.iso_2} value={c.iso_2}>
+              {c.display_name}
+            </option>
+          ))}
+        </SelectField>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field
+            label={labels.firstName}
+            name="shipping_address.first_name"
+            autoComplete="given-name"
+            value={formData["shipping_address.first_name"] ?? ""}
+            onChange={onChange}
+            onBlur={onBlur}
+            required
+          />
+          <Field
+            label={labels.lastName}
+            name="shipping_address.last_name"
+            autoComplete="family-name"
+            value={formData["shipping_address.last_name"] ?? ""}
+            onChange={onChange}
+            onBlur={onBlur}
+            required
+          />
+        </div>
+
+        <Field
+          label={labels.address}
+          name="shipping_address.address_1"
+          autoComplete="address-line1"
+          value={formData["shipping_address.address_1"] ?? ""}
+          onChange={onChange}
+          onBlur={onBlur}
+          required
+        />
+
+        <Field
+          label={labels.apartment}
+          name="shipping_address.company"
+          autoComplete="address-line2"
+          value={formData["shipping_address.company"] ?? ""}
+          onChange={onChange}
+          onBlur={onBlur}
+        />
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field
+            label={labels.postalCode}
+            name="shipping_address.postal_code"
+            autoComplete="postal-code"
+            value={formData["shipping_address.postal_code"] ?? ""}
+            onChange={onChange}
+            onBlur={onBlur}
+            required
+          />
+          <Field
+            label={labels.city}
+            name="shipping_address.city"
+            autoComplete="address-level2"
+            value={formData["shipping_address.city"] ?? ""}
+            onChange={onChange}
+            onBlur={onBlur}
+            required
+          />
+        </div>
+
+        <Field
+          label={labels.phone}
+          name="shipping_address.phone"
+          type="tel"
+          autoComplete="tel"
+          value={formData["shipping_address.phone"] ?? ""}
+          onChange={onChange}
+          onBlur={onBlur}
+        />
+      </div>
+
+      <CompanyDetails formData={formData} onChange={onChange} onBlur={onBlur} />
+
+      <ErrorMessage error={addressError} data-testid="address-error-message" />
+    </div>
+  )
+}
