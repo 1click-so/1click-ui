@@ -17,7 +17,7 @@ export function CartContinueShopping() {
       <button
         type="button"
         onClick={close}
-        className="text-sm text-text-muted hover:text-text-base underline underline-offset-4 decoration-border hover:decoration-text-muted transition-colors"
+        className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 decoration-border hover:decoration-text-muted transition-colors"
       >
         {labels.continueShopping}
       </button>

@@ -51,13 +51,13 @@ export function CheckoutAddressForm({
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-text-base mb-5 tracking-tight">
+      <h2 className="text-lg font-semibold text-foreground mb-5 tracking-tight">
         {labels.deliveryInfo}
       </h2>
 
       {savedAddresses && savedAddresses.length > 0 && onSelectSavedAddress && (
-        <div className="mb-5 p-4 bg-surface-muted rounded-xl border border-border">
-          <p className="text-sm text-text-muted mb-3">{labels.useSavedAddress}</p>
+        <div className="mb-5 p-4 bg-muted rounded-xl border border-border">
+          <p className="text-sm text-muted-foreground mb-3">{labels.useSavedAddress}</p>
           <AddressSelect
             addresses={savedAddresses}
             addressInput={addressInput}

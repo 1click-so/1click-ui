@@ -40,9 +40,9 @@ export function OrderTimeline({
   const lastStep = steps.length - 1
 
   return (
-    <div className="px-6 py-5 bg-surface rounded-xl shadow-sm">
+    <div className="px-6 py-5 bg-card rounded-xl shadow-sm">
       <div className="relative">
-        <div className="absolute top-[5px] left-[6px] right-[6px] h-[2px] bg-surface-muted rounded-full" />
+        <div className="absolute top-[5px] left-[6px] right-[6px] h-[2px] bg-muted rounded-full" />
         <div
           className="absolute top-[5px] left-[6px] h-[2px] bg-success rounded-full transition-all duration-700 ease-out"
           style={{
@@ -76,13 +76,13 @@ export function OrderTimeline({
                   )}
                   <div
                     className={`relative w-3 h-3 rounded-full z-10 ${
-                      isComplete || isActive ? "bg-success" : "bg-surface-muted"
+                      isComplete || isActive ? "bg-success" : "bg-muted"
                     }`}
                   />
                 </div>
                 <span
                   className={`text-[11px] sm:text-xs font-medium whitespace-nowrap ${
-                    isFuture ? "text-text-subtle" : "text-success"
+                    isFuture ? "text-muted-foreground" : "text-success"
                   }`}
                 >
                   {step.label}

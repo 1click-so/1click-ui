@@ -12,19 +12,19 @@ export function ProductInfo({ product }: ProductInfoProps) {
         {product.collection && (
           <LocalizedLink
             href={`/collections/${product.collection.handle}`}
-            className="text-sm text-text-muted hover:text-text-subtle"
+            className="text-sm text-muted-foreground hover:text-muted-foreground"
           >
             {product.collection.title}
           </LocalizedLink>
         )}
         <h2
-          className="text-3xl leading-10 text-text-base font-bold"
+          className="text-3xl leading-10 text-foreground font-bold"
           data-testid="product-title"
         >
           {product.title}
         </h2>
         <p
-          className="text-sm text-text-subtle whitespace-pre-line"
+          className="text-sm text-muted-foreground whitespace-pre-line"
           data-testid="product-description"
         >
           {product.description}

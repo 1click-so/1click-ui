@@ -16,12 +16,12 @@ export function CartButtonClient({
   return (
     <button
       onClick={open}
-      className="flex items-center gap-1.5 hover:text-text-base transition-colors relative"
+      className="flex items-center gap-1.5 hover:text-foreground transition-colors relative"
       data-testid="nav-cart-link"
     >
       <ShoppingBag className="w-5 h-5" />
       {totalItems > 0 && (
-        <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] bg-text-base text-surface text-[10px] font-semibold rounded-full flex items-center justify-center px-1">
+        <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] bg-foreground text-card text-[10px] font-semibold rounded-full flex items-center justify-center px-1">
           {totalItems}
         </span>
       )}

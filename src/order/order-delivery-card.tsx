@@ -23,8 +23,8 @@ export function OrderDeliveryCard({ order, labels }: OrderDeliveryCardProps) {
   const isPickup = hasEcontMetadata || isPickupByName
 
   return (
-    <div className="bg-surface rounded-xl p-5 shadow-sm">
-      <h3 className="text-sm font-semibold text-text-base mb-3">
+    <div className="bg-card rounded-xl p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-foreground mb-3">
         {l.delivery}
       </h3>
 
@@ -36,17 +36,17 @@ export function OrderDeliveryCard({ order, labels }: OrderDeliveryCardProps) {
                 <MapPin className="w-[18px] h-[18px] text-success" />
               </div>
               <div>
-                <p className="text-sm font-medium text-text-base">
+                <p className="text-sm font-medium text-foreground">
                   {metadata.econt_office_name}
                 </p>
-                <p className="text-xs text-text-muted mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {metadata.econt_office_address}
                   {metadata.econt_office_city
                     ? `, ${metadata.econt_office_city}`
                     : ""}
                 </p>
                 {metadata.econt_office_phone && (
-                  <p className="text-xs text-text-subtle mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {metadata.econt_office_phone}
                   </p>
                 )}
@@ -57,7 +57,7 @@ export function OrderDeliveryCard({ order, labels }: OrderDeliveryCardProps) {
               <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center flex-shrink-0">
                 <MapPin className="w-[18px] h-[18px] text-success" />
               </div>
-              <p className="text-sm font-medium text-text-base">
+              <p className="text-sm font-medium text-foreground">
                 {method?.name}
               </p>
             </div>
@@ -73,7 +73,7 @@ export function OrderDeliveryCard({ order, labels }: OrderDeliveryCardProps) {
       ) : (
         <div className="space-y-3">
           {addr && (
-            <div className="space-y-1 text-sm text-text-muted">
+            <div className="space-y-1 text-sm text-muted-foreground">
               <p>
                 {addr.address_1}
                 {addr.address_2 ? `, ${addr.address_2}` : ""}
@@ -108,10 +108,10 @@ function ShippingMethodRow({
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-lg bg-surface-muted flex items-center justify-center">
-          <Truck className="w-[18px] h-[18px] text-text-muted" />
+        <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
+          <Truck className="w-[18px] h-[18px] text-muted-foreground" />
         </div>
-        <span className="text-sm text-text-base">{method.name}</span>
+        <span className="text-sm text-foreground">{method.name}</span>
       </div>
       {(method.total ?? 0) === 0 ? (
         <span className="text-sm font-medium text-success">{labels.free}</span>
@@ -119,7 +119,7 @@ function ShippingMethodRow({
         <DualPrice
           amount={method.total ?? 0}
           currencyCode={order.currency_code}
-          className="text-sm font-medium text-text-base"
+          className="text-sm font-medium text-foreground"
         />
       )}
     </div>

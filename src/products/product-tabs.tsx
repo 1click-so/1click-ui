@@ -36,7 +36,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
           >
             <AccordionPrimitive.Header className="px-1">
               <div className="flex w-full items-center justify-between">
-                <span className="text-text-subtle text-sm">{tab.label}</span>
+                <span className="text-muted-foreground text-sm">{tab.label}</span>
                 <AccordionPrimitive.Trigger>
                   <MorphingTrigger />
                 </AccordionPrimitive.Trigger>
@@ -60,42 +60,42 @@ function ProductInfoTab({ product }: ProductTabsProps) {
       <div className="grid grid-cols-2 gap-x-8">
         <div className="flex flex-col gap-y-4">
           <div>
-            <span className="font-semibold text-text-base">
+            <span className="font-semibold text-foreground">
               {labels.material}
             </span>
-            <p className="text-text-muted">
+            <p className="text-muted-foreground">
               {product.material ? product.material : "-"}
             </p>
           </div>
           <div>
-            <span className="font-semibold text-text-base">
+            <span className="font-semibold text-foreground">
               {labels.countryOfOrigin}
             </span>
-            <p className="text-text-muted">
+            <p className="text-muted-foreground">
               {product.origin_country ? product.origin_country : "-"}
             </p>
           </div>
           <div>
-            <span className="font-semibold text-text-base">{labels.type}</span>
-            <p className="text-text-muted">
+            <span className="font-semibold text-foreground">{labels.type}</span>
+            <p className="text-muted-foreground">
               {product.type ? product.type.value : "-"}
             </p>
           </div>
         </div>
         <div className="flex flex-col gap-y-4">
           <div>
-            <span className="font-semibold text-text-base">
+            <span className="font-semibold text-foreground">
               {labels.weight}
             </span>
-            <p className="text-text-muted">
+            <p className="text-muted-foreground">
               {product.weight ? `${product.weight} g` : "-"}
             </p>
           </div>
           <div>
-            <span className="font-semibold text-text-base">
+            <span className="font-semibold text-foreground">
               {labels.dimensions}
             </span>
-            <p className="text-text-muted">
+            <p className="text-muted-foreground">
               {product.length && product.width && product.height
                 ? `${product.length}L x ${product.width}W x ${product.height}H`
                 : "-"}
@@ -114,34 +114,34 @@ function ShippingInfoTab() {
     <div className="text-sm py-8">
       <div className="grid grid-cols-1 gap-y-8">
         <div className="flex items-start gap-x-2">
-          <Truck className="w-5 h-5 text-text-subtle flex-shrink-0 mt-0.5" />
+          <Truck className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div>
-            <span className="font-semibold text-text-base">
+            <span className="font-semibold text-foreground">
               {labels.fastDelivery}
             </span>
-            <p className="max-w-sm text-text-muted">
+            <p className="max-w-sm text-muted-foreground">
               {labels.fastDeliveryDescription}
             </p>
           </div>
         </div>
         <div className="flex items-start gap-x-2">
-          <RefreshCw className="w-5 h-5 text-text-subtle flex-shrink-0 mt-0.5" />
+          <RefreshCw className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div>
-            <span className="font-semibold text-text-base">
+            <span className="font-semibold text-foreground">
               {labels.simpleExchanges}
             </span>
-            <p className="max-w-sm text-text-muted">
+            <p className="max-w-sm text-muted-foreground">
               {labels.simpleExchangesDescription}
             </p>
           </div>
         </div>
         <div className="flex items-start gap-x-2">
-          <Undo2 className="w-5 h-5 text-text-subtle flex-shrink-0 mt-0.5" />
+          <Undo2 className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div>
-            <span className="font-semibold text-text-base">
+            <span className="font-semibold text-foreground">
               {labels.easyReturns}
             </span>
-            <p className="max-w-sm text-text-muted">
+            <p className="max-w-sm text-muted-foreground">
               {labels.easyReturnsDescription}
             </p>
           </div>
@@ -153,10 +153,10 @@ function ShippingInfoTab() {
 
 function MorphingTrigger() {
   return (
-    <div className="text-text-subtle hover:bg-surface-muted rounded-lg relative p-1.5">
+    <div className="text-muted-foreground hover:bg-muted rounded-lg relative p-1.5">
       <div className="h-5 w-5">
-        <span className="bg-text-subtle rounded-full absolute inset-y-[31.75%] left-[48%] right-1/2 w-[1.5px] transition-transform duration-300 group-data-[state=open]:rotate-90" />
-        <span className="bg-text-subtle rounded-full absolute inset-x-[31.75%] top-[48%] bottom-1/2 h-[1.5px] transition-transform duration-300 group-data-[state=open]:rotate-90 group-data-[state=open]:left-1/2 group-data-[state=open]:right-1/2" />
+        <span className="bg-muted-foreground rounded-full absolute inset-y-[31.75%] left-[48%] right-1/2 w-[1.5px] transition-transform duration-300 group-data-[state=open]:rotate-90" />
+        <span className="bg-muted-foreground rounded-full absolute inset-x-[31.75%] top-[48%] bottom-1/2 h-[1.5px] transition-transform duration-300 group-data-[state=open]:rotate-90 group-data-[state=open]:left-1/2 group-data-[state=open]:right-1/2" />
       </div>
     </div>
   )

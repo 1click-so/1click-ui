@@ -10,15 +10,15 @@ export function PreviewPrice({ price }: { price: VariantPrice }) {
     <>
       {price.price_type === "sale" && (
         <span
-          className="line-through text-text-muted text-sm"
+          className="line-through text-muted-foreground text-sm"
           data-testid="original-price"
         >
           {price.original_price}
         </span>
       )}
       <span
-        className={cn("text-text-muted text-sm", {
-          "text-accent": price.price_type === "sale",
+        className={cn("text-muted-foreground text-sm", {
+          "text-primary": price.price_type === "sale",
         })}
         data-testid="price"
       >

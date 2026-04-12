@@ -64,15 +64,15 @@ export function OrderSummary({
   return (
     <div>
       <div className="flex items-baseline justify-between mb-4">
-        <h2 className="text-lg font-semibold text-text-base tracking-tight">
+        <h2 className="text-lg font-semibold text-foreground tracking-tight">
           {labels.orderSummary}
         </h2>
-        <span className="text-sm text-text-subtle">
+        <span className="text-sm text-muted-foreground">
           {itemCount} {labels.items}
         </span>
       </div>
 
-      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         <div className="px-6 pt-5 space-y-5">
           {items
             .slice()
@@ -94,16 +94,16 @@ export function OrderSummary({
 
         <div className="px-6 space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-text-muted">{labels.subtotal}</span>
+            <span className="text-muted-foreground">{labels.subtotal}</span>
             <DualPrice
               amount={cart.item_total ?? 0}
               currencyCode={cart.currency_code}
-              className="font-medium text-text-base"
+              className="font-medium text-foreground"
             />
           </div>
 
           <div className="flex justify-between text-sm">
-            <span className="text-text-muted">{labels.shipping}</span>
+            <span className="text-muted-foreground">{labels.shipping}</span>
             {shippingKnown ? (
               shippingCost === 0 ? (
                 <span className="font-medium text-success">
@@ -113,11 +113,11 @@ export function OrderSummary({
                 <DualPrice
                   amount={shippingCost ?? 0}
                   currencyCode={cart.currency_code}
-                  className="font-medium text-text-base"
+                  className="font-medium text-foreground"
                 />
               )
             ) : (
-              <span className="font-medium text-text-base">
+              <span className="font-medium text-foreground">
                 {labels.shippingCalc}
               </span>
             )}
@@ -137,10 +137,10 @@ export function OrderSummary({
           )}
 
           <div className="flex justify-between text-sm">
-            <span className="text-text-muted flex items-center gap-1 relative group">
+            <span className="text-muted-foreground flex items-center gap-1 relative group">
               {labels.tax}
               <svg
-                className="w-3.5 h-3.5 text-text-subtle cursor-help"
+                className="w-3.5 h-3.5 text-muted-foreground cursor-help"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -152,25 +152,25 @@ export function OrderSummary({
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span className="absolute left-0 bottom-full mb-1.5 px-2.5 py-1.5 text-xs text-surface bg-text-base rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
+              <span className="absolute left-0 bottom-full mb-1.5 px-2.5 py-1.5 text-xs text-card bg-foreground rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
                 {labels.taxTooltip}
               </span>
             </span>
             <DualPrice
               amount={cart.tax_total ?? 0}
               currencyCode={cart.currency_code}
-              className="font-medium text-text-base"
+              className="font-medium text-foreground"
             />
           </div>
         </div>
 
         <div className="mx-6 mt-4 pt-4 border-t border-border">
           <div className="flex justify-between items-center">
-            <span className="text-lg font-bold text-text-base">
+            <span className="text-lg font-bold text-foreground">
               {labels.total}
             </span>
             <div className="text-right">
-              <span className="text-2xl font-bold text-text-base tracking-tight">
+              <span className="text-2xl font-bold text-foreground tracking-tight">
                 {convertToLocale({
                   amount: displayTotal ?? 0,
                   currency_code: cart.currency_code,
@@ -180,7 +180,7 @@ export function OrderSummary({
           </div>
         </div>
 
-        <div className="px-6 pb-5 pt-4 flex items-center justify-center gap-2 text-xs text-text-subtle">
+        <div className="px-6 pb-5 pt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <svg
             className="w-3.5 h-3.5"
             fill="none"

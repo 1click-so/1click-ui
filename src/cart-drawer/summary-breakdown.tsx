@@ -23,24 +23,24 @@ export function CartSummaryBreakdown() {
   return (
     <div className="px-6 py-5">
       <div className="flex justify-between items-center">
-        <span className="text-[15px] font-bold text-text-base">
+        <span className="text-[15px] font-bold text-foreground">
           {labels.subtotal}
         </span>
         <div className="flex items-center gap-2">
           {hasDiscount && (
-            <span className="text-[13px] text-text-subtle line-through">
+            <span className="text-[13px] text-muted-foreground line-through">
               {convertToLocale({
                 amount: subtotal + discount,
                 currency_code: currencyCode,
               })}
             </span>
           )}
-          <span className="text-[17px] font-bold text-text-base tracking-tight">
+          <span className="text-[17px] font-bold text-foreground tracking-tight">
             {convertToLocale({ amount: subtotal, currency_code: currencyCode })}
           </span>
         </div>
       </div>
-      <p className="text-[11px] text-text-subtle mt-1.5">
+      <p className="text-[11px] text-muted-foreground mt-1.5">
         {labels.shippingAndTaxCalculatedAtCheckout}
       </p>
     </div>

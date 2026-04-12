@@ -42,10 +42,10 @@ export const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>
           value={value}
           className={cn(
             "w-full h-[44px] px-3 pt-[14px] pb-[2px] pr-9 text-sm rounded-lg border transition-colors duration-150 appearance-none outline-none",
-            "focus:border-accent focus:bg-accent/5",
+            "focus:border-primary focus:bg-primary/5",
             disabled
-              ? "bg-surface-muted border-border text-text-subtle cursor-not-allowed"
-              : "bg-surface border-border text-text-base hover:border-text-subtle"
+              ? "bg-muted border-border text-muted-foreground cursor-not-allowed"
+              : "bg-card border-border text-foreground hover:border-muted-foreground"
           )}
           {...props}
         >
@@ -55,14 +55,14 @@ export const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>
           className={cn(
             "absolute pointer-events-none left-3 top-[14px] text-sm leading-4 origin-top-left",
             "transition-transform transition-colors duration-150 ease-out",
-            hasValue ? "text-text-muted" : "text-text-subtle",
+            hasValue ? "text-muted-foreground" : "text-muted-foreground",
             hasValue ? "-translate-y-2 scale-[0.77]" : "translate-y-0 scale-100"
           )}
         >
           {label}
         </span>
         <svg
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-subtle pointer-events-none"
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

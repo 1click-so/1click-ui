@@ -31,7 +31,7 @@ export function CollectionTemplate({
       </div>
       <div className="w-full">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-text-base">
+          <h1 className="text-2xl font-semibold text-foreground">
             {collection.title}
           </h1>
         </div>

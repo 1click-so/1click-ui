@@ -139,7 +139,7 @@ export function CartDrawerTemplate({
             />
           )}
 
-          <div className="flex-1 overflow-y-auto no-scrollbar relative z-0 bg-surface">
+          <div className="flex-1 overflow-y-auto no-scrollbar relative z-0 bg-card">
             {items
               .slice()
               .sort((a, b) =>

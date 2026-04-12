@@ -27,7 +27,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
 
   return (
     <div className="flex flex-col gap-y-3">
-      <span className="text-sm text-text-base">
+      <span className="text-sm text-foreground">
         {labels.selectOption} {title}
       </span>
       <div
@@ -39,9 +39,9 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
             onClick={() => updateOption(option.id, v!)}
             key={v}
             className={cn(
-              "border border-border bg-surface-muted text-sm h-10 rounded-lg p-2 flex-1",
+              "border border-border bg-muted text-sm h-10 rounded-lg p-2 flex-1",
               {
-                "border-accent": v === current,
+                "border-primary": v === current,
                 "hover:shadow-sm transition-shadow ease-in-out duration-150":
                   v !== current,
               }

@@ -35,7 +35,7 @@ export function CompanyDetails({ formData, onChange, onBlur }: CompanyDetailsPro
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm text-text-muted hover:text-text-base transition-colors"
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <svg
           className={cn(

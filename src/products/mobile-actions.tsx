@@ -60,26 +60,26 @@ const MobileActions: React.FC<MobileActionsProps> = ({
       >
         <div
           className={cn(
-            "bg-surface flex flex-col gap-y-3 justify-center items-center p-4 h-full w-full border-t border-border transition-all duration-300",
+            "bg-card flex flex-col gap-y-3 justify-center items-center p-4 h-full w-full border-t border-border transition-all duration-300",
             show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full"
           )}
           data-testid="mobile-actions"
         >
           <div className="flex items-center gap-x-2">
-            <span className="text-text-base" data-testid="mobile-title">
+            <span className="text-foreground" data-testid="mobile-title">
               {product.title}
             </span>
-            <span className="text-text-subtle">—</span>
+            <span className="text-muted-foreground">—</span>
             {selectedPrice ? (
-              <div className="flex items-end gap-x-2 text-text-base">
+              <div className="flex items-end gap-x-2 text-foreground">
                 {selectedPrice.price_type === "sale" && (
-                  <span className="line-through text-sm text-text-muted">
+                  <span className="line-through text-sm text-muted-foreground">
                     {selectedPrice.original_price}
                   </span>
                 )}
                 <span
                   className={cn({
-                    "text-accent": selectedPrice.price_type === "sale",
+                    "text-primary": selectedPrice.price_type === "sale",
                   })}
                 >
                   {selectedPrice.calculated_price}
@@ -133,20 +133,20 @@ const MobileActions: React.FC<MobileActionsProps> = ({
       {state && (
         <div className="fixed inset-0 z-[75]">
           <div
-            className="fixed inset-0 bg-text-base/75 backdrop-blur-sm"
+            className="fixed inset-0 bg-foreground/75 backdrop-blur-sm"
             onClick={close}
           />
           <div className="fixed bottom-0 inset-x-0">
             <div className="w-full flex justify-end pr-6 mb-4">
               <button
                 onClick={close}
-                className="bg-surface w-12 h-12 rounded-full text-text-base flex justify-center items-center"
+                className="bg-card w-12 h-12 rounded-full text-foreground flex justify-center items-center"
                 data-testid="close-modal-button"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="bg-surface px-6 py-12 rounded-t-2xl">
+            <div className="bg-card px-6 py-12 rounded-t-2xl">
               {(product.variants?.length ?? 0) > 1 && (
                 <div className="flex flex-col gap-y-6">
                   {(product.options || []).map((option) => (

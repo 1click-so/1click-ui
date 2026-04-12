@@ -19,10 +19,10 @@ export function CartItemVariant({ variant }: CartItemVariantProps) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {variant.options.map((opt, i) => (
-        <span key={i} className="text-xs text-text-muted">
+        <span key={i} className="text-xs text-muted-foreground">
           {opt.value}
           {i < (variant.options?.length || 0) - 1 && (
-            <span className="ml-2 text-text-subtle">/</span>
+            <span className="ml-2 text-muted-foreground">/</span>
           )}
         </span>
       ))}

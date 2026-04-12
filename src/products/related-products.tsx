@@ -42,10 +42,10 @@ export async function RelatedProducts({
   return (
     <div>
       <div className="flex flex-col items-center text-center mb-16">
-        <span className="text-sm text-text-muted mb-6">
+        <span className="text-sm text-muted-foreground mb-6">
           {l.relatedProducts}
         </span>
-        <p className="text-2xl text-text-base max-w-lg">
+        <p className="text-2xl text-foreground max-w-lg">
           {l.relatedProductsDescription}
         </p>
       </div>

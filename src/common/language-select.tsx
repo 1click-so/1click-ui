@@ -34,7 +34,7 @@ export function LanguageSelect({
       disabled={isPending}
       className={
         className ??
-        "text-sm text-text-base bg-surface border border-border rounded-lg px-3 py-2 disabled:opacity-50"
+        "text-sm text-foreground bg-card border border-border rounded-lg px-3 py-2 disabled:opacity-50"
       }
     >
       {locales.map((locale) => (

@@ -37,12 +37,12 @@ export function CartTieredProgress({
 
   return (
     <div
-      className="px-6 pt-4 pb-5 flex-shrink-0 relative z-10 bg-surface border-b border-border"
+      className="px-6 pt-4 pb-5 flex-shrink-0 relative z-10 bg-card border-b border-border"
       style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}
     >
       {nextTier ? (
-        <p className="text-[13px] text-text-muted mb-4">
-          <span className="font-bold text-text-base">
+        <p className="text-[13px] text-muted-foreground mb-4">
+          <span className="font-bold text-foreground">
             {convertToLocale({
               amount: nextTier.threshold - subtotal,
               currency_code: currencyCode,
@@ -57,15 +57,15 @@ export function CartTieredProgress({
       )}
 
       <div className="relative px-3">
-        <div className="h-2 bg-surface-muted rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-700 ease-out"
             style={{
               width: `${progressPercent}%`,
               background:
                 progressPercent >= 100
-                  ? "linear-gradient(90deg, hsl(var(--color-success)), hsl(var(--color-success) / 0.7))"
-                  : "linear-gradient(90deg, hsl(var(--color-text-base)), hsl(var(--color-text-base) / 0.75))",
+                  ? "linear-gradient(90deg, hsl(var(--success)), hsl(var(--success) / 0.7))"
+                  : "linear-gradient(90deg, hsl(var(--foreground)), hsl(var(--foreground) / 0.75))",
             }}
           />
         </div>
@@ -82,7 +82,7 @@ export function CartTieredProgress({
             >
               <div
                 className={`w-5 h-5 rounded-full flex items-center justify-center -translate-x-1/2 -translate-y-[6px] border-[2.5px] border-surface ${
-                  achieved ? "bg-success" : "bg-surface-muted"
+                  achieved ? "bg-success" : "bg-muted"
                 }`}
               >
                 {achieved && (
@@ -103,14 +103,14 @@ export function CartTieredProgress({
               <div className="-translate-x-1/2 mt-1.5 whitespace-nowrap text-center">
                 <span
                   className={`text-[10px] block leading-tight font-medium ${
-                    achieved ? "text-success" : "text-text-subtle"
+                    achieved ? "text-success" : "text-muted-foreground"
                   }`}
                 >
                   {tier.label}
                 </span>
                 <span
                   className={`text-[10px] block leading-tight tabular-nums ${
-                    achieved ? "text-success" : "text-text-subtle"
+                    achieved ? "text-success" : "text-muted-foreground"
                   }`}
                 >
                   {convertToLocale({

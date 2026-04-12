@@ -29,7 +29,7 @@ import { NextResponse, type NextRequest } from "next/server"
  *   - NEXT_PUBLIC_DEFAULT_REGION (optional, defaults to "us")
  */
 
-const BACKEND_URL = process.env.MEDUSA_BACKEND_URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || process.env.MEDUSA_BACKEND_URL
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"
 

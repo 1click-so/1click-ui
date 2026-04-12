@@ -15,7 +15,7 @@ type CartPromoBannerProps = {
 }
 
 const variantStyles = {
-  info: "bg-text-base text-surface",
+  info: "bg-foreground text-card",
   success: "bg-success/10 text-success",
   warning: "bg-warning/10 text-warning",
 }

@@ -21,29 +21,29 @@ export function CartStickyFooter() {
 
   return (
     <div
-      className="flex-shrink-0 bg-surface px-5 sm:px-6 pt-4 sm:pt-5 relative z-10"
+      className="flex-shrink-0 bg-card px-5 sm:px-6 pt-4 sm:pt-5 relative z-10"
       style={{
         boxShadow: "0 -4px 12px rgba(0,0,0,0.04)",
         paddingBottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))",
       }}
     >
       <div className="flex items-baseline justify-between mb-1">
-        <span className="text-[15px] font-bold text-text-base">
+        <span className="text-[15px] font-bold text-foreground">
           {labels.subtotal}
         </span>
         <DualPrice
           amount={total}
           currencyCode={currencyCode}
-          className="text-xl font-bold text-text-base tracking-tight"
+          className="text-xl font-bold text-foreground tracking-tight"
         />
       </div>
-      <p className="text-[11px] text-text-subtle mb-3.5 sm:mb-4">
+      <p className="text-[11px] text-muted-foreground mb-3.5 sm:mb-4">
         {labels.taxAndShipping}
       </p>
       <Link href={hrefs.checkout} onClick={close}>
         <button
           type="button"
-          className="w-full h-[52px] bg-text-base hover:bg-text-base/90 active:bg-text-base/95 text-surface text-[15px] sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2.5 transition-colors active:scale-[0.98]"
+          className="w-full h-[52px] bg-foreground hover:bg-foreground/90 active:bg-foreground/95 text-card text-[15px] sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2.5 transition-colors active:scale-[0.98]"
         >
           <svg
             width="16"

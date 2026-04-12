@@ -78,17 +78,17 @@ export function CheckoutShippingMethodList({
         !addressReady && "opacity-30 pointer-events-none select-none"
       )}
     >
-      <h2 className="text-lg font-semibold text-text-base mb-4 tracking-tight">
+      <h2 className="text-lg font-semibold text-foreground mb-4 tracking-tight">
         {labels.shippingServices}
       </h2>
 
       {!addressReady ? (
-        <div className="p-4 bg-surface-muted rounded-lg border border-border">
-          <p className="text-sm text-text-muted">{labels.deliveryDisabled}</p>
+        <div className="p-4 bg-muted rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground">{labels.deliveryDisabled}</p>
         </div>
       ) : shippingMethods.length === 0 ? (
-        <div className="p-4 bg-surface-muted rounded-lg border border-border">
-          <p className="text-sm text-text-muted">{labels.noShippingOptions}</p>
+        <div className="p-4 bg-muted rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground">{labels.noShippingOptions}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -112,8 +112,8 @@ export function CheckoutShippingMethodList({
                 className={cn(
                   "rounded-lg border overflow-hidden transition-colors duration-150",
                   selected
-                    ? "border-accent bg-accent/5"
-                    : "border-border bg-surface hover:border-text-subtle"
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-card hover:border-muted-foreground"
                 )}
               >
                 <button
@@ -128,19 +128,19 @@ export function CheckoutShippingMethodList({
                   <div
                     className={cn(
                       "w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center flex-shrink-0 mr-3 transition-colors",
-                      selected ? "border-accent" : "border-border"
+                      selected ? "border-primary" : "border-border"
                     )}
                   >
                     {selected && (
-                      <div className="w-2 h-2 rounded-full bg-accent" />
+                      <div className="w-2 h-2 rounded-full bg-primary" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-text-base">
+                    <span className="text-sm font-medium text-foreground">
                       {option.name}
                     </span>
                     {selected && isEcontOffice && econt?.selectedOffice && (
-                      <p className="text-xs text-text-muted mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {econt.selectedOffice.name}
                       </p>
                     )}
@@ -148,7 +148,7 @@ export function CheckoutShippingMethodList({
                   <span
                     className={cn(
                       "text-sm font-semibold ml-4 flex-shrink-0",
-                      isFree ? "text-success" : "text-text-base"
+                      isFree ? "text-success" : "text-foreground"
                     )}
                   >
                     {price !== undefined ? (
@@ -159,7 +159,7 @@ export function CheckoutShippingMethodList({
                       )
                     ) : isLoadingPrices ? (
                       <svg
-                        className="animate-spin w-4 h-4 text-text-subtle"
+                        className="animate-spin w-4 h-4 text-muted-foreground"
                         fill="none"
                         viewBox="0 0 24 24"
                       >

@@ -49,18 +49,18 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
   return (
     <div
       className={cn(
-        "relative flex gap-4 p-4 rounded-xl border border-border bg-surface-muted/50 transition-opacity",
+        "relative flex gap-4 p-4 rounded-xl border border-border bg-muted/50 transition-opacity",
         updating && "opacity-40 pointer-events-none"
       )}
     >
       <button
         type="button"
         onClick={handleRemove}
-        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-surface-muted hover:bg-border flex items-center justify-center transition-colors group"
+        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-muted hover:bg-border flex items-center justify-center transition-colors group"
         aria-label={labels.remove}
       >
         <svg
-          className="w-3 h-3 text-text-muted group-hover:text-text-base"
+          className="w-3 h-3 text-muted-foreground group-hover:text-foreground"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -74,7 +74,7 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
         </svg>
       </button>
 
-      <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-surface border border-border">
+      <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-card border border-border">
         {item.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -85,7 +85,7 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg
-              className="w-6 h-6 text-text-subtle"
+              className="w-6 h-6 text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -100,18 +100,18 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
           </div>
         )}
         {item.quantity > 1 && (
-          <span className="absolute -bottom-1 -left-1 w-5 h-5 text-[10px] font-bold rounded-full bg-text-base text-surface flex items-center justify-center shadow-sm">
+          <span className="absolute -bottom-1 -left-1 w-5 h-5 text-[10px] font-bold rounded-full bg-foreground text-card flex items-center justify-center shadow-sm">
             {item.quantity}
           </span>
         )}
       </div>
 
       <div className="flex-1 min-w-0 pr-5">
-        <p className="text-sm font-semibold text-text-base leading-tight truncate">
+        <p className="text-sm font-semibold text-foreground leading-tight truncate">
           {item.product_title}
         </p>
         {item.variant?.title && item.variant.title !== "Default" && (
-          <p className="text-xs text-text-muted mt-1">{item.variant.title}</p>
+          <p className="text-xs text-muted-foreground mt-1">{item.variant.title}</p>
         )}
 
         <div className="flex items-center gap-2 mt-2.5">
@@ -119,7 +119,7 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
             <select
               value={item.quantity}
               onChange={(e) => handleQty(parseInt(e.target.value, 10))}
-              className="h-8 pl-2.5 pr-7 text-xs font-medium border border-border rounded-lg bg-surface text-text-base appearance-none cursor-pointer hover:border-text-subtle transition-colors focus:outline-none focus:ring-1 focus:ring-accent/20"
+              className="h-8 pl-2.5 pr-7 text-xs font-medium border border-border rounded-lg bg-card text-foreground appearance-none cursor-pointer hover:border-muted-foreground transition-colors focus:outline-none focus:ring-1 focus:ring-primary/20"
             >
               {Array.from({ length: 10 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -128,7 +128,7 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
               ))}
             </select>
             <svg
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-subtle pointer-events-none"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -148,7 +148,7 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
         <DualPrice
           amount={total}
           currencyCode={currencyCode}
-          className="text-sm font-bold text-text-base"
+          className="text-sm font-bold text-foreground"
         />
       </div>
     </div>

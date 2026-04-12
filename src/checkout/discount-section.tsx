@@ -56,11 +56,11 @@ export function DiscountSection({ cart }: DiscountSectionProps) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-3 w-full p-4 rounded-xl border border-border bg-surface-muted/50 hover:bg-surface-muted transition-colors"
+        className="flex items-center gap-3 w-full p-4 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-colors"
       >
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-warning to-warning/70 flex items-center justify-center flex-shrink-0">
           <svg
-            className="w-5 h-5 text-surface"
+            className="w-5 h-5 text-card"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -79,16 +79,16 @@ export function DiscountSection({ cart }: DiscountSectionProps) {
           </svg>
         </div>
         <div className="flex-1 text-left">
-          <p className="text-sm font-semibold text-text-base">
+          <p className="text-sm font-semibold text-foreground">
             {labels.discountCode}
           </p>
-          <p className="text-xs text-text-muted">{labels.discountSub}</p>
+          <p className="text-xs text-muted-foreground">{labels.discountSub}</p>
         </div>
-        <span className="text-sm font-medium text-text-base flex items-center gap-1.5">
+        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
           {labels.addCode}
           <svg
             className={cn(
-              "w-4 h-4 text-text-subtle transition-transform duration-200",
+              "w-4 h-4 text-muted-foreground transition-transform duration-200",
               open && "rotate-180"
             )}
             fill="none"
@@ -112,20 +112,20 @@ export function DiscountSection({ cart }: DiscountSectionProps) {
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="PROMO2024"
-            className="flex-1 h-11 px-4 text-sm bg-surface border border-border rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+            className="flex-1 h-11 px-4 text-sm bg-card border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
           />
           <button
             type="button"
             onClick={handleApply}
             disabled={loading || !code.trim()}
-            className="px-5 h-11 text-sm font-semibold bg-text-base text-surface rounded-xl hover:bg-text-base/90 transition-all disabled:opacity-40"
+            className="px-5 h-11 text-sm font-semibold bg-foreground text-card rounded-xl hover:bg-foreground/90 transition-all disabled:opacity-40"
           >
             {labels.addCode}
           </button>
         </div>
       )}
 
-      {error && <p className="text-xs text-danger mt-2">{error}</p>}
+      {error && <p className="text-xs text-destructive mt-2">{error}</p>}
 
       {promotions.length > 0 && (
         <div className="mt-3 space-y-1.5">

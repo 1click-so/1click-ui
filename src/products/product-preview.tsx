@@ -25,7 +25,7 @@ export function ProductPreview({
           isFeatured={isFeatured}
         />
         <div className="flex text-sm mt-4 justify-between">
-          <span className="text-text-subtle" data-testid="product-title">
+          <span className="text-muted-foreground" data-testid="product-title">
             {product.title}
           </span>
           <div className="flex items-center gap-x-2">

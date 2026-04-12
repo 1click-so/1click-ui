@@ -44,7 +44,7 @@ export function SortSelect({
 
   return (
     <div className="flex flex-col gap-y-3" data-testid={dataTestId}>
-      <span className="text-sm font-medium text-text-muted">{l.sortBy}</span>
+      <span className="text-sm font-medium text-muted-foreground">{l.sortBy}</span>
       <div className="flex flex-col gap-y-1">
         {sortOptions.map((option) => (
           <button
@@ -53,8 +53,8 @@ export function SortSelect({
             className={cn(
               "text-sm text-left px-2 py-1.5 rounded-md transition-colors",
               option.value === sortBy
-                ? "text-text-base font-medium bg-surface-muted"
-                : "text-text-subtle hover:text-text-base hover:bg-surface-muted"
+                ? "text-foreground font-medium bg-muted"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             )}
           >
             {option.label}

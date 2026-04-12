@@ -58,10 +58,10 @@ export const Field = React.forwardRef<HTMLInputElement, FieldProps>(
           className={cn(
             "w-full h-[44px] px-3 pt-[14px] pb-[2px] text-sm rounded-lg border",
             "transition-colors duration-150 outline-none",
-            "focus:border-accent focus:bg-accent/5",
+            "focus:border-primary focus:bg-primary/5",
             disabled
-              ? "bg-surface-muted border-border text-text-subtle cursor-not-allowed"
-              : "bg-surface border-border text-text-base hover:border-text-subtle"
+              ? "bg-muted border-border text-muted-foreground cursor-not-allowed"
+              : "bg-card border-border text-foreground hover:border-muted-foreground"
           )}
           {...props}
         />
@@ -69,7 +69,7 @@ export const Field = React.forwardRef<HTMLInputElement, FieldProps>(
           className={cn(
             "absolute pointer-events-none left-3 top-[14px] text-sm leading-4 origin-top-left",
             "transition-transform transition-colors duration-150 ease-out",
-            isActive ? "text-text-muted" : "text-text-subtle",
+            isActive ? "text-muted-foreground" : "text-muted-foreground",
             isActive ? "-translate-y-2 scale-[0.77]" : "translate-y-0 scale-100"
           )}
         >

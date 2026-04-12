@@ -8,10 +8,10 @@ export function SkeletonProductGrid({
       {Array.from({ length: numberOfProducts }).map((_, i) => (
         <li key={i}>
           <div className="animate-pulse">
-            <div className="aspect-[9/16] w-full bg-surface-muted rounded-lg" />
+            <div className="aspect-[9/16] w-full bg-muted rounded-lg" />
             <div className="flex justify-between mt-4">
-              <div className="h-4 w-24 bg-surface-muted rounded" />
-              <div className="h-4 w-16 bg-surface-muted rounded" />
+              <div className="h-4 w-24 bg-muted rounded" />
+              <div className="h-4 w-16 bg-muted rounded" />
             </div>
           </div>
         </li>

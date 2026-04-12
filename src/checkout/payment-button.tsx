@@ -52,10 +52,10 @@ function OrderButton({
       disabled={disabled}
       data-testid={testId}
       className={cn(
-        "w-full h-14 bg-text-base text-surface text-base font-semibold rounded-xl",
+        "w-full h-14 bg-foreground text-card text-base font-semibold rounded-xl",
         "flex items-center justify-center gap-2.5 transition-all",
-        "hover:bg-text-base/90 active:scale-[0.99]",
-        "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-text-base"
+        "hover:bg-foreground/90 active:scale-[0.99]",
+        "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-foreground"
       )}
     >
       {loading ? (
@@ -98,7 +98,7 @@ function OrderButton({
                   amount={total}
                   currencyCode={currencyCode}
                   className="font-semibold"
-                  bgnClassName="text-surface/70 text-[11px] ml-1"
+                  bgnClassName="text-card/70 text-[11px] ml-1"
                 />
               </span>
             )}
@@ -145,7 +145,7 @@ export function PaymentButton({ cart, "data-testid": dataTestId }: PaymentButton
     <button
       type="button"
       disabled
-      className="w-full h-14 bg-surface-muted text-text-muted text-base font-semibold rounded-xl cursor-not-allowed"
+      className="w-full h-14 bg-muted text-muted-foreground text-base font-semibold rounded-xl cursor-not-allowed"
     >
       {labels.selectPaymentMethod}
     </button>

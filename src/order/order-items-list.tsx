@@ -13,7 +13,7 @@ export function OrderItemsList({ order, labels }: OrderItemsListProps) {
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-text-base mb-1">
+      <h2 className="text-sm font-semibold text-foreground mb-1">
         {l.summary}
       </h2>
       <div className="divide-y divide-border">

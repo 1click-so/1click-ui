@@ -58,7 +58,7 @@ export function CartItem({ item, currencyCode, children }: CartItemProps) {
       <div className="flex gap-4">
         <Link href={productHref} className="flex-shrink-0">
           <div
-            className="w-[64px] h-[84px] sm:w-[72px] sm:h-[72px] rounded-xl overflow-hidden bg-surface-muted relative"
+            className="w-[64px] h-[84px] sm:w-[72px] sm:h-[72px] rounded-xl overflow-hidden bg-muted relative"
             style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
           >
             {item.thumbnail ? (
@@ -77,7 +77,7 @@ export function CartItem({ item, currencyCode, children }: CartItemProps) {
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  className="text-text-subtle"
+                  className="text-muted-foreground"
                   strokeWidth="1.2"
                 >
                   <rect x="3" y="3" width="18" height="18" rx="3" />
@@ -98,7 +98,7 @@ export function CartItem({ item, currencyCode, children }: CartItemProps) {
             <div className="min-w-0">
               <Link
                 href={productHref}
-                className="text-sm font-semibold text-text-base hover:text-text-muted transition-colors line-clamp-2 leading-snug block"
+                className="text-sm font-semibold text-foreground hover:text-muted-foreground transition-colors line-clamp-2 leading-snug block"
               >
                 {item.product_title}
               </Link>
@@ -106,11 +106,11 @@ export function CartItem({ item, currencyCode, children }: CartItemProps) {
             </div>
             <div className="text-right flex-shrink-0">
               {hasDiscount && (
-                <span className="text-xs text-text-subtle line-through block leading-none mb-0.5">
+                <span className="text-xs text-muted-foreground line-through block leading-none mb-0.5">
                   <DualPrice
                     amount={originalTotal}
                     currencyCode={currencyCode}
-                    className="text-xs text-text-subtle"
+                    className="text-xs text-muted-foreground"
                     bgnClassName="hidden"
                   />
                 </span>
@@ -120,9 +120,9 @@ export function CartItem({ item, currencyCode, children }: CartItemProps) {
                 currencyCode={currencyCode}
                 className={cn(
                   "text-sm font-bold",
-                  hasDiscount ? "text-success" : "text-text-base"
+                  hasDiscount ? "text-success" : "text-foreground"
                 )}
-                bgnClassName="text-text-subtle text-[10px] ml-1"
+                bgnClassName="text-muted-foreground text-[10px] ml-1"
               />
             </div>
           </div>
@@ -132,7 +132,7 @@ export function CartItem({ item, currencyCode, children }: CartItemProps) {
             <button
               type="button"
               onClick={handleRemove}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-danger hover:bg-danger/10 transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
               aria-label={labels.remove}
             >
               <svg

@@ -20,19 +20,19 @@ export function OrderPaymentCard({ order, labels }: OrderPaymentCardProps) {
   }
 
   return (
-    <div className="bg-surface rounded-xl p-5 shadow-sm">
-      <h3 className="text-sm font-semibold text-text-base mb-3">
+    <div className="bg-card rounded-xl p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-foreground mb-3">
         {l.paymentMethod}
       </h3>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-surface-muted flex items-center justify-center text-text-muted">
+        <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
           {info.icon || <CreditCard className="w-[18px] h-[18px]" />}
         </div>
         <div>
-          <p className="text-sm text-text-base">{info.title}</p>
+          <p className="text-sm text-foreground">{info.title}</p>
           {isStripeLike(payment.provider_id) &&
             (payment as any).data?.card_last4 && (
-              <p className="text-xs text-text-subtle mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 **** **** **** {(payment as any).data.card_last4}
               </p>
             )}

@@ -14,20 +14,20 @@ export function CartDrawerHeader() {
   const totalItems = cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
 
   return (
-    <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 flex-shrink-0 bg-surface">
+    <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 flex-shrink-0 bg-card">
       <div className="flex items-center gap-2.5">
-        <h2 className="text-base sm:text-[17px] font-bold text-text-base tracking-tight">
+        <h2 className="text-base sm:text-[17px] font-bold text-foreground tracking-tight">
           {labels.yourCart}
         </h2>
         {totalItems > 0 && (
-          <span className="text-[11px] font-semibold text-text-muted bg-surface-muted rounded-full px-2.5 py-1 leading-none">
+          <span className="text-[11px] font-semibold text-muted-foreground bg-muted rounded-full px-2.5 py-1 leading-none">
             {totalItems} {totalItems === 1 ? labels.item : labels.items}
           </span>
         )}
       </div>
       <button
         onClick={close}
-        className="w-11 h-11 -mr-1.5 flex items-center justify-center rounded-full hover:bg-surface-muted active:bg-surface-muted transition-colors text-text-subtle hover:text-text-base"
+        className="w-11 h-11 -mr-1.5 flex items-center justify-center rounded-full hover:bg-muted active:bg-muted transition-colors text-muted-foreground hover:text-foreground"
         aria-label={labels.closeCart}
       >
         <svg

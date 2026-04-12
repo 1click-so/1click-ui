@@ -61,9 +61,9 @@ export function CartCrossSellCarousel({
   if (!products.length) return null
 
   return (
-    <div className="border-t border-border bg-surface-muted/50 py-4">
+    <div className="border-t border-border bg-muted/50 py-4">
       <div className="flex items-center justify-between px-5 sm:px-6 mb-3">
-        <h3 className="text-sm font-semibold text-text-base">
+        <h3 className="text-sm font-semibold text-foreground">
           {label ?? labels.youllLoveThis}
         </h3>
         <div className="hidden sm:flex items-center gap-1">
@@ -71,7 +71,7 @@ export function CartCrossSellCarousel({
             type="button"
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
-            className="w-8 h-8 flex items-center justify-center rounded-full border border-border text-text-muted hover:border-text-muted hover:text-text-base disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="w-8 h-8 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:border-text-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             aria-label="Scroll left"
           >
             <svg
@@ -91,7 +91,7 @@ export function CartCrossSellCarousel({
             type="button"
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
-            className="w-8 h-8 flex items-center justify-center rounded-full border border-border text-text-muted hover:border-text-muted hover:text-text-base disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="w-8 h-8 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:border-text-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             aria-label="Scroll right"
           >
             <svg
@@ -124,7 +124,7 @@ export function CartCrossSellCarousel({
           <div
             key={product.id}
             className={cn(
-              "flex-shrink-0 w-[260px] bg-surface rounded-xl border border-border p-2.5",
+              "flex-shrink-0 w-[260px] bg-card rounded-xl border border-border p-2.5",
               "flex gap-3 items-center snap-start"
             )}
             style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
@@ -133,7 +133,7 @@ export function CartCrossSellCarousel({
               href={`${hrefs.productPrefix}/${product.handle}`}
               className="flex-shrink-0"
             >
-              <div className="w-14 h-14 rounded-lg overflow-hidden bg-surface-muted relative">
+              <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted relative">
                 {product.thumbnail ? (
                   <Image
                     src={product.thumbnail}
@@ -150,7 +150,7 @@ export function CartCrossSellCarousel({
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      className="text-text-subtle"
+                      className="text-muted-foreground"
                       strokeWidth="1.2"
                     >
                       <rect x="3" y="3" width="18" height="18" rx="3" />
@@ -169,22 +169,22 @@ export function CartCrossSellCarousel({
             <div className="flex-1 min-w-0">
               <Link
                 href={`${hrefs.productPrefix}/${product.handle}`}
-                className="text-[12px] font-semibold text-text-base line-clamp-1 leading-snug hover:text-text-muted transition-colors block"
+                className="text-[12px] font-semibold text-foreground line-clamp-1 leading-snug hover:text-muted-foreground transition-colors block"
               >
                 {product.title}
               </Link>
               <DualPrice
                 amount={product.price}
                 currencyCode={product.currencyCode}
-                className="text-[13px] font-bold text-text-base block mt-0.5"
-                bgnClassName="text-text-subtle text-[10px] ml-1"
+                className="text-[13px] font-bold text-foreground block mt-0.5"
+                bgnClassName="text-muted-foreground text-[10px] ml-1"
               />
             </div>
 
             <button
               type="button"
               onClick={() => onAdd?.(product.id, product.variantId)}
-              className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-text-muted hover:border-text-base hover:text-text-base active:bg-surface-muted transition-all"
+              className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:border-text-base hover:text-foreground active:bg-muted transition-all"
               aria-label={`${labels.addToCart} ${product.title}`}
             >
               <svg

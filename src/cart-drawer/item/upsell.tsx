@@ -39,16 +39,16 @@ export function CartItemUpsell({
 
   return (
     <div className="mt-3 pt-3 border-t border-border">
-      <p className="text-xs font-medium text-text-muted mb-2">
+      <p className="text-xs font-medium text-muted-foreground mb-2">
         {label ?? labels.pairsWellWith}
       </p>
       <div className="space-y-2">
         {products.map((product) => (
           <div
             key={product.id}
-            className="flex items-center gap-3 p-2 rounded-lg bg-surface-muted hover:bg-surface-muted/70 transition-colors"
+            className="flex items-center gap-3 p-2 rounded-lg bg-muted hover:bg-muted/70 transition-colors"
           >
-            <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface flex-shrink-0 relative">
+            <div className="w-10 h-10 rounded-lg overflow-hidden bg-card flex-shrink-0 relative">
               {product.thumbnail ? (
                 <Image
                   src={product.thumbnail}
@@ -58,17 +58,17 @@ export function CartItemUpsell({
                   sizes="40px"
                 />
               ) : (
-                <div className="w-full h-full bg-surface-muted" />
+                <div className="w-full h-full bg-muted" />
               )}
             </div>
             <div className="flex-1 min-w-0">
               <Link
                 href={`${hrefs.productPrefix}/${product.handle}`}
-                className="text-xs font-medium text-text-base truncate block"
+                className="text-xs font-medium text-foreground truncate block"
               >
                 {product.title}
               </Link>
-              <span className="text-xs text-text-muted">
+              <span className="text-xs text-muted-foreground">
                 {convertToLocale({
                   amount: product.price,
                   currency_code: product.currencyCode,
@@ -78,7 +78,7 @@ export function CartItemUpsell({
             <button
               type="button"
               onClick={() => onAdd?.(product.id)}
-              className="w-7 h-7 flex items-center justify-center rounded-full border border-border text-text-muted hover:border-text-base hover:text-text-base transition-colors flex-shrink-0"
+              className="w-7 h-7 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:border-text-base hover:text-foreground transition-colors flex-shrink-0"
               aria-label={`${labels.addToCart} ${product.title}`}
             >
               <svg

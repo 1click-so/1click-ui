@@ -51,7 +51,7 @@ export function CartItemQuantity({
         type="button"
         onClick={() => change(quantity - 1)}
         disabled={quantity <= 1}
-        className="w-9 h-full flex items-center justify-center text-text-muted hover:text-text-base disabled:text-text-subtle disabled:cursor-not-allowed transition-colors"
+        className="w-9 h-full flex items-center justify-center text-muted-foreground hover:text-foreground disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
         aria-label="Decrease quantity"
       >
         <svg
@@ -66,14 +66,14 @@ export function CartItemQuantity({
           <path d="M2.5 6h7" />
         </svg>
       </button>
-      <span className="w-8 text-center text-sm font-medium text-text-base tabular-nums select-none">
+      <span className="w-8 text-center text-sm font-medium text-foreground tabular-nums select-none">
         {quantity}
       </span>
       <button
         type="button"
         onClick={() => change(quantity + 1)}
         disabled={quantity >= maxQuantity}
-        className="w-9 h-full flex items-center justify-center text-text-muted hover:text-text-base disabled:text-text-subtle disabled:cursor-not-allowed transition-colors"
+        className="w-9 h-full flex items-center justify-center text-muted-foreground hover:text-foreground disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
         aria-label="Increase quantity"
       >
         <svg

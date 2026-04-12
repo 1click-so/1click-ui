@@ -18,7 +18,7 @@ export function ErrorMessage({
 }) {
   if (!error) return null
   return (
-    <div className="pt-2 text-danger text-xs" data-testid={dataTestid}>
+    <div className="pt-2 text-destructive text-xs" data-testid={dataTestid}>
       <span>{error}</span>
     </div>
   )

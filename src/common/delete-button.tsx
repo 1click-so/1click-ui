@@ -24,7 +24,7 @@ export function DeleteButton({ id, children, className }: DeleteButtonProps) {
   return (
     <div className={cn("flex items-center justify-between text-sm", className)}>
       <button
-        className="flex gap-x-1 text-text-subtle hover:text-text-base cursor-pointer"
+        className="flex gap-x-1 text-muted-foreground hover:text-foreground cursor-pointer"
         onClick={handleDelete}
       >
         {isDeleting ? (

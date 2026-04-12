@@ -16,21 +16,21 @@ export function OrderHelpSection({
   const l = { ...defaultOrderLabels, ...labels }
 
   return (
-    <div className="bg-surface rounded-xl p-5 shadow-sm">
-      <h3 className="text-sm font-semibold text-text-base mb-3">
+    <div className="bg-card rounded-xl p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-foreground mb-3">
         {l.needHelp}
       </h3>
       <div className="flex flex-col gap-2">
         <LocalizedLink
           href={contactHref}
-          className="flex items-center gap-2.5 text-sm text-text-muted hover:text-text-base transition-colors py-1"
+          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
         >
           <MessageSquare className="w-4 h-4" />
           {l.contactUs}
         </LocalizedLink>
         <LocalizedLink
           href={returnsHref}
-          className="flex items-center gap-2.5 text-sm text-text-muted hover:text-text-base transition-colors py-1"
+          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
         >
           <Undo2 className="w-4 h-4" />
           {l.returnsExchanges}

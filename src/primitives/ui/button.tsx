@@ -13,8 +13,8 @@ import { cn } from "../../lib/utils"
  * variants via CVA. Consumers can pass `asChild` to render as any element
  * (e.g. a `<Link>`) while preserving the styles.
  *
- * Colors are driven by semantic tokens from the tailwind preset — `bg-accent`,
- * `text-accent-fg`, etc. — so a store overriding `--color-accent` repaints all
+ * Colors are driven by semantic tokens from the tailwind preset — `bg-primary`,
+ * `text-primary-foreground`, etc. — so a store overriding `--primary` repaints all
  * primary buttons without touching library code.
  */
 
@@ -24,15 +24,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-accent text-accent-fg shadow hover:bg-accent/90",
+          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
         destructive:
-          "bg-danger text-accent-fg shadow-sm hover:bg-danger/90",
+          "bg-destructive text-primary-foreground shadow-sm hover:bg-destructive/90",
         outline:
-          "border border-border bg-surface shadow-sm hover:bg-surface-muted hover:text-text-base",
+          "border border-border bg-card shadow-sm hover:bg-muted hover:text-foreground",
         secondary:
-          "bg-surface-muted text-text-base shadow-sm hover:bg-surface-muted/80",
-        ghost: "hover:bg-surface-muted hover:text-text-base",
-        link: "text-accent underline-offset-4 hover:underline",
+          "bg-muted text-foreground shadow-sm hover:bg-muted/80",
+        ghost: "hover:bg-muted hover:text-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",

@@ -41,7 +41,7 @@ export function CartCrossSellSidebar({
   return (
     <div className="h-full flex flex-col">
       <div className="px-5 pt-6 pb-4">
-        <h3 className="text-xs font-bold text-text-base uppercase tracking-widest">
+        <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">
           {label ?? labels.youMightAlsoLike}
         </h3>
       </div>
@@ -49,13 +49,13 @@ export function CartCrossSellSidebar({
         {products.map((product) => (
           <div
             key={product.id}
-            className="bg-surface rounded-2xl p-3.5 transition-shadow hover:shadow-md"
+            className="bg-card rounded-2xl p-3.5 transition-shadow hover:shadow-md"
             style={{
               boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.08)",
             }}
           >
             <Link href={`${hrefs.productPrefix}/${product.handle}`}>
-              <div className="w-full aspect-square rounded-xl overflow-hidden bg-surface-muted relative mb-3">
+              <div className="w-full aspect-square rounded-xl overflow-hidden bg-muted relative mb-3">
                 {product.thumbnail ? (
                   <Image
                     src={product.thumbnail}
@@ -72,7 +72,7 @@ export function CartCrossSellSidebar({
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      className="text-text-subtle"
+                      className="text-muted-foreground"
                       strokeWidth="1.2"
                     >
                       <rect x="3" y="3" width="18" height="18" rx="3" />
@@ -89,11 +89,11 @@ export function CartCrossSellSidebar({
             </Link>
             <Link
               href={`${hrefs.productPrefix}/${product.handle}`}
-              className="text-[13px] font-semibold text-text-base leading-tight line-clamp-2 hover:text-text-muted transition-colors block"
+              className="text-[13px] font-semibold text-foreground leading-tight line-clamp-2 hover:text-muted-foreground transition-colors block"
             >
               {product.title}
             </Link>
-            <p className="text-sm font-semibold text-text-base mt-1.5">
+            <p className="text-sm font-semibold text-foreground mt-1.5">
               {convertToLocale({
                 amount: product.price,
                 currency_code: product.currencyCode,
@@ -102,7 +102,7 @@ export function CartCrossSellSidebar({
             <button
               type="button"
               onClick={() => onAdd?.(product.id, product.variantId)}
-              className="mt-3 w-full h-10 text-xs font-semibold text-text-base bg-surface border border-border rounded-xl hover:bg-text-base hover:text-surface hover:border-text-base transition-all flex items-center justify-center gap-1.5 active:scale-[0.97]"
+              className="mt-3 w-full h-10 text-xs font-semibold text-foreground bg-card border border-border rounded-xl hover:bg-foreground hover:text-card hover:border-text-base transition-all flex items-center justify-center gap-1.5 active:scale-[0.97]"
             >
               {labels.addToCart}
               <svg

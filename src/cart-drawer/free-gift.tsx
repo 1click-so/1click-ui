@@ -33,7 +33,7 @@ export function CartFreeGift({
     <div className="mx-5 my-3 p-4 rounded-xl border border-success/20 bg-success/5">
       <div className="flex items-start gap-3">
         {thumbnail && (
-          <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface flex-shrink-0 relative">
+          <div className="w-12 h-12 rounded-lg overflow-hidden bg-card flex-shrink-0 relative">
             <Image
               src={thumbnail}
               alt={title}
@@ -45,8 +45,8 @@ export function CartFreeGift({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text-base">{title}</span>
-            <span className="text-xs text-text-subtle line-through">
+            <span className="text-sm font-semibold text-foreground">{title}</span>
+            <span className="text-xs text-muted-foreground line-through">
               {convertToLocale({
                 amount: originalPrice,
                 currency_code: currencyCode,
@@ -57,7 +57,7 @@ export function CartFreeGift({
             </span>
           </div>
           {description && (
-            <p className="text-xs text-text-muted mt-1 leading-relaxed">
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               {description}
             </p>
           )}

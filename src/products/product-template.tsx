@@ -69,7 +69,7 @@ export function ProductTemplate({
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-[9/16] bg-surface-muted animate-pulse rounded-lg"
+                  className="aspect-[9/16] bg-muted animate-pulse rounded-lg"
                 />
               ))}
             </div>

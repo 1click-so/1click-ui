@@ -226,17 +226,17 @@ export function EcontOfficeSelector({
         }}
         className={cn(
           "flex items-start gap-3 w-full px-3.5 py-3 text-left transition-all duration-150 rounded-lg",
-          isSelected ? "bg-accent/10" : "bg-surface hover:bg-surface-muted"
+          isSelected ? "bg-primary/10" : "bg-card hover:bg-muted"
         )}
         style={
           isSelected
-            ? { boxShadow: "inset 0 0 0 1.5px hsl(var(--color-accent))" }
+            ? { boxShadow: "inset 0 0 0 1.5px hsl(var(--primary))" }
             : undefined
         }
       >
-        <div className="w-8 h-8 rounded-full bg-surface-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
           <svg
-            className="w-4 h-4 text-text-muted"
+            className="w-4 h-4 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -256,10 +256,10 @@ export function EcontOfficeSelector({
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-text-base leading-tight">
+          <p className="text-sm font-medium text-foreground leading-tight">
             {office.name}
           </p>
-          <p className="text-xs text-text-muted mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {office.address?.street}
             {office.address?.num ? ` ${office.address.num}` : ""}
             {office.address?.city?.name ? `, ${office.address.city.name}` : ""}
@@ -267,7 +267,7 @@ export function EcontOfficeSelector({
         </div>
 
         {distance !== null && distance > 0 && (
-          <span className="text-xs font-medium text-text-subtle flex-shrink-0 mt-1">
+          <span className="text-xs font-medium text-muted-foreground flex-shrink-0 mt-1">
             {formatDistance(distance)}
           </span>
         )}
@@ -280,7 +280,7 @@ export function EcontOfficeSelector({
     return (
       <div className="px-4 py-6 flex items-center justify-center">
         <div className="w-5 h-5 border-2 border-border border-t-text-muted rounded-full animate-spin" />
-        <span className="ml-2 text-sm text-text-muted">
+        <span className="ml-2 text-sm text-muted-foreground">
           {labels.econtLoadingOffices}
         </span>
       </div>
@@ -290,9 +290,9 @@ export function EcontOfficeSelector({
   return (
     <div className="px-4 pb-4 pt-2 space-y-3">
       {selectedOffice && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-accent/10 border border-accent/30 rounded-lg">
+        <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/30 rounded-lg">
           <svg
-            className="w-4 h-4 text-accent flex-shrink-0"
+            className="w-4 h-4 text-primary flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -304,11 +304,11 @@ export function EcontOfficeSelector({
               d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <p className="text-sm font-medium text-accent">{selectedOffice.name}</p>
+          <p className="text-sm font-medium text-primary">{selectedOffice.name}</p>
           <button
             type="button"
             onClick={() => onSelect(null)}
-            className="ml-auto text-xs text-accent hover:underline"
+            className="ml-auto text-xs text-primary hover:underline"
           >
             {labels.econtChange}
           </button>
@@ -317,7 +317,7 @@ export function EcontOfficeSelector({
 
       {!selectedOffice && nearestOffices.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
             {labels.econtNearestOffices}
           </p>
           <div className="space-y-1.5">
@@ -334,7 +334,7 @@ export function EcontOfficeSelector({
             <button
               type="button"
               onClick={() => setShowSearch(true)}
-              className="flex items-center gap-2 text-sm text-text-muted hover:text-text-base transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -355,7 +355,7 @@ export function EcontOfficeSelector({
             <div>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-subtle"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -372,7 +372,7 @@ export function EcontOfficeSelector({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={labels.econtSearchPlaceholder}
-                  className="w-full h-10 pl-9 pr-3 text-sm rounded-lg border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  className="w-full h-10 pl-9 pr-3 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   autoFocus
                 />
               </div>
@@ -384,7 +384,7 @@ export function EcontOfficeSelector({
               )}
 
               {search.trim().length >= 2 && searchResults.length === 0 && (
-                <p className="mt-2 text-xs text-text-subtle text-center py-3">
+                <p className="mt-2 text-xs text-muted-foreground text-center py-3">
                   {labels.econtNoResults} "{search}"
                 </p>
               )}

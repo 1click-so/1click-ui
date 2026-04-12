@@ -93,8 +93,8 @@ export function CartNotes({
               className={cn(
                 "flex items-center gap-1.5 text-xs font-medium px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors active:scale-[0.97]",
                 active
-                  ? "border-text-base bg-text-base text-surface"
-                  : "border-border text-text-muted hover:border-text-muted active:bg-surface-muted"
+                  ? "border-text-base bg-foreground text-card"
+                  : "border-border text-muted-foreground hover:border-text-muted active:bg-muted"
               )}
             >
               {config.icon}
@@ -114,7 +114,7 @@ export function CartNotes({
             onBlur={() => onSave?.(activeNote, values[activeNote])}
             placeholder={noteConfig[activeNote].placeholder}
             rows={3}
-            className="w-full text-[14px] sm:text-sm border border-border rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent placeholder:text-text-subtle text-text-base bg-surface"
+            className="w-full text-[14px] sm:text-sm border border-border rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground text-foreground bg-card"
           />
         </div>
       )}

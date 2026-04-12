@@ -29,7 +29,7 @@ export function OrderCompletedTemplate({
   const l = { ...defaultOrderLabels, ...labels }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-surface-muted/50 py-8 sm:py-12">
+    <div className="min-h-[calc(100vh-64px)] bg-muted/50 py-8 sm:py-12">
       <div className="max-w-5xl mx-auto px-4">
         <OrderConfirmationHeader order={order} labels={l} locale={locale} />
 
@@ -42,7 +42,7 @@ export function OrderCompletedTemplate({
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3">
-            <div className="bg-surface rounded-xl p-5 sm:p-6 shadow-sm">
+            <div className="bg-card rounded-xl p-5 sm:p-6 shadow-sm">
               <OrderItemsList order={order} labels={l} />
               <OrderTotals order={order} labels={l} />
             </div>
@@ -63,7 +63,7 @@ export function OrderCompletedTemplate({
         <div className="text-center mt-8">
           <LocalizedLink
             href="/store"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-text-base text-surface text-sm font-semibold rounded-xl hover:opacity-90 active:opacity-100 transition-opacity"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-foreground text-card text-sm font-semibold rounded-xl hover:opacity-90 active:opacity-100 transition-opacity"
           >
             <ChevronLeft className="w-4 h-4" />
             {l.continueShopping}

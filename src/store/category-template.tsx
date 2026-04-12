@@ -52,9 +52,9 @@ export function CategoryTemplate({
       <div className="w-full">
         <div className="flex flex-row mb-8 gap-4">
           {parents.map((parent) => (
-            <span key={parent.id} className="text-text-subtle text-2xl">
+            <span key={parent.id} className="text-muted-foreground text-2xl">
               <LocalizedLink
-                className="mr-4 hover:text-text-base"
+                className="mr-4 hover:text-foreground"
                 href={`/categories/${parent.handle}`}
               >
                 {parent.name}
@@ -63,14 +63,14 @@ export function CategoryTemplate({
             </span>
           ))}
           <h1
-            className="text-2xl font-semibold text-text-base"
+            className="text-2xl font-semibold text-foreground"
             data-testid="category-page-title"
           >
             {category.name}
           </h1>
         </div>
         {category.description && (
-          <div className="mb-8 text-sm text-text-muted">
+          <div className="mb-8 text-sm text-muted-foreground">
             <p>{category.description}</p>
           </div>
         )}
@@ -81,7 +81,7 @@ export function CategoryTemplate({
                 <li key={c.id}>
                   <LocalizedLink
                     href={`/categories/${c.handle}`}
-                    className="text-accent hover:underline"
+                    className="text-primary hover:underline"
                   >
                     {c.name}
                   </LocalizedLink>

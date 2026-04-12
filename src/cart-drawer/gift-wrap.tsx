@@ -45,7 +45,7 @@ export function CartGiftWrap({
           className={cn(
             "w-5 h-5 rounded border-[1.5px] flex items-center justify-center transition-all flex-shrink-0",
             checked
-              ? "bg-text-base border-text-base"
+              ? "bg-foreground border-text-base"
               : "border-border group-hover:border-text-muted group-active:border-text-muted"
           )}
         >
@@ -64,14 +64,14 @@ export function CartGiftWrap({
             </svg>
           )}
         </div>
-        <span className="text-[13px] text-text-base flex-1">
+        <span className="text-[13px] text-foreground flex-1">
           {labels.addGiftWrap}
         </span>
         <DualPrice
           amount={price}
           currencyCode={currencyCode}
-          className="text-[13px] text-text-muted font-medium"
-          bgnClassName="text-text-subtle text-[10px] ml-1"
+          className="text-[13px] text-muted-foreground font-medium"
+          bgnClassName="text-muted-foreground text-[10px] ml-1"
         />
       </button>
     </div>

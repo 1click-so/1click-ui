@@ -60,8 +60,8 @@ export function AddressSelect({
       value={selectedId}
       onChange={handleChange}
       className={cn(
-        "w-full px-4 py-[10px] text-sm text-left bg-surface border border-border rounded-lg",
-        "focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+        "w-full px-4 py-[10px] text-sm text-left bg-card border border-border rounded-lg",
+        "focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
       )}
       data-testid="shipping-address-select"
     >

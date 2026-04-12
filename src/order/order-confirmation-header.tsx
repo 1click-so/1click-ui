@@ -26,24 +26,24 @@ export function OrderConfirmationHeader({
         <Check className="w-9 h-9 text-white" strokeWidth={2.5} />
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-bold text-text-base tracking-tight mb-2">
+      <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-2">
         {l.orderConfirmed}
       </h1>
-      <p className="text-sm text-text-muted mb-6">
+      <p className="text-sm text-muted-foreground mb-6">
         {l.confirmationSent}{" "}
-        <span className="font-medium text-text-base">{order.email}</span>
+        <span className="font-medium text-foreground">{order.email}</span>
       </p>
 
       <div className="flex items-center justify-center gap-3 sm:gap-4">
-        <div className="flex items-center gap-2 px-4 py-2 bg-surface-muted rounded-lg">
-          <span className="text-xs text-text-subtle">{l.orderNumber}</span>
-          <span className="text-sm font-semibold text-text-base tabular-nums">
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
+          <span className="text-xs text-muted-foreground">{l.orderNumber}</span>
+          <span className="text-sm font-semibold text-foreground tabular-nums">
             #{order.display_id}
           </span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-surface-muted rounded-lg">
-          <span className="text-xs text-text-subtle">{l.orderDate}</span>
-          <span className="text-sm font-medium text-text-base">{orderDate}</span>
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
+          <span className="text-xs text-muted-foreground">{l.orderDate}</span>
+          <span className="text-sm font-medium text-foreground">{orderDate}</span>
         </div>
       </div>
     </div>

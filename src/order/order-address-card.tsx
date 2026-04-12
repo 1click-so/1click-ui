@@ -11,13 +11,13 @@ export function OrderAddressCard({ order, labels }: OrderAddressCardProps) {
   const addr = order.shipping_address
 
   return (
-    <div className="bg-surface rounded-xl p-5 shadow-sm">
-      <h3 className="text-sm font-semibold text-text-base mb-3">
+    <div className="bg-card rounded-xl p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-foreground mb-3">
         {l.contactInfo}
       </h3>
-      <div className="space-y-1 text-sm text-text-muted">
+      <div className="space-y-1 text-sm text-muted-foreground">
         {addr && (
-          <p className="font-medium text-text-base">
+          <p className="font-medium text-foreground">
             {addr.first_name} {addr.last_name}
           </p>
         )}

@@ -32,9 +32,9 @@ export function Pagination({
   ) => (
     <button
       key={p}
-      className={cn("text-xl text-text-muted", {
-        "text-text-base font-semibold": isCurrent,
-        "hover:text-text-subtle": !isCurrent,
+      className={cn("text-xl text-muted-foreground", {
+        "text-foreground font-semibold": isCurrent,
+        "hover:text-muted-foreground": !isCurrent,
       })}
       disabled={isCurrent}
       onClick={() => handlePageChange(p)}
@@ -44,7 +44,7 @@ export function Pagination({
   )
 
   const renderEllipsis = (key: string) => (
-    <span key={key} className="text-xl text-text-muted cursor-default">
+    <span key={key} className="text-xl text-muted-foreground cursor-default">
       ...
     </span>
   )

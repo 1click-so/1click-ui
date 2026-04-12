@@ -26,7 +26,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden p-4 bg-surface-muted rounded-lg group-hover:shadow-md transition-shadow ease-in-out duration-150",
+        "relative w-full overflow-hidden p-4 bg-muted rounded-lg group-hover:shadow-md transition-shadow ease-in-out duration-150",
         {
           "aspect-[11/14]": isFeatured,
           "aspect-[9/16]": !isFeatured && size !== "square",
@@ -53,7 +53,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       ) : (
         <div className="w-full h-full absolute inset-0 flex items-center justify-center">
           <ImageOff
-            className="text-text-subtle"
+            className="text-muted-foreground"
             size={size === "small" ? 16 : 24}
           />
         </div>

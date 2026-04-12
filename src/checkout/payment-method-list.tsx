@@ -75,14 +75,14 @@ export function CheckoutPaymentMethodList({
         !deliveryReady && "opacity-30 pointer-events-none select-none"
       )}
     >
-      <h2 className="text-lg font-semibold text-text-base mb-1 tracking-tight">
+      <h2 className="text-lg font-semibold text-foreground mb-1 tracking-tight">
         {labels.paymentMethod}
       </h2>
-      <p className="text-xs text-text-muted mb-4">{labels.termsText}</p>
+      <p className="text-xs text-muted-foreground mb-4">{labels.termsText}</p>
 
       {!deliveryReady ? (
-        <div className="p-4 bg-surface-muted rounded-lg border border-border">
-          <p className="text-sm text-text-muted">{labels.paymentDisabled}</p>
+        <div className="p-4 bg-muted rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground">{labels.paymentDisabled}</p>
         </div>
       ) : (
         <>
@@ -92,8 +92,8 @@ export function CheckoutPaymentMethodList({
                 className={cn(
                   "rounded-lg border overflow-hidden transition-colors duration-150",
                   paymentTab === "card"
-                    ? "border-accent bg-accent/5"
-                    : "border-border bg-surface hover:border-text-subtle"
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-card hover:border-muted-foreground"
                 )}
               >
                 <button
@@ -104,34 +104,34 @@ export function CheckoutPaymentMethodList({
                   <div
                     className={cn(
                       "w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center flex-shrink-0 mr-3 transition-colors",
-                      paymentTab === "card" ? "border-accent" : "border-border"
+                      paymentTab === "card" ? "border-primary" : "border-border"
                     )}
                   >
                     {paymentTab === "card" && (
-                      <div className="w-2 h-2 rounded-full bg-accent" />
+                      <div className="w-2 h-2 rounded-full bg-primary" />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-text-base">
+                  <span className="text-sm font-medium text-foreground">
                     {labels.payByCard}
                   </span>
                 </button>
 
                 {paymentTab === "card" && !stripeReady && (
                   <div className="px-4 pb-4 pt-2 space-y-2.5 animate-pulse">
-                    <div className="h-[44px] rounded-lg bg-surface-muted" />
+                    <div className="h-[44px] rounded-lg bg-muted" />
                     <div className="grid grid-cols-2 gap-2.5">
-                      <div className="h-[44px] rounded-lg bg-surface-muted" />
-                      <div className="h-[44px] rounded-lg bg-surface-muted" />
+                      <div className="h-[44px] rounded-lg bg-muted" />
+                      <div className="h-[44px] rounded-lg bg-muted" />
                     </div>
                   </div>
                 )}
                 {paymentTab === "card" && stripeReady && (
                   <div className="px-4 pb-4 pt-2 space-y-2.5">
                     <div>
-                      <label className="text-xs text-text-muted mb-1 block">
+                      <label className="text-xs text-muted-foreground mb-1 block">
                         {labels.cardNumber}
                       </label>
-                      <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-surface hover:border-text-subtle focus-within:border-accent focus-within:bg-accent/5 transition-all">
+                      <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-card hover:border-muted-foreground focus-within:border-primary focus-within:bg-primary/5 transition-all">
                         <CardNumberElement
                           options={{ style, showIcon: true }}
                           onChange={(e) =>
@@ -146,10 +146,10 @@ export function CheckoutPaymentMethodList({
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="text-xs text-text-muted mb-1 block">
+                        <label className="text-xs text-muted-foreground mb-1 block">
                           {labels.cardExpiry}
                         </label>
-                        <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-surface hover:border-text-subtle focus-within:border-accent focus-within:bg-accent/5 transition-all">
+                        <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-card hover:border-muted-foreground focus-within:border-primary focus-within:bg-primary/5 transition-all">
                           <CardExpiryElement
                             options={{ style }}
                             onChange={(e) => {
@@ -160,10 +160,10 @@ export function CheckoutPaymentMethodList({
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs text-text-muted mb-1 block">
+                        <label className="text-xs text-muted-foreground mb-1 block">
                           {labels.cardCvc}
                         </label>
-                        <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-surface hover:border-text-subtle focus-within:border-accent focus-within:bg-accent/5 transition-all">
+                        <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-card hover:border-muted-foreground focus-within:border-primary focus-within:bg-primary/5 transition-all">
                           <CardCvcElement
                             options={{ style }}
                             onChange={(e) => {
@@ -184,8 +184,8 @@ export function CheckoutPaymentMethodList({
                 className={cn(
                   "rounded-lg border overflow-hidden transition-colors duration-150",
                   paymentTab === "cod"
-                    ? "border-accent bg-accent/5"
-                    : "border-border bg-surface hover:border-text-subtle"
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-card hover:border-muted-foreground"
                 )}
               >
                 <button
@@ -196,20 +196,20 @@ export function CheckoutPaymentMethodList({
                   <div
                     className={cn(
                       "w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center flex-shrink-0 mr-3 transition-colors",
-                      paymentTab === "cod" ? "border-accent" : "border-border"
+                      paymentTab === "cod" ? "border-primary" : "border-border"
                     )}
                   >
                     {paymentTab === "cod" && (
-                      <div className="w-2 h-2 rounded-full bg-accent" />
+                      <div className="w-2 h-2 rounded-full bg-primary" />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-text-base">
+                  <span className="text-sm font-medium text-foreground">
                     {labels.cashOnDelivery}
                   </span>
                 </button>
                 {paymentTab === "cod" && (
                   <div className="px-4 pb-3 pt-0">
-                    <p className="text-xs text-text-muted ml-[30px]">
+                    <p className="text-xs text-muted-foreground ml-[30px]">
                       {labels.codNote}
                     </p>
                   </div>
