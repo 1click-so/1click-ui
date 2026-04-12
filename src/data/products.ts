@@ -5,16 +5,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { sdk, sdkFetch } from "./config"
 import { getAuthHeaders, getCacheOptions } from "./cookies"
 import { getRegion, retrieveRegion } from "./regions"
-
-/**
- * Product fetching — by handle, paginated list.
- *
- * Extracted from mindpages-storefront src/lib/data/products.ts. The
- * `listProductsWithSort` convenience wrapper was dropped — it depended on
- * a store-specific `SortOptions` type from a UI refinement list. Stores
- * that want sorted product lists can pass `order` in `queryParams` directly
- * (it's a Medusa-supported query param) or sort client-side after fetch.
- */
+import { sortProducts, type SortOptions } from "../lib/sort-products"
 
 export async function getProductByHandle(
   handle: string,
@@ -109,4 +100,44 @@ export const listProducts = async ({
         queryParams,
       }
     })
+}
+
+export const listProductsWithSort = async ({
+  page = 1,
+  queryParams,
+  sortBy = "created_at",
+  countryCode,
+}: {
+  page?: number
+  queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductListParams
+  sortBy?: SortOptions
+  countryCode: string
+}): Promise<{
+  response: { products: HttpTypes.StoreProduct[]; count: number }
+  nextPage: number | null
+  queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductListParams
+}> => {
+  const limit = queryParams?.limit || 12
+
+  const {
+    response: { products, count },
+  } = await listProducts({
+    pageParam: 1,
+    queryParams: {
+      ...queryParams,
+      limit: 100,
+    },
+    countryCode,
+  })
+
+  const sorted = sortProducts(products, sortBy)
+  const offset = (page - 1) * limit
+  const nextPage = count > offset + limit ? offset + limit : null
+  const paginatedProducts = sorted.slice(offset, offset + limit)
+
+  return {
+    response: { products: paginatedProducts, count },
+    nextPage,
+    queryParams,
+  }
 }

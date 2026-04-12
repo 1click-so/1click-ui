@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -119,7 +119,18 @@
     "./products/product-preview": "./src/products/product-preview.tsx",
     "./products/related-products": "./src/products/related-products.tsx",
     "./products/product-actions-wrapper": "./src/products/product-actions-wrapper.tsx",
-    "./products/product-template": "./src/products/product-template.tsx"
+    "./products/product-template": "./src/products/product-template.tsx",
+    "./lib/sort-products": "./src/lib/sort-products.ts",
+    "./store": "./src/store/index.ts",
+    "./store/labels": "./src/store/labels.ts",
+    "./store/labels-bg": "./src/store/labels-bg.ts",
+    "./store/pagination": "./src/store/pagination.tsx",
+    "./store/sort-select": "./src/store/sort-select.tsx",
+    "./store/paginated-products": "./src/store/paginated-products.tsx",
+    "./store/skeleton-product-grid": "./src/store/skeleton-product-grid.tsx",
+    "./store/store-template": "./src/store/store-template.tsx",
+    "./store/collection-template": "./src/store/collection-template.tsx",
+    "./store/category-template": "./src/store/category-template.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
