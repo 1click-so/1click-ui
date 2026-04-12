@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -96,7 +96,30 @@
     "./checkout/address-form": "./src/checkout/address-form.tsx",
     "./checkout/shipping-method-list": "./src/checkout/shipping-method-list.tsx",
     "./checkout/payment-method-list": "./src/checkout/payment-method-list.tsx",
-    "./checkout/checkout-client": "./src/checkout/checkout-client.tsx"
+    "./checkout/checkout-client": "./src/checkout/checkout-client.tsx",
+    "./lib/get-product-price": "./src/lib/get-product-price.ts",
+    "./lib/get-percentage-diff": "./src/lib/get-percentage-diff.ts",
+    "./lib/product": "./src/lib/product.ts",
+    "./lib/hooks/use-intersection": "./src/lib/hooks/use-intersection.ts",
+    "./lib/hooks/use-toggle-state": "./src/lib/hooks/use-toggle-state.ts",
+    "./common/localized-link": "./src/common/localized-link.tsx",
+    "./products": "./src/products/index.ts",
+    "./products/context": "./src/products/context.tsx",
+    "./products/labels": "./src/products/labels.ts",
+    "./products/labels-bg": "./src/products/labels-bg.ts",
+    "./products/thumbnail": "./src/products/thumbnail.tsx",
+    "./products/preview-price": "./src/products/preview-price.tsx",
+    "./products/product-price": "./src/products/product-price.tsx",
+    "./products/option-select": "./src/products/option-select.tsx",
+    "./products/image-gallery": "./src/products/image-gallery.tsx",
+    "./products/product-actions": "./src/products/product-actions.tsx",
+    "./products/mobile-actions": "./src/products/mobile-actions.tsx",
+    "./products/product-tabs": "./src/products/product-tabs.tsx",
+    "./products/product-info": "./src/products/product-info.tsx",
+    "./products/product-preview": "./src/products/product-preview.tsx",
+    "./products/related-products": "./src/products/related-products.tsx",
+    "./products/product-actions-wrapper": "./src/products/product-actions-wrapper.tsx",
+    "./products/product-template": "./src/products/product-template.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
