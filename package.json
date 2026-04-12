@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -130,7 +130,21 @@
     "./store/skeleton-product-grid": "./src/store/skeleton-product-grid.tsx",
     "./store/store-template": "./src/store/store-template.tsx",
     "./store/collection-template": "./src/store/collection-template.tsx",
-    "./store/category-template": "./src/store/category-template.tsx"
+    "./store/category-template": "./src/store/category-template.tsx",
+    "./order": "./src/order/index.ts",
+    "./order/context": "./src/order/context.tsx",
+    "./order/labels": "./src/order/labels.ts",
+    "./order/labels-bg": "./src/order/labels-bg.ts",
+    "./order/order-confirmation-header": "./src/order/order-confirmation-header.tsx",
+    "./order/order-item": "./src/order/order-item.tsx",
+    "./order/order-items-list": "./src/order/order-items-list.tsx",
+    "./order/order-totals": "./src/order/order-totals.tsx",
+    "./order/order-address-card": "./src/order/order-address-card.tsx",
+    "./order/order-delivery-card": "./src/order/order-delivery-card.tsx",
+    "./order/order-payment-card": "./src/order/order-payment-card.tsx",
+    "./order/order-timeline": "./src/order/order-timeline.tsx",
+    "./order/order-help-section": "./src/order/order-help-section.tsx",
+    "./order/order-completed-template": "./src/order/order-completed-template.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

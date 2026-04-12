@@ -30,3 +30,15 @@ export const isPaypal = (providerId?: string): boolean => {
 export const isManual = (providerId?: string): boolean => {
   return Boolean(providerId?.startsWith("pp_system_default"))
 }
+
+export const paymentInfoMap: Record<
+  string,
+  { title: string; icon: React.JSX.Element | null }
+> = {
+  pp_stripe_stripe: { title: "Credit / debit card", icon: null },
+  "pp_medusa-payments_default": { title: "Credit / debit card", icon: null },
+  "pp_stripe-ideal_stripe": { title: "iDeal", icon: null },
+  "pp_stripe-bancontact_stripe": { title: "Bancontact", icon: null },
+  pp_paypal_paypal: { title: "PayPal", icon: null },
+  pp_system_default: { title: "Cash on delivery", icon: null },
+}

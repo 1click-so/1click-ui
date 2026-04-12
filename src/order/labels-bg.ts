@@ -1,0 +1,27 @@
+import type { OrderLabels } from "./labels"
+
+export const bulgarianOrderLabels: OrderLabels = {
+  orderConfirmed: "Поръчката е потвърдена",
+  confirmationSent: "Изпратихме потвърждение на",
+  orderNumber: "Поръчка",
+  orderDate: "Дата",
+  summary: "Обобщение на поръчката",
+  subtotal: "Междинна сума",
+  shipping: "Доставка",
+  discount: "Отстъпка",
+  tax: "ДДС",
+  total: "Общо",
+  contactInfo: "Данни за контакт",
+  delivery: "Доставка",
+  paymentMethod: "Метод на плащане",
+  needHelp: "Имате нужда от помощ?",
+  contactUs: "Свържете се с нас",
+  returnsExchanges: "Връщания и замени",
+  orderPlaced: "Приета",
+  processing: "Обработка",
+  shipped: "Изпратена",
+  delivered: "Доставена",
+  free: "БЕЗПЛАТНА",
+  continueShopping: "Продължи пазаруването",
+  qty: "бр.",
+}
