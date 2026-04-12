@@ -88,9 +88,9 @@ The hard rule: **unlocked code never modifies locked code.** If a store needs be
 
 Detailed version in [LOCK_BOUNDARIES.md](LOCK_BOUNDARIES.md). Short version:
 
-- **Definitely locked:** checkout (component files + logic), all SDK data wrappers (`lib/data/*`), region middleware, payment initialization, tracking providers, anything that calls Medusa APIs, anything regulatory (Bulgarian dual-currency math, VAT).
-- **Flexible by default:** cart drawer (primitives in library, composition in store), cart page, order confirmation. Stores compose their own assembly from library primitives. May get locked later if careless edits cause real incidents.
-- **Always unlocked:** home, about, collections, nav, footer, blog, marketing, anything store-specific.
+- **Definitely locked:** checkout (17 components), cart drawer primitives (19 components), product primitives (13 components), catalog primitives (pagination, sort, grids), all SDK data wrappers (`data/*`), region middleware, payment initialization, anything that calls Medusa APIs, anything regulatory (Bulgarian dual-currency math, VAT), labels system + Bulgarian presets.
+- **Flexible by default:** CartDrawerTemplate, ProductTemplate, StoreTemplate, CollectionTemplate, CategoryTemplate — optional assemblies that stores can use as-is or replace with their own composition from library primitives.
+- **Always unlocked:** home, about, nav, footer, blog, marketing, any store-specific pages. Stores compose these using library primitives for commerce-critical parts.
 
 **The rule:** lock anything where a careless edit can break APIs, payments, or regulatory compliance. Leave visual composition flexible by default. Tighten locks reactively when a real incident proves a boundary was too loose.
 

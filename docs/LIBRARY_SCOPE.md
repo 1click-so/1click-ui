@@ -4,10 +4,10 @@ Concrete plan for what gets extracted from `mindpages-storefront` into this libr
 
 ## Guiding principles
 
-1. **Extract on demand, not speculatively.** Move a component into the library only when a second store (Alenika) actually needs it. Unpressure-tested universals become premature abstractions.
-2. **Decompose during extraction.** The 1684-line checkout monolith does not get copied wholesale. It gets broken into primitives as part of extraction.
-3. **Fix known issues during extraction.** The dynamic `require()` in checkout, the duplicate `DualPrice`, the fake fallback cross-sell products — these get cleaned up when the code moves, not before and not after.
-4. **Document every exported component.** Every primitive gets a short README-style doc explaining what it is, what props it takes, and what it deliberately does not do.
+1. **Extract rhetorical e-commerce components immediately.** Product cards, PDP, checkout, cart — every store needs these. Don't wait for a second store to know they're universal.
+2. **Extract store-specific features on second sighting.** Wishlists, loyalty programs, referral widgets — build in the store that needs it, extract when a second store does too.
+3. **Decompose during extraction.** The 1684-line checkout monolith was broken into 17 focused files, not copied wholesale.
+4. **Fix known issues during extraction.** The dynamic `require()` in checkout, the duplicate `DualPrice`, the fake fallback cross-sell products — all cleaned up when the code moved.
 
 ## Extraction phases
 
@@ -121,23 +121,36 @@ Decomposition plan:
 - Any specific Bulgarian copy. All strings accept overrides from props or `BrandingContext`.
 - The `(checkout)/layout.tsx` — it's thin and store-specific. Each store writes its own.
 
-### Phase 5 — Cart page, order confirmation, product detail (primitives only)
+### Phase 5 — Bulgarian labels + i18n (completed)
 
-Less critical than checkout, same principle. Primitives move, assemblies stay flexible.
+All stores today are Bulgarian. Rather than forcing every store to rewrite every string, we ship ready-made Bulgarian label presets alongside the English defaults. One import per provider. See [I18N.md](I18N.md) for multi-language patterns.
 
-| Area | Extract | Leave out |
-|---|---|---|
-| Cart page | `CartItemsList`, `CartSummary`, `EmptyCart`, `SignInPrompt` | Layout template — store composes |
-| Order confirmation | `OrderConfirmationHeader`, `OrderTimeline`, `OrderItemsList`, `OrderItem`, `OrderTotals`, `OrderAddressCard`, `OrderDeliveryCard`, `OrderPaymentCard`, `OrderHelpSection`, `OrderPostPurchase` | `OrderCompletedTemplate` — ships as optional default, stores can replace |
-| Product detail | `ImageGallery`, `ProductTabs`, `ProductPrice`, `ProductActions`, `RelatedProducts`, `Thumbnail` | `ProductTemplate` — it's the starter default, most stores will replace |
+### Phase 6 — Product primitives (completed)
 
-### Phase 6 — Tracking + region + account (later)
+Product display was identified as "rhetorical e-commerce infrastructure" — every store needs it, no point waiting for the second store. Extracted from mindpages-storefront, cleaned up during extraction:
 
-These are lower priority because they are less likely to be the first thing Alenika needs. Move them when Alenika actually hits the point of needing them.
+- Dropped `lodash.isEqual` → simple `optionsMatch` function
+- Dropped tracking calls (Klaviyo/FB/GA4) → `onAddToCart` callback prop (stores wire their own tracking)
+- Dropped `@headlessui/react` → plain CSS transitions for MobileActions
+- Dropped `@medusajs/ui` components → semantic token classes
+- Dropped custom icons → `lucide-react`
+- All strings → labels system with Bulgarian preset
 
-- Tracking provider + event helpers (`src/modules/tracking/*`)
-- Account module (`src/modules/account/*`)
-- Common icons (decide: do we ship an icon set, or require stores to provide their own? Probably the latter — less bloat, more flexibility)
+### Phase 7 — Catalog/store (completed)
+
+Browsing and filtering: pagination, sort, product grids, and page-level templates for the store, collection, and category pages. Added `listProductsWithSort` back to the data layer (fetches 100 products, sorts client-side by price or date, paginates).
+
+### Phase 8 — Order confirmation (planned)
+
+Post-checkout: the "thank you" page. OrderConfirmationHeader, OrderItem, OrderItemsList, OrderTotals, OrderAddressCard, OrderPaymentCard, OrderCompletedTemplate.
+
+### Phase 9 — Common utilities (planned)
+
+Shared components used across multiple areas: CartButton (header icon with count), DeleteButton, Skeleton loading placeholders, CountrySelect, LanguageSelect.
+
+### Phase 10 — Account (planned, post-launch)
+
+Returning customer features: LoginForm, RegisterForm, AccountNav, AddressBook, OrderHistory, ProfileEditor, AccountLayout. Lower priority — Alenika can launch without accounts.
 
 ## What does NOT go in the library
 
@@ -168,12 +181,16 @@ Every time a component moves from mindpages-storefront into the library:
 2. MindPages-storefront is updated in the same release cycle to consume the library version instead of its local copy. Delete the old local file.
 3. Alenika gets access to it for the first time.
 
-| Phase | Status | Library version | MindPages cutover | Alenika adoption |
-|---|---|---|---|---|
-| Phase 0 — Foundations | Not started | — | — | — |
-| Phase 1 — Primitives | Not started | — | — | — |
-| Phase 2 — Data layer | Not started | — | — | — |
-| Phase 3 — Cart drawer | Not started | — | — | — |
-| Phase 4 — Checkout | Not started | — | — | — |
-| Phase 5 — Cart page / Order / PDP | Not started | — | — | — |
-| Phase 6 — Tracking / Account | Not started | — | — | — |
+| Phase | Status | Library version | Notes |
+|---|---|---|---|
+| Phase 0 — Foundations | **Complete** | v0.0.1 | Repo skeleton, architecture docs, tsconfig, tailwind-preset, package.json exports |
+| Phase 1 — Primitives | **Complete** | v0.1.0 | shadcn/Radix (Button, Input, Select, Dialog, Sheet, Tabs, Accordion, Collapsible, Popover), DualPrice, Field, SelectField, cn, convertToLocale, medusaError, payment constants |
+| Phase 2 — Data layer | **Complete** | v0.2.0 | All SDK wrappers (cart, products, orders, customer, fulfillment, payment, regions, collections, categories, variants, locale-actions), region middleware, cookies, sdkFetch wrapper. Fixed Next 16 updateTag migration. |
+| Phase 3 — Cart drawer | **Complete** | v0.3.0 | 19 primitives + CartDrawerTemplate. Removed FALLBACK_PRODUCTS, extracted cross-sell loader as prop callback, labels system with English defaults. |
+| Phase 4 — Checkout | **Complete** | v0.4.0 | 1684-line monolith decomposed into 17 files. Fixed dynamic require, stripped broken updateCustomer company_name call, replaced lodash isEqual. Labels system with English defaults. |
+| Phase 5 — Bulgarian labels + i18n | **Complete** | v0.5.0 | Bulgarian presets for cart drawer + checkout. I18N.md with multi-language patterns. |
+| Phase 6 — Product primitives | **Complete** | v0.6.0 | 13 components: Thumbnail, PreviewPrice, ProductPrice, OptionSelect, ImageGallery, ProductActions, MobileActions, ProductTabs, ProductInfo, ProductPreview (card), RelatedProducts, ProductActionsWrapper, ProductTemplate. Bulgarian labels. Dropped lodash, @headlessui, @medusajs/ui, custom icons. |
+| Phase 7 — Catalog/store | **Complete** | v0.7.0 | 10 components: Pagination, SortSelect, PaginatedProducts, SkeletonProductGrid, StoreTemplate, CollectionTemplate, CategoryTemplate. Added listProductsWithSort + sortProducts. Bulgarian labels. |
+| Phase 8 — Order confirmation | Planned | — | OrderConfirmationHeader, OrderItem, OrderItemsList, OrderTotals, OrderAddressCard, OrderPaymentCard, OrderCompletedTemplate |
+| Phase 9 — Common utilities | Planned | — | LocalizedLink (done), CartButton, DeleteButton, Skeleton, CountrySelect, LanguageSelect |
+| Phase 10 — Account | Planned | — | LoginForm, RegisterForm, AccountNav, AddressBook, OrderHistory, ProfileEditor, AccountLayout |

@@ -42,4 +42,27 @@ Anything you touch in this repo has downstream impact on every store. Read these
 
 ## Status
 
-Pre-code. The docs describe the intended architecture. No components have been extracted or written yet. The first real work is Phase 0 (repo skeleton) followed by Phase 1 primitives and Phase 2 data layer — see `docs/LIBRARY_SCOPE.md` for the full sequence.
+**v0.7.0** — the library covers the complete shopping flow from product browsing through checkout to order placement. Current inventory:
+
+| Area | Version | Components |
+|---|---|---|
+| Repo skeleton + architecture docs | v0.0.1 | Phase 0 |
+| shadcn/Radix primitives (Button, Input, Select, Dialog, Sheet, Tabs, Accordion, Collapsible, Popover) + DualPrice + Field | v0.1.0 | 12 primitives |
+| Data layer (all Medusa API calls) + region middleware | v0.2.0 | 14 data modules + middleware |
+| Cart drawer (19 primitives + CartDrawerTemplate) | v0.3.0 | 19 components |
+| Checkout (decomposed from 1684-line monolith into 17 files) | v0.4.0 | 17 components |
+| Bulgarian label presets + i18n doc | v0.5.0 | Labels for cart drawer + checkout |
+| Product primitives (Thumbnail, ProductCard, PDP, gallery, variant picker, add-to-cart) | v0.6.0 | 13 components |
+| Catalog (pagination, sort, product grids, store/collection/category templates) | v0.7.0 | 10 components |
+
+**Total: ~100 source files, all type-checked, zero errors.**
+
+Labels ship in English (defaults) + Bulgarian for every area. Multi-language stores map the active locale to the matching labels object — see [docs/I18N.md](docs/I18N.md).
+
+A `playground/` subfolder contains a minimal Next.js 16 app that imports the library and builds clean — verifying transpilePackages, Tailwind token resolution, and RSC boundaries.
+
+### Remaining phases (not blocking Alenika launch)
+
+- **Phase 8:** Order confirmation primitives
+- **Phase 9:** Common utilities (LocalizedLink, CartButton, skeletons)
+- **Phase 10:** Account module (login, register, order history, address book)

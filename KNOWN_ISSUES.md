@@ -8,9 +8,10 @@ Entries are sorted newest-first.
 
 ## Company invoice fields silently dropped during checkout
 
-**Status:** Deferred — resolution expected within 1-2 days.
+**Status:** Deferred — awaiting backend metafield endpoint.
 **First documented:** 2026-04-11
-**Source file:** `mindpages-storefront/src/modules/checkout/templates/checkout-client/index.tsx` (around line 488, inside `saveAddress`)
+**Extracted in:** v0.4.0 (Phase 4 — checkout decomposition)
+**Library file:** `src/checkout/checkout-client.tsx`
 
 ### What's broken
 
@@ -43,7 +44,7 @@ Three paths, listed from simplest to most complete:
 
 ### Where this resurfaces
 
-This issue is flagged in `docs/LIBRARY_SCOPE.md` under Phase 4 (checkout decomposition) as a blocker that must be resolved before the checkout can be cleanly extracted into the library. If the backend fix lands first, Phase 4 can extract the checkout with company fields working correctly. If Phase 4 starts first, the checkout moves into the library with company fields still silently dropped — and the entry stays here until it's fixed at the backend level.
+Phase 4 extracted the checkout into the library with company fields flowing into `cart.metadata` (which does persist — admins see them on orders) but NOT into the customer record. The broken `updateCustomer({ company_name })` call was removed. The UI fields remain visible. Full resolution requires a backend metafield endpoint to save company data on the customer record for reuse across orders.
 
 ---
 

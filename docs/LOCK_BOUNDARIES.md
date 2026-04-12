@@ -140,5 +140,16 @@ Keep this table updated as the library grows. Every new component lands with a l
 | Cart page — layout | FLEXIBLE | 2026-04-11 | Stores compose |
 | Order confirmation — primitives | LOCKED | 2026-04-11 | Logic is universal |
 | Order confirmation — layout | FLEXIBLE | 2026-04-11 | Stores compose |
-| Product detail — primitives | LOCKED | 2026-04-11 | Logic is universal |
-| Product detail — layout | FLEXIBLE | 2026-04-11 | Every store redesigns PDP |
+| Product detail — primitives | LOCKED | 2026-04-12 | Thumbnail, ProductPrice, OptionSelect, ImageGallery, ProductActions, MobileActions, ProductTabs, ProductInfo — logic is universal |
+| Product detail — ProductTemplate | FLEXIBLE | 2026-04-12 | Optional assembly — every store redesigns its PDP |
+| Product card — ProductPreview | LOCKED | 2026-04-12 | Universal building block for every grid |
+| Catalog — Pagination, SortSelect | LOCKED | 2026-04-12 | Universal browsing primitives |
+| Catalog — PaginatedProducts | LOCKED | 2026-04-12 | Server component wiring data + grid + pagination |
+| Catalog — StoreTemplate | FLEXIBLE | 2026-04-12 | Optional "all products" page assembly |
+| Catalog — CollectionTemplate | FLEXIBLE | 2026-04-12 | Optional collection page assembly |
+| Catalog — CategoryTemplate | FLEXIBLE | 2026-04-12 | Optional category page assembly |
+| Common — LocalizedLink | LOCKED | 2026-04-12 | Country-code-aware Link — every internal link needs this |
+| Labels — Bulgarian presets | LOCKED | 2026-04-12 | Typed label objects, typecheck enforces completeness |
+| Labels — i18n system | LOCKED | 2026-04-12 | Provider + context + label types per area |
+| Utilities — getProductPrice, sortProducts | LOCKED | 2026-04-12 | Price calculation and sort logic used everywhere |
+| Hooks — useIntersection, useToggleState | LOCKED | 2026-04-12 | Used by product actions, reusable across areas |
