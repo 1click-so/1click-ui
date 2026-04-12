@@ -445,10 +445,10 @@ export function CheckoutClient({
   )
 
   return (
-    <div className="max-w-[1140px] mx-auto px-5 py-8 small:py-12">
-      <div className="flex flex-col small:flex-row small:justify-center gap-8 small:gap-12">
+    <div className="max-w-[1140px] mx-auto px-5 py-8 sm:py-12">
+      <div className="flex flex-col sm:flex-row sm:justify-center gap-8 sm:gap-12">
         {/* ═══ LEFT: FORM ════════════════════════════════════════════ */}
-        <div className="w-full small:max-w-[480px] order-2 small:order-1">
+        <div className="w-full sm:max-w-[480px] order-2 sm:order-1">
           <CheckoutAddressForm
             formData={formData}
             onChange={handleFormChange}
@@ -492,8 +492,8 @@ export function CheckoutClient({
         </div>
 
         {/* ═══ RIGHT: ORDER SUMMARY ══════════════════════════════════ */}
-        <div className="w-full small:w-[420px] order-1 small:order-2 flex-shrink-0">
-          <div className="small:sticky small:top-6">
+        <div className="w-full sm:w-[420px] order-1 sm:order-2 flex-shrink-0">
+          <div className="sm:sticky sm:top-6">
             <OrderSummary
               cart={cart as HttpTypes.StoreCart & { promotions?: HttpTypes.StorePromotion[] }}
               optimisticShippingCost={optimisticShippingCost}
