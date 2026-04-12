@@ -124,6 +124,7 @@ export function ProductActions({
 
     onAddToCart?.(product, selectedVariant)
     setIsAdding(false)
+    router.refresh()
   }
 
   return (
