@@ -2,32 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 24 95% 53%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 83.1%;
-  --radius: 0.5rem;
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 98%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 0 0% 98%;
-  --font-display: "Inter", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "Fira Code", monospace;
+@layer base {
+  :root {
+    --background: 1 0 0;
+    --foreground: 0.147 0.004 49.25;
+    --card: 1 0 0;
+    --card-foreground: 0.147 0.004 49.25;
+    --popover: 1 0 0;
+    --popover-foreground: 0.147 0.004 49.25;
+    --primary: 0.553 0.195 38.402;
+    --primary-foreground: 0.98 0.016 73.684;
+    --secondary: 0.967 0.001 286.375;
+    --secondary-foreground: 0.21 0.006 285.885;
+    --muted: 0.97 0.001 106.424;
+    --muted-foreground: 0.553 0.013 58.071;
+    --accent: 0.97 0.001 106.424;
+    --accent-foreground: 0.216 0.006 56.043;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.98 0.016 73.684;
+    --border: 0.923 0.003 48.717;
+    --input: 0.923 0.003 48.717;
+    --ring: 0.709 0.01 56.259;
+    --radius: 0.875rem;
+    --success: 0.723 0.191 142.5;
+    --success-foreground: 0.98 0.016 73.684;
+    --warning: 0.769 0.188 70.08;
+    --warning-foreground: 0.147 0.004 49.25;
+  }
 }

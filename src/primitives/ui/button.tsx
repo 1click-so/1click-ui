@@ -7,38 +7,35 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 /**
- * Button — shadcn/ui base button primitive.
+ * Button — matches the current shadcn/ui radix-maia style (2026).
  *
- * Used as the foundation for every clickable action in the library. Accepts
- * variants via CVA. Consumers can pass `asChild` to render as any element
- * (e.g. a `<Link>`) while preserving the styles.
- *
- * Colors are driven by semantic tokens from the tailwind preset — `bg-primary`,
- * `text-primary-foreground`, etc. — so a store overriding `--primary` repaints all
- * primary buttons without touching library code.
+ * Uses rounded-4xl for pill shape, matching shadcn's rounded-4xl.
+ * Colors driven by semantic tokens — stores override via CSS variables.
  */
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex shrink-0 items-center justify-center rounded-full border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-primary-foreground shadow-sm hover:bg-destructive/90",
+        default: "bg-primary text-primary-foreground hover:bg-primary/80",
         outline:
-          "border border-border bg-card shadow-sm hover:bg-muted hover:text-foreground",
+          "border-border bg-input/30 hover:bg-input/50 hover:text-foreground",
         secondary:
-          "bg-muted text-foreground shadow-sm hover:bg-muted/80",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-muted hover:text-foreground",
+        destructive:
+          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        default: "h-9 gap-1.5 px-3",
+        xs: "h-6 gap-1 px-2.5 text-xs [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-8 gap-1 px-3",
+        lg: "h-10 gap-1.5 px-4",
+        icon: "size-9",
+        "icon-sm": "size-8",
+        "icon-lg": "size-10",
       },
     },
     defaultVariants: {

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { addToCart } from "../data/cart"
+import { useCartDrawer } from "../cart-drawer/context"
 import { useIntersection } from "../lib/hooks/use-intersection"
 import { Button } from "../primitives/ui/button"
 import { useProductLabels } from "./context"
@@ -55,6 +56,7 @@ export function ProductActions({
   const [options, setOptions] = useState<Record<string, string | undefined>>({})
   const [isAdding, setIsAdding] = useState(false)
   const countryCode = useParams().countryCode as string
+  const { open: openCartDrawer } = useCartDrawer()
 
   useEffect(() => {
     if (product.variants?.length === 1) {
@@ -124,6 +126,7 @@ export function ProductActions({
 
     onAddToCart?.(product, selectedVariant)
     setIsAdding(false)
+    openCartDrawer()
     router.refresh()
   }
 

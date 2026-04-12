@@ -64,8 +64,8 @@ export function CartTieredProgress({
               width: `${progressPercent}%`,
               background:
                 progressPercent >= 100
-                  ? "linear-gradient(90deg, hsl(var(--success)), hsl(var(--success) / 0.7))"
-                  : "linear-gradient(90deg, hsl(var(--foreground)), hsl(var(--foreground) / 0.75))",
+                  ? "linear-gradient(90deg, oklch(var(--success)), oklch(var(--success) / 0.7))"
+                  : "linear-gradient(90deg, oklch(var(--foreground)), oklch(var(--foreground) / 0.75))",
             }}
           />
         </div>

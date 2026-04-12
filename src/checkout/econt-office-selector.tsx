@@ -230,7 +230,7 @@ export function EcontOfficeSelector({
         )}
         style={
           isSelected
-            ? { boxShadow: "inset 0 0 0 1.5px hsl(var(--primary))" }
+            ? { boxShadow: "inset 0 0 0 1.5px oklch(var(--primary))" }
             : undefined
         }
       >

@@ -82,9 +82,9 @@ export function CartDrawerProvider({
   const totalItems =
     cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
 
-  // Auto-open when items are added (count increases)
+  // Auto-open when items are added (count increases AFTER initial load)
   useEffect(() => {
-    if (totalItems > prevItemCount.current) {
+    if (totalItems > prevItemCount.current && prevItemCount.current > 0) {
       setIsOpen(true)
     }
     prevItemCount.current = totalItems

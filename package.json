@@ -14,12 +14,12 @@
     "docs",
     "README.md",
     "KNOWN_ISSUES.md",
-    "tailwind-preset.js",
+    "tailwind-preset.cjs",
     "tsconfig.json"
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./tailwind-preset": "./tailwind-preset.js",
+    "./tailwind-preset": "./tailwind-preset.cjs",
     "./lib/utils": "./src/lib/utils.ts",
     "./lib/money": "./src/lib/money.ts",
     "./lib/medusa-error": "./src/lib/medusa-error.ts",
