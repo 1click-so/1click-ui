@@ -1,68 +1,221 @@
-# 1click-ui
+<p align="center">
+  <h1 align="center">1click-ui</h1>
+  <p align="center">
+    <strong>The e-commerce component library that ships entire storefronts.</strong>
+    <br />
+    Built on shadcn/ui + Radix + Tailwind + Medusa v2.
+    <br />
+    Source-shipped. Theme-able. Multi-language.
+    <br /><br />
+    <a href="https://1click.bg">Website</a> &middot; <a href="docs/ARCHITECTURE.md">Architecture</a> &middot; <a href="docs/I18N.md">i18n Guide</a> &middot; <a href="KNOWN_ISSUES.md">Known Issues</a>
+  </p>
+</p>
 
-The shared **frontend UI component library** for everything 1click builds. Commerce and non-commerce. Every storefront and every future 1click website consumes this library instead of reinventing the same components.
+---
 
-This repo holds the "locked" frontend code that every store inherits: checkout, cart drawer primitives, SDK wrappers, dual-currency math, Econt office selector, Bulgarian VAT logic, tracking providers, floating-label inputs, shadcn/Radix-based primitives, and everything else that should be written once and used everywhere.
+## What is this?
 
-Stores install from this repo as a git-pinned dependency. When we fix a component here, stores pick up the fix by bumping their pinned version. Store-specific branding (colors, fonts, copy, layout) never lives here — only the shared machinery.
+One `npm install` gives your Next.js storefront a **complete shopping experience** — product browsing, product detail pages, cart drawer, checkout, order confirmation — all wired to a Medusa v2 backend, all customizable through CSS variables and label overrides.
+
+Change 10 CSS variables and the entire library repaints to your brand. No code changes. No forking.
+
+---
+
+## What's inside
+
+| Area | Count | Highlights |
+|------|-------|-----------|
+| **UI Primitives** | 12 | Button, Input, Select, Dialog, Sheet, Tabs, Accordion — shadcn/ui + Radix |
+| **Product Display** | 13 | ProductCard, ProductPrice, ImageGallery, VariantSelector, ProductActions, RelatedProducts |
+| **Catalog** | 10 | ProductGrid, Pagination, SortSelect, Store/Collection/Category templates |
+| **Cart Drawer** | 19 | Slide-out cart with tiered progress, cross-sell, gift wrap, promo banners |
+| **Checkout** | 17 | Single-page checkout — address, shipping, Stripe, COD, Econt office selector |
+| **Order Confirmation** | 10 | Thank-you page with timeline, delivery details, payment info |
+| **Data Layer** | 14 | All Medusa v2 API calls — server actions with caching and revalidation |
+| **Common Utilities** | 7 | CartButton, DeleteButton, CountrySelect, LanguageSelect, Skeletons |
+| **i18n** | 5 areas | English defaults + Bulgarian presets. Type-safe — missing translations fail typecheck. |
+
+**~120 source files. Zero build step. Zero bundler.**
+
+---
+
+## Quick Start
+
+### Install
+
+```bash
+npm install github:1click-so/1click-ui#v0.9.0
+```
+
+Plus peer dependencies:
+
+```bash
+npm install @medusajs/js-sdk @medusajs/types \
+  @radix-ui/react-accordion @radix-ui/react-collapsible @radix-ui/react-dialog \
+  @radix-ui/react-dropdown-menu @radix-ui/react-label @radix-ui/react-popover \
+  @radix-ui/react-select @radix-ui/react-slot @radix-ui/react-tabs \
+  @stripe/react-stripe-js @stripe/stripe-js \
+  class-variance-authority clsx lucide-react server-only tailwind-merge
+```
+
+### Configure Next.js
+
+```js
+// next.config.js
+module.exports = {
+  transpilePackages: ["@1click/ui"],
+}
+```
+
+### Configure Tailwind
+
+```js
+// tailwind.config.js
+const uiPreset = require("@1click/ui/tailwind-preset")
+
+module.exports = {
+  presets: [uiPreset],
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@1click/ui/src/**/*.{js,ts,jsx,tsx}",
+  ],
+}
+```
+
+### Set your brand
+
+```css
+/* globals.css */
+:root {
+  --color-accent: 24 95% 53%;        /* your brand color (HSL) */
+  --color-accent-fg: 0 0% 100%;      /* text on accent */
+  --color-surface: 0 0% 100%;        /* card backgrounds */
+  --color-surface-muted: 240 5% 96%; /* muted backgrounds */
+  --color-border: 240 6% 90%;
+  --color-text-base: 240 10% 4%;
+  --color-text-muted: 240 4% 46%;
+  --color-text-subtle: 240 5% 65%;
+  --color-success: 142 71% 45%;
+  --color-warning: 38 92% 50%;
+  --color-danger: 0 84% 60%;
+  --radius: 0.5rem;
+}
+```
+
+### Environment variables
+
+```bash
+NEXT_PUBLIC_MEDUSA_BACKEND_URL=https://your-medusa-backend.com
+NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_your_key_here
+```
+
+---
+
+## Usage
+
+```tsx
+// Product listing
+import { listProducts } from "@1click/ui/data/products"
+import { ProductPreview } from "@1click/ui/products"
+
+// Cart drawer with Bulgarian labels
+import { CartDrawerProvider, bulgarianCartDrawerLabels } from "@1click/ui/cart-drawer"
+
+// Full checkout
+import { CheckoutProvider, bulgarianCheckoutLabels } from "@1click/ui/checkout"
+import { CheckoutClient } from "@1click/ui/checkout/checkout-client"
+
+// Order confirmation
+import { OrderCompletedTemplate, bulgarianOrderLabels } from "@1click/ui/order"
+```
+
+Every component is a subpath import. Tree-shaking is automatic — you only ship what you use.
+
+---
+
+## Theming
+
+The library uses **semantic CSS variables** for all visual values. Components use utility classes like `bg-accent`, `text-text-base`, `border-border` — mapped to your CSS variables through the Tailwind preset.
+
+**10 variables = complete rebrand.** No forking. No code changes. Every store looks different, same library.
+
+---
+
+## Multi-language
+
+Every user-facing string is a translatable label. The library ships with:
+
+- **English** — defaults, always complete
+- **Bulgarian** — full translation for all areas
+
+```tsx
+// One line to switch a store to Bulgarian
+<CartDrawerProvider cart={cart} labels={bulgarianCartDrawerLabels}>
+<CheckoutProvider labels={bulgarianCheckoutLabels}>
+```
+
+Adding a new language: create a typed labels file, export it. TypeScript enforces every field is present — missing translations fail typecheck. See [i18n Guide](docs/I18N.md).
+
+---
+
+## Architecture
+
+Three-layer model — every piece of code belongs to exactly one layer:
+
+```
+  UNLOCKED STORE CODE        ← pages, layout, marketing (store's src/)
+         ▲
+  RUNTIME CONFIG              ← CSS variables, labels, backend settings
+         ▲
+  LOCKED LIBRARY (this repo)  ← logic, data, components (node_modules/)
+```
+
+Stores compose library primitives into their own pages. Optional template assemblies (`CartDrawerTemplate`, `ProductTemplate`, `StoreTemplate`) provide ready-made layouts — use as-is or replace entirely.
+
+Read more: [Architecture](docs/ARCHITECTURE.md) &middot; [Lock Boundaries](docs/LOCK_BOUNDARIES.md) &middot; [Update Flow](docs/UPDATE_FLOW.md)
+
+---
+
+## Why source-shipped?
+
+This library ships **raw `.tsx` files** — no bundler, no `dist/`. Your Next.js app compiles them via `transpilePackages`.
+
+- Zero transpilation bugs (no bundler edge cases with `"use client"` or RSC)
+- Instant hot-reload during development
+- Tailwind scans library classes automatically
+- Perfect server/client boundary handling
+- No build step in the library repo
+
+---
 
 ## Stack
 
-- **Language:** TypeScript
-- **Runtime / package manager:** Bun (faster installs, faster scripts, native TypeScript)
-- **UI primitives:** shadcn/ui components built on Radix UI (Dialog, Popover, Select, Sheet, Tabs, Accordion, Collapsible, Command, etc.) — accessible, keyboard-navigated, focus-managed
-- **Styling:** Tailwind — library ships a Tailwind preset with semantic tokens (`--color-accent`, `--font-display`, etc.); each store overrides the values to match its own brand
-- **Packaging:** source-shipped (no bundler). Stores consume `.tsx` files directly via `transpilePackages` in their Next.js config. This is the modern best practice for React component libraries targeting Next.js — zero transpilation bugs, instant iteration, perfect server/client boundary handling.
-- **Consumers:** Next.js 16+ apps. Store repos currently on Yarn 4; their choice of package manager is independent of the library's choice of Bun.
+| | |
+|---|---|
+| **Language** | TypeScript — strict mode, `noUncheckedIndexedAccess` |
+| **Framework** | React 19 + Next.js 16 (App Router, Server Components, Server Actions) |
+| **Primitives** | shadcn/ui + Radix UI |
+| **Styling** | Tailwind CSS with semantic token preset |
+| **Backend** | Medusa v2 via `@medusajs/js-sdk` |
+| **Payments** | Stripe via `@stripe/react-stripe-js` |
+| **Icons** | lucide-react |
+| **Dev runtime** | Bun (stores use any package manager) |
 
-## Where things live
+---
 
-| Repo | Local path | Role |
-|---|---|---|
-| `1click-so/medusa-mindpages` | `C:\Users\User\dev\medusa-mindpages` | **Backend template.** Single shared Medusa v2 codebase that every store's server clones. Alexander works on it using his own MindPages store as patient zero. All fixes fan out to every store via the deploy SOP in `infra/NEW_STORE_SOP.md`. (Backend rebuild to Next.js is planned for the future — TBD timing — at which point the Medusa SDK wrappers in this library will be rewritten to hit the new backend, but the library's public API stays stable so stores are unaffected.) |
-| `1click-so/1click-ui` | `C:\Users\User\dev\1click-ui` | **This repo.** Frontend UI component library. Locked code that every store consumes. |
-| `1click-so/mindpages-storefront` | `C:\Users\User\dev\mindpages-storefront` | Store repo — MindPages (Alexander's personal store). Consumes `1click-ui`. Holds MindPages-specific branding, home page, marketing pages, custom copy. |
-| `1click-so/alenika` | `C:\Users\User\dev\alenika` | Store repo — Alenika (client). Consumes `1click-ui`. Currently a landing page; will grow into a full storefront. |
+## Documentation
 
-## Naming note
+| Doc | What it covers |
+|-----|---------------|
+| [Architecture](docs/ARCHITECTURE.md) | Three-layer model, lock boundaries, customization |
+| [Lock Boundaries](docs/LOCK_BOUNDARIES.md) | What's locked vs flexible and why |
+| [Update Flow](docs/UPDATE_FLOW.md) | Versioning, deployment, rollback |
+| [Library Scope](docs/LIBRARY_SCOPE.md) | Extraction phases and status |
+| [i18n](docs/I18N.md) | Multi-language patterns |
+| [Known Issues](KNOWN_ISSUES.md) | Tracked issues and deferred fixes |
 
-The library is `1click-ui` — intentionally generic. It holds commerce components today (checkout, cart drawer, Medusa SDK wrappers) but will grow to hold non-commerce UI primitives used on landing pages, marketing sites, and other 1click projects. No artificial split between "commerce" and "ui" — one unified library.
+---
 
-The future 1click AI agent (Cursor-based) will eventually edit unlocked parts of client sites on behalf of clients. This library is what the agent operates AGAINST — the locked machinery it cannot touch, with a well-defined config surface (`BrandingContext` + backend settings) that IS the agent's operational space.
-
-## Read the docs before coding
-
-Anything you touch in this repo has downstream impact on every store. Read these first:
-
-1. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — three-layer model: locked library / runtime config / unlocked store src. The mental model for why everything is organized the way it is.
-2. [docs/LOCK_BOUNDARIES.md](docs/LOCK_BOUNDARIES.md) — what's locked, what's flexible, and why. The rules that decide whether a new piece of code belongs in this repo or in a store repo.
-3. [docs/UPDATE_FLOW.md](docs/UPDATE_FLOW.md) — how fixes propagate from here into every store. Git-install workflow, release tags, rollback, dev loop.
-4. [docs/LIBRARY_SCOPE.md](docs/LIBRARY_SCOPE.md) — initial extraction plan: what's moving from `mindpages-storefront` into this library, in what order, and why.
-5. [KNOWN_ISSUES.md](KNOWN_ISSUES.md) — tracked known issues, deferred fixes, and things we're aware of but not addressing yet.
-
-## Status
-
-**v0.7.0** — the library covers the complete shopping flow from product browsing through checkout to order placement. Current inventory:
-
-| Area | Version | Components |
-|---|---|---|
-| Repo skeleton + architecture docs | v0.0.1 | Phase 0 |
-| shadcn/Radix primitives (Button, Input, Select, Dialog, Sheet, Tabs, Accordion, Collapsible, Popover) + DualPrice + Field | v0.1.0 | 12 primitives |
-| Data layer (all Medusa API calls) + region middleware | v0.2.0 | 14 data modules + middleware |
-| Cart drawer (19 primitives + CartDrawerTemplate) | v0.3.0 | 19 components |
-| Checkout (decomposed from 1684-line monolith into 17 files) | v0.4.0 | 17 components |
-| Bulgarian label presets + i18n doc | v0.5.0 | Labels for cart drawer + checkout |
-| Product primitives (Thumbnail, ProductCard, PDP, gallery, variant picker, add-to-cart) | v0.6.0 | 13 components |
-| Catalog (pagination, sort, product grids, store/collection/category templates) | v0.7.0 | 10 components |
-
-**Total: ~100 source files, all type-checked, zero errors.**
-
-Labels ship in English (defaults) + Bulgarian for every area. Multi-language stores map the active locale to the matching labels object — see [docs/I18N.md](docs/I18N.md).
-
-A `playground/` subfolder contains a minimal Next.js 16 app that imports the library and builds clean — verifying transpilePackages, Tailwind token resolution, and RSC boundaries.
-
-### Remaining phases (not blocking Alenika launch)
-
-- **Phase 8:** Order confirmation primitives
-- **Phase 9:** Common utilities (LocalizedLink, CartButton, skeletons)
-- **Phase 10:** Account module (login, register, order history, address book)
+<p align="center">
+  Built by <a href="https://1click.bg"><strong>1click</strong></a> — e-commerce infrastructure for online stores.
+</p>
