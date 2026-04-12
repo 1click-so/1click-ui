@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-accent: 24 95% 53%;
+  --color-accent-fg: 0 0% 100%;
+  --color-surface: 0 0% 100%;
+  --color-surface-muted: 240 5% 96%;
+  --color-border: 240 6% 90%;
+  --color-text-base: 240 10% 4%;
+  --color-text-muted: 240 4% 46%;
+  --color-text-subtle: 240 5% 65%;
+  --color-success: 142 71% 45%;
+  --color-warning: 38 92% 50%;
+  --color-danger: 0 84% 60%;
+  --radius: 0.5rem;
+  --font-display: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "Fira Code", monospace;
+}
