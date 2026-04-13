@@ -100,6 +100,7 @@ export type CheckoutLabels = {
   boxnowNoResults: string
   boxnowChange: string
   boxnowUnavailable: string
+  boxnowNoLockersInCity: string
 }
 
 export const defaultCheckoutLabels: CheckoutLabels = {
@@ -186,4 +187,6 @@ export const defaultCheckoutLabels: CheckoutLabels = {
   boxnowChange: "Change",
   boxnowUnavailable:
     "BoxNow is temporarily unavailable, please choose a different shipping method.",
+  boxnowNoLockersInCity:
+    "No BoxNow lockers found in your city. Please choose a different shipping method.",
 }

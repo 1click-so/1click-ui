@@ -236,6 +236,20 @@ export function BoxNowLockerSelector({
     )
   }
 
+  // User's city has no lockers — explicit dead-end message so they pick
+  // a different shipping method instead of staring at silence.
+  if (cityLower && cityLockedLockers.length === 0 && !selectedLocker) {
+    return (
+      <div className="px-4 py-4">
+        <div className="p-3 rounded-lg bg-muted border border-border">
+          <p className="text-sm text-muted-foreground">
+            {labels.boxnowNoLockersInCity}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="px-4 pb-4 pt-2 space-y-3">
       {selectedLocker && (

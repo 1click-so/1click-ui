@@ -102,4 +102,6 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
   boxnowChange: "Промени",
   boxnowUnavailable:
     "BoxNow временно е недостъпен, моля изберете друг метод за доставка.",
+  boxnowNoLockersInCity:
+    "Няма BoxNow автомати във вашия град. Моля изберете друг метод за доставка.",
 }
