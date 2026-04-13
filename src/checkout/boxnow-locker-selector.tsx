@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { cn } from "../lib/utils"
-import { distanceMeters, formatDistance, geocodeAddress } from "../lib/geocode"
+import {
+  distanceMeters,
+  formatDistance,
+  geocodeAddress,
+  transliterateBgToLatin,
+} from "../lib/geocode"
 import { listBoxNowLockers } from "../data/boxnow"
 import type { BoxNowLocker } from "../data/boxnow-types"
 import { useCheckoutLabels } from "./context"
@@ -100,15 +105,18 @@ export function BoxNowLockerSelector({
   // checkout city. BoxNow stores the city in addressLine2, occasionally
   // in addressLine1 too. If the user hasn't entered a city yet, fall
   // back to all lockers so the UI doesn't render empty on first paint.
-  const cityLower = userCity.trim().toLowerCase()
+  //
+  // Both sides are transliterated Cyrillic→Latin so "Sofia" matches
+  // "София" and vice versa. Idempotent on already-Latin input.
+  const cityNormalized = transliterateBgToLatin(userCity.trim())
   const cityLockedLockers = useMemo(() => {
-    if (!cityLower) return lockers
-    return lockers.filter(
-      (l) =>
-        l.addressLine2?.toLowerCase().includes(cityLower) ||
-        l.addressLine1?.toLowerCase().includes(cityLower)
-    )
-  }, [lockers, cityLower])
+    if (!cityNormalized) return lockers
+    return lockers.filter((l) => {
+      const line1 = transliterateBgToLatin(l.addressLine1 ?? "")
+      const line2 = transliterateBgToLatin(l.addressLine2 ?? "")
+      return line2.includes(cityNormalized) || line1.includes(cityNormalized)
+    })
+  }, [lockers, cityNormalized])
 
   const nearestLockers = useMemo(() => {
     if (!cityLockedLockers.length) return []
@@ -139,16 +147,23 @@ export function BoxNowLockerSelector({
 
   const searchResults = useMemo(() => {
     if (!search.trim() || search.trim().length < 2) return []
-    const q = search.toLowerCase()
+    // Normalize query and locker fields through Cyrillic→Latin so the
+    // user can search "Vitosha" and match "Витоша" (and vice versa).
+    const q = transliterateBgToLatin(search.trim())
     // Search is also city-locked — only lockers in the user's city.
     // Uncapped; container scrolls.
-    return cityLockedLockers.filter(
-      (l) =>
-        l.title?.toLowerCase().includes(q) ||
-        l.addressLine1?.toLowerCase().includes(q) ||
-        l.addressLine2?.toLowerCase().includes(q) ||
-        l.postalCode?.toLowerCase().includes(q)
-    )
+    return cityLockedLockers.filter((l) => {
+      const title = transliterateBgToLatin(l.title ?? "")
+      const line1 = transliterateBgToLatin(l.addressLine1 ?? "")
+      const line2 = transliterateBgToLatin(l.addressLine2 ?? "")
+      const postal = (l.postalCode ?? "").toLowerCase()
+      return (
+        title.includes(q) ||
+        line1.includes(q) ||
+        line2.includes(q) ||
+        postal.includes(q)
+      )
+    })
   }, [cityLockedLockers, search])
 
   const renderLocker = useCallback(
@@ -238,7 +253,7 @@ export function BoxNowLockerSelector({
 
   // User's city has no lockers — explicit dead-end message so they pick
   // a different shipping method instead of staring at silence.
-  if (cityLower && cityLockedLockers.length === 0 && !selectedLocker) {
+  if (cityNormalized && cityLockedLockers.length === 0 && !selectedLocker) {
     return (
       <div className="px-4 py-4">
         <div className="p-3 rounded-lg bg-muted border border-border">

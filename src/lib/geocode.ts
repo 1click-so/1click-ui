@@ -1,4 +1,31 @@
 /**
+ * transliterateBgToLatin — Bulgarian Cyrillic → Latin transliteration
+ * using the streamlined system (official BG government standard, used
+ * on passports and road signs).
+ *
+ * Purpose: when a Bulgarian user types "Sofia" but the data source has
+ * "София", substring matching fails. Normalize both sides through this
+ * function before comparing.
+ *
+ * Idempotent — Latin input passes through unchanged (just lowercased).
+ */
+const BG_CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ж: "zh",
+  з: "z", и: "i", й: "y", к: "k", л: "l", м: "m", н: "n",
+  о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f",
+  х: "h", ц: "ts", ч: "ch", ш: "sh", щ: "sht",
+  ъ: "a", ь: "y", ю: "yu", я: "ya",
+}
+
+export function transliterateBgToLatin(s: string): string {
+  return s
+    .toLowerCase()
+    .split("")
+    .map((c) => BG_CYRILLIC_TO_LATIN[c] ?? c)
+    .join("")
+}
+
+/**
  * Shared geo helpers used by Bulgarian fulfillment selectors (Econt, BoxNow).
  *
  * Extracted from the original EcontOfficeSelector so multiple provider
