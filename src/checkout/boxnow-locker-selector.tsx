@@ -96,12 +96,24 @@ export function BoxNowLockerSelector({
   const lockers =
     lockersState.status === "ready" ? lockersState.lockers : []
 
-  const nearestLockers = useMemo(() => {
-    if (!lockers.length) return []
+  // City-lock: every list (nearest + search) is restricted to the user's
+  // checkout city. BoxNow stores the city in addressLine2, occasionally
+  // in addressLine1 too. If the user hasn't entered a city yet, fall
+  // back to all lockers so the UI doesn't render empty on first paint.
+  const cityLower = userCity.trim().toLowerCase()
+  const cityLockedLockers = useMemo(() => {
+    if (!cityLower) return lockers
+    return lockers.filter(
+      (l) =>
+        l.addressLine2?.toLowerCase().includes(cityLower) ||
+        l.addressLine1?.toLowerCase().includes(cityLower)
+    )
+  }, [lockers, cityLower])
 
-    // Preferred path: if we have user coordinates AND at least some
-    // lockers have numeric coordinates, rank by haversine distance.
-    const geocodedLockers = lockers.filter(
+  const nearestLockers = useMemo(() => {
+    if (!cityLockedLockers.length) return []
+
+    const geocodedLockers = cityLockedLockers.filter(
       (l) =>
         typeof l.lat === "number" &&
         typeof l.lng === "number" &&
@@ -119,41 +131,25 @@ export function BoxNowLockerSelector({
         .slice(0, 3)
     }
 
-    // Fallback: match on user's city in addressLine2 (BoxNow puts city
-    // there) or addressLine1, then postal code, then anything. Show
-    // first 3 of the best-matching bucket.
-    const cityLower = userCity.trim().toLowerCase()
-    const cityMatches = cityLower
-      ? lockers.filter(
-          (l) =>
-            l.addressLine2?.toLowerCase().includes(cityLower) ||
-            l.addressLine1?.toLowerCase().includes(cityLower)
-        )
-      : []
-    const postalMatches = cityLower
-      ? lockers.filter((l) => l.postalCode?.toLowerCase().includes(cityLower))
-      : []
-    const source =
-      cityMatches.length > 0
-        ? cityMatches
-        : postalMatches.length > 0
-          ? postalMatches
-          : lockers
-    return source.slice(0, 3).map((l) => ({ locker: l, distance: 0 }))
-  }, [lockers, userCoords, userCity])
+    // No coords available — just show the first 3 city-locked lockers.
+    return cityLockedLockers
+      .slice(0, 3)
+      .map((l) => ({ locker: l, distance: 0 }))
+  }, [cityLockedLockers, userCoords])
 
   const searchResults = useMemo(() => {
     if (!search.trim() || search.trim().length < 2) return []
     const q = search.toLowerCase()
-    return lockers
-      .filter(
-        (l) =>
-          l.title?.toLowerCase().includes(q) ||
-          l.addressLine1?.toLowerCase().includes(q) ||
-          l.postalCode?.toLowerCase().includes(q)
-      )
-      .slice(0, 8)
-  }, [lockers, search])
+    // Search is also city-locked — only lockers in the user's city.
+    // Uncapped; container scrolls.
+    return cityLockedLockers.filter(
+      (l) =>
+        l.title?.toLowerCase().includes(q) ||
+        l.addressLine1?.toLowerCase().includes(q) ||
+        l.addressLine2?.toLowerCase().includes(q) ||
+        l.postalCode?.toLowerCase().includes(q)
+    )
+  }, [cityLockedLockers, search])
 
   const renderLocker = useCallback(
     (locker: BoxNowLocker, distance: number | null, isSelected: boolean) => (
