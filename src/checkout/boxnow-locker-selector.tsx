@@ -99,9 +99,18 @@ export function BoxNowLockerSelector({
   const nearestLockers = useMemo(() => {
     if (!lockers.length) return []
 
-    if (userCoords) {
-      return lockers
-        .filter((l) => typeof l.lat === "number" && typeof l.lng === "number")
+    // Preferred path: if we have user coordinates AND at least some
+    // lockers have numeric coordinates, rank by haversine distance.
+    const geocodedLockers = lockers.filter(
+      (l) =>
+        typeof l.lat === "number" &&
+        typeof l.lng === "number" &&
+        !Number.isNaN(l.lat) &&
+        !Number.isNaN(l.lng)
+    )
+
+    if (userCoords && geocodedLockers.length > 0) {
+      return geocodedLockers
         .map((l) => ({
           locker: l,
           distance: distanceMeters(userCoords.lat, userCoords.lng, l.lat, l.lng),
@@ -110,15 +119,26 @@ export function BoxNowLockerSelector({
         .slice(0, 3)
     }
 
-    // Fallback: first 3 by postal-code match if city looks postal-ish,
-    // otherwise just the first 3.
-    const cityLower = userCity.toLowerCase()
-    const postalMatches = lockers.filter(
-      (l) =>
-        l.postalCode?.toLowerCase().includes(cityLower) ||
-        l.addressLine1?.toLowerCase().includes(cityLower)
-    )
-    const source = postalMatches.length > 0 ? postalMatches : lockers
+    // Fallback: match on user's city in addressLine2 (BoxNow puts city
+    // there) or addressLine1, then postal code, then anything. Show
+    // first 3 of the best-matching bucket.
+    const cityLower = userCity.trim().toLowerCase()
+    const cityMatches = cityLower
+      ? lockers.filter(
+          (l) =>
+            l.addressLine2?.toLowerCase().includes(cityLower) ||
+            l.addressLine1?.toLowerCase().includes(cityLower)
+        )
+      : []
+    const postalMatches = cityLower
+      ? lockers.filter((l) => l.postalCode?.toLowerCase().includes(cityLower))
+      : []
+    const source =
+      cityMatches.length > 0
+        ? cityMatches
+        : postalMatches.length > 0
+          ? postalMatches
+          : lockers
     return source.slice(0, 3).map((l) => ({ locker: l, distance: 0 }))
   }, [lockers, userCoords, userCity])
 
