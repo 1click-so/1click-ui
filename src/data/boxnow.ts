@@ -1,59 +1,53 @@
-"use server"
-
-import { sdkFetch } from "./config"
+import type { BoxNowLocker, ListBoxNowLockersResult } from "./boxnow-types"
 
 /**
- * BoxNow data layer.
+ * BoxNow data layer — browser-visible fetch.
  *
- * Single endpoint today: list all BoxNow lockers for the current store.
- * The backend owns auth to BoxNow's API and returns a flattened shape
- * (see BoxNowLocker). Server-side 10-minute cache lives in the backend;
- * we add a short Next.js cache tag so adjacent requests within a single
- * page render hit the same response.
+ * Not a server action: we use a plain client fetch with the publishable
+ * key so the request appears in the browser Network tab (easier to
+ * debug) and caches via Next.js fetch cache on the route segment.
+ *
+ * Required env in the consuming store:
+ *   - NEXT_PUBLIC_MEDUSA_BACKEND_URL
+ *   - NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
  */
-
-export type BoxNowLocker = {
-  id: string
-  title: string
-  addressLine1: string
-  addressLine2?: string | null
-  postalCode: string
-  country?: string | null
-  lat: number
-  lng: number
-  note?: string | null
-}
 
 type ListBoxNowLockersResponse = {
   lockers: BoxNowLocker[]
 }
 
-type ListBoxNowLockersResult =
-  | { ok: true; lockers: BoxNowLocker[] }
-  | { ok: false; reason: "unconfigured" | "upstream" | "network" }
-
-/**
- * listBoxNowLockers — fetch all configured BoxNow lockers.
- *
- * Returns a discriminated union so the UI can render a precise error
- * state (unconfigured vs. upstream down vs. transport failure) without
- * parsing exception messages. Empty list is returned as `{ ok: true,
- * lockers: [] }`.
- */
 export async function listBoxNowLockers(): Promise<ListBoxNowLockersResult> {
+  const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+
+  if (!backendUrl || !publishableKey) {
+    return { ok: false, reason: "unconfigured" }
+  }
+
   try {
-    const res = await sdkFetch<ListBoxNowLockersResponse>(
-      "/store/integrations/boxnow/lockers",
+    const res = await fetch(
+      `${backendUrl}/store/integrations/boxnow/lockers`,
       {
         method: "GET",
-        next: { tags: ["boxnow-lockers"], revalidate: 600 },
+        headers: {
+          "Content-Type": "application/json",
+          "x-publishable-api-key": publishableKey,
+        },
       }
     )
-    return { ok: true, lockers: res?.lockers ?? [] }
-  } catch (err) {
-    const status = (err as { status?: number } | null)?.status
-    if (status === 503) return { ok: false, reason: "unconfigured" }
-    if (status === 502) return { ok: false, reason: "upstream" }
+
+    if (res.status === 503) return { ok: false, reason: "unconfigured" }
+    if (res.status === 502) return { ok: false, reason: "upstream" }
+    if (!res.ok) return { ok: false, reason: "network" }
+
+    const json = (await res.json()) as ListBoxNowLockersResponse
+    const lockers = (json?.lockers ?? []).map((l) => ({
+      ...l,
+      lat: typeof l.lat === "string" ? parseFloat(l.lat) : l.lat,
+      lng: typeof l.lng === "string" ? parseFloat(l.lng) : l.lng,
+    }))
+    return { ok: true, lockers }
+  } catch {
     return { ok: false, reason: "network" }
   }
 }

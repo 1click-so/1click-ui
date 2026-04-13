@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { cn } from "../lib/utils"
 import { distanceMeters, formatDistance, geocodeAddress } from "../lib/geocode"
-import { listBoxNowLockers, type BoxNowLocker } from "../data/boxnow"
+import { listBoxNowLockers } from "../data/boxnow"
+import type { BoxNowLocker } from "../data/boxnow-types"
 import { useCheckoutLabels } from "./context"
 
 /**
