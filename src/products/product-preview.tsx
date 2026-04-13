@@ -21,7 +21,7 @@ export function ProductPreview({
         <Thumbnail
           thumbnail={product.thumbnail}
           images={product.images as { url: string }[]}
-          size="full"
+          size="square"
           isFeatured={isFeatured}
         />
         <div className="flex text-sm mt-4 justify-between">
