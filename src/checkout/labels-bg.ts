@@ -93,4 +93,13 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
   econtSearchPlaceholder: "Търси по име, град или адрес...",
   econtNoResults: "Няма намерени офиси за",
   econtChange: "Промени",
+
+  boxnowLoadingLockers: "Зареждане на автомати...",
+  boxnowNearestLockers: "Най-близки автомати",
+  boxnowSearchAnother: "Търси друг автомат",
+  boxnowSearchPlaceholder: "Търси по име, адрес или пощенски код...",
+  boxnowNoResults: "Няма намерени автомати за",
+  boxnowChange: "Промени",
+  boxnowUnavailable:
+    "BoxNow временно е недостъпен, моля изберете друг метод за доставка.",
 }

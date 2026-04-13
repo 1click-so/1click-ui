@@ -4,152 +4,143 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { cn } from "../lib/utils"
 import { distanceMeters, formatDistance, geocodeAddress } from "../lib/geocode"
+import { listBoxNowLockers, type BoxNowLocker } from "../data/boxnow"
 import { useCheckoutLabels } from "./context"
 
 /**
- * EcontOfficeSelector — full Econt office picker for Bulgarian shipping.
+ * BoxNowLockerSelector — full BoxNow locker picker for Bulgarian shipping.
  *
- * Behavior:
- * - On mount, fetches the full Econt offices list from the public Econt
- *   Nomenclatures endpoint (cached globally — one fetch per page load).
- * - If the user has entered a shipping address (city + street), geocodes
- *   it via OpenStreetMap Nominatim and sorts the 3 nearest offices by
- *   haversine distance.
- * - If geocoding fails or address is empty, falls back to filtering
- *   offices by city name.
- * - Expanding "Search for another office" lets the user search across
- *   all offices by name/city/street.
+ * Mirrors EcontOfficeSelector's UX 1:1 (loading spinner, selected pill,
+ * "search for another" expandable, nearest-3 by haversine distance) but
+ * fetches from our backend's /store/integrations/boxnow/lockers endpoint
+ * instead of Econt's public Nomenclatures URL. Backend owns BoxNow API
+ * auth + 10-min cache; we get a pre-flattened list.
  *
- * Bulgarian-specific logic (cleanAddress prefix stripping, Nominatim
- * country="Bulgaria" constraint) stays in this file — it IS intrinsically
- * Bulgarian. Stores that want a different country build their own selector.
+ * Data shape differences from Econt handled here:
+ *  - title (not name)
+ *  - addressLine1 / addressLine2 (not address.street/num)
+ *  - postalCode (not address.city.name)
+ *  - lat / lng on the root (not address.location.latitude/longitude)
+ *  - No isAPS / code / phones
  *
- * Extracted from mindpages-storefront
- * src/modules/checkout/components/econt-office-selector/index.tsx.
+ * Edge cases (503/502/empty) show a single "временно недостъпно" message.
  */
 
-export type EcontOffice = {
-  id: number
-  code: string
-  name: string
-  nameEn: string
-  isAPS: boolean
-  address: {
-    city: { name: string }
-    street: string
-    num: string
-    location: { latitude: number; longitude: number } | null
-  }
-  phones: string[]
-}
+export type { BoxNowLocker }
 
-type EcontOfficeSelectorProps = {
+type BoxNowLockerSelectorProps = {
   userCity: string
   userAddress: string
-  selectedOffice: EcontOffice | null
-  onSelect: (office: EcontOffice | null) => void
+  selectedLocker: BoxNowLocker | null
+  onSelect: (locker: BoxNowLocker | null) => void
 }
 
-let officesCache: EcontOffice[] | null = null
-let officesFetchPromise: Promise<EcontOffice[]> | null = null
+type LockersState =
+  | { status: "loading" }
+  | { status: "ready"; lockers: BoxNowLocker[] }
+  | { status: "error" }
 
-async function fetchOffices(): Promise<EcontOffice[]> {
-  if (officesCache) return officesCache
-  if (officesFetchPromise) return officesFetchPromise
+// Module-level cache so switching between shipping rows doesn't re-hit
+// the backend on every toggle.
+let lockersCache: BoxNowLocker[] | null = null
+let lockersPromise: Promise<BoxNowLocker[] | null> | null = null
 
-  officesFetchPromise = fetch(
-    "https://ee.econt.com/services/Nomenclatures/NomenclaturesService.getOffices.json",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ countryCode: "BGR" }),
-    }
-  )
-    .then((r) => r.json())
-    .then((d) => {
-      officesCache = d.offices || []
-      return officesCache!
-    })
+async function fetchLockers(): Promise<BoxNowLocker[] | null> {
+  if (lockersCache) return lockersCache
+  if (lockersPromise) return lockersPromise
 
-  return officesFetchPromise
+  lockersPromise = listBoxNowLockers().then((res) => {
+    if (!res.ok) return null
+    lockersCache = res.lockers
+    return lockersCache
+  })
+
+  return lockersPromise
 }
 
-export function EcontOfficeSelector({
+export function BoxNowLockerSelector({
   userCity,
   userAddress,
-  selectedOffice,
+  selectedLocker,
   onSelect,
-}: EcontOfficeSelectorProps) {
+}: BoxNowLockerSelectorProps) {
   const labels = useCheckoutLabels()
-  const [offices, setOffices] = useState<EcontOffice[]>([])
+  const [lockersState, setLockersState] = useState<LockersState>({
+    status: "loading",
+  })
   const [userCoords, setUserCoords] = useState<{
     lat: number
     lng: number
   } | null>(null)
   const [search, setSearch] = useState("")
   const [showSearch, setShowSearch] = useState(false)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setLoading(true)
+    setLockersState({ status: "loading" })
     Promise.all([
-      fetchOffices(),
+      fetchLockers(),
       userCity && userAddress
         ? geocodeAddress(userCity, userAddress)
         : Promise.resolve(null),
-    ]).then(([fetchedOffices, coords]) => {
-      setOffices(fetchedOffices)
+    ]).then(([fetchedLockers, coords]) => {
+      if (!fetchedLockers || fetchedLockers.length === 0) {
+        setLockersState({ status: "error" })
+      } else {
+        setLockersState({ status: "ready", lockers: fetchedLockers })
+      }
       setUserCoords(coords)
-      setLoading(false)
     })
   }, [userCity, userAddress])
 
-  const nearestOffices = useMemo(() => {
-    if (!offices.length) return []
+  const lockers =
+    lockersState.status === "ready" ? lockersState.lockers : []
+
+  const nearestLockers = useMemo(() => {
+    if (!lockers.length) return []
 
     if (userCoords) {
-      return offices
-        .filter((o) => o.address?.location?.latitude)
-        .map((o) => ({
-          office: o,
-          distance: distanceMeters(
-            userCoords.lat,
-            userCoords.lng,
-            o.address.location!.latitude,
-            o.address.location!.longitude
-          ),
+      return lockers
+        .filter((l) => typeof l.lat === "number" && typeof l.lng === "number")
+        .map((l) => ({
+          locker: l,
+          distance: distanceMeters(userCoords.lat, userCoords.lng, l.lat, l.lng),
         }))
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 3)
     }
 
+    // Fallback: first 3 by postal-code match if city looks postal-ish,
+    // otherwise just the first 3.
     const cityLower = userCity.toLowerCase()
-    const cityOffices = offices.filter(
-      (o) => o.address?.city?.name?.toLowerCase() === cityLower
+    const postalMatches = lockers.filter(
+      (l) =>
+        l.postalCode?.toLowerCase().includes(cityLower) ||
+        l.addressLine1?.toLowerCase().includes(cityLower)
     )
-    return cityOffices.slice(0, 3).map((o) => ({ office: o, distance: 0 }))
-  }, [offices, userCoords, userCity])
+    const source = postalMatches.length > 0 ? postalMatches : lockers
+    return source.slice(0, 3).map((l) => ({ locker: l, distance: 0 }))
+  }, [lockers, userCoords, userCity])
 
   const searchResults = useMemo(() => {
     if (!search.trim() || search.trim().length < 2) return []
     const q = search.toLowerCase()
-    return offices
+    return lockers
       .filter(
-        (o) =>
-          o.name?.toLowerCase().includes(q) ||
-          o.address?.city?.name?.toLowerCase().includes(q) ||
-          o.address?.street?.toLowerCase().includes(q)
+        (l) =>
+          l.title?.toLowerCase().includes(q) ||
+          l.addressLine1?.toLowerCase().includes(q) ||
+          l.postalCode?.toLowerCase().includes(q)
       )
       .slice(0, 8)
-  }, [offices, search])
+  }, [lockers, search])
 
-  const renderOffice = useCallback(
-    (office: EcontOffice, distance: number | null, isSelected: boolean) => (
+  const renderLocker = useCallback(
+    (locker: BoxNowLocker, distance: number | null, isSelected: boolean) => (
       <button
-        key={office.id}
+        key={locker.id}
         type="button"
         onClick={() => {
-          onSelect(office)
+          onSelect(locker)
           setShowSearch(false)
           setSearch("")
         }}
@@ -186,12 +177,12 @@ export function EcontOfficeSelector({
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-foreground leading-tight">
-            {office.name}
+            {locker.title}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {office.address?.street}
-            {office.address?.num ? ` ${office.address.num}` : ""}
-            {office.address?.city?.name ? `, ${office.address.city.name}` : ""}
+            {locker.addressLine1}
+            {locker.addressLine2 ? `, ${locker.addressLine2}` : ""}
+            {locker.postalCode ? `, ${locker.postalCode}` : ""}
           </p>
         </div>
 
@@ -205,20 +196,32 @@ export function EcontOfficeSelector({
     [onSelect]
   )
 
-  if (loading) {
+  if (lockersState.status === "loading") {
     return (
       <div className="px-4 py-6 flex items-center justify-center">
         <div className="w-5 h-5 border-2 border-border border-t-text-muted rounded-full animate-spin" />
         <span className="ml-2 text-sm text-muted-foreground">
-          {labels.econtLoadingOffices}
+          {labels.boxnowLoadingLockers}
         </span>
+      </div>
+    )
+  }
+
+  if (lockersState.status === "error") {
+    return (
+      <div className="px-4 py-4">
+        <div className="p-3 rounded-lg bg-muted border border-border">
+          <p className="text-sm text-muted-foreground">
+            {labels.boxnowUnavailable}
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="px-4 pb-4 pt-2 space-y-3">
-      {selectedOffice && (
+      {selectedLocker && (
         <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/30 rounded-lg">
           <svg
             className="w-4 h-4 text-primary flex-shrink-0"
@@ -233,31 +236,33 @@ export function EcontOfficeSelector({
               d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <p className="text-sm font-medium text-primary">{selectedOffice.name}</p>
+          <p className="text-sm font-medium text-primary">
+            {selectedLocker.title}
+          </p>
           <button
             type="button"
             onClick={() => onSelect(null)}
             className="ml-auto text-xs text-primary hover:underline"
           >
-            {labels.econtChange}
+            {labels.boxnowChange}
           </button>
         </div>
       )}
 
-      {!selectedOffice && nearestOffices.length > 0 && (
+      {!selectedLocker && nearestLockers.length > 0 && (
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-            {labels.econtNearestOffices}
+            {labels.boxnowNearestLockers}
           </p>
           <div className="space-y-1.5">
-            {nearestOffices.map(({ office, distance }) =>
-              renderOffice(office, distance, false)
+            {nearestLockers.map(({ locker, distance }) =>
+              renderLocker(locker, distance, false)
             )}
           </div>
         </div>
       )}
 
-      {!selectedOffice && (
+      {!selectedLocker && (
         <div>
           {!showSearch ? (
             <button
@@ -278,7 +283,7 @@ export function EcontOfficeSelector({
                   d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
                 />
               </svg>
-              {labels.econtSearchAnother}
+              {labels.boxnowSearchAnother}
             </button>
           ) : (
             <div>
@@ -300,7 +305,7 @@ export function EcontOfficeSelector({
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder={labels.econtSearchPlaceholder}
+                  placeholder={labels.boxnowSearchPlaceholder}
                   className="w-full h-10 pl-9 pr-3 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   autoFocus
                 />
@@ -308,13 +313,15 @@ export function EcontOfficeSelector({
 
               {searchResults.length > 0 && (
                 <div className="mt-2 space-y-1 max-h-[240px] overflow-y-auto">
-                  {searchResults.map((office) => renderOffice(office, null, false))}
+                  {searchResults.map((locker) =>
+                    renderLocker(locker, null, false)
+                  )}
                 </div>
               )}
 
               {search.trim().length >= 2 && searchResults.length === 0 && (
                 <p className="mt-2 text-xs text-muted-foreground text-center py-3">
-                  {labels.econtNoResults} "{search}"
+                  {labels.boxnowNoResults} "{search}"
                 </p>
               )}
             </div>

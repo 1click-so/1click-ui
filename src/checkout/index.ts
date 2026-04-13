@@ -11,6 +11,10 @@ export {
   EcontOfficeSelector,
   type EcontOffice,
 } from "./econt-office-selector"
+export {
+  BoxNowLockerSelector,
+  type BoxNowLocker,
+} from "./boxnow-locker-selector"
 export { AddressSelect } from "./address-select"
 export { CompanyDetails } from "./company-details"
 export { DiscountSection } from "./discount-section"

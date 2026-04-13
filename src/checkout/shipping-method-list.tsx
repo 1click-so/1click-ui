@@ -9,6 +9,10 @@ import {
   EcontOfficeSelector,
   type EcontOffice,
 } from "./econt-office-selector"
+import {
+  BoxNowLockerSelector,
+  type BoxNowLocker,
+} from "./boxnow-locker-selector"
 import { ErrorMessage } from "./error-message"
 
 /**
@@ -45,6 +49,14 @@ type CheckoutShippingMethodListProps = {
     userCity: string
     userAddress: string
   }
+  /** Optional: BoxNow locker state + handler for inline-expand rows */
+  boxnow?: {
+    detect?: (option: HttpTypes.StoreCartShippingOption) => boolean
+    selectedLocker: BoxNowLocker | null
+    onSelectLocker: (locker: BoxNowLocker | null) => void
+    userCity: string
+    userAddress: string
+  }
 }
 
 const defaultEcontDetect = (option: HttpTypes.StoreCartShippingOption): boolean => {
@@ -53,6 +65,16 @@ const defaultEcontDetect = (option: HttpTypes.StoreCartShippingOption): boolean 
     name.includes("офис") ||
     name.includes("еконт") ||
     name.includes("econt")
+  )
+}
+
+const defaultBoxnowDetect = (option: HttpTypes.StoreCartShippingOption): boolean => {
+  const name = option.name?.toLowerCase() ?? ""
+  return (
+    name.includes("boxnow") ||
+    name.includes("box now") ||
+    name.includes("бокс нау") ||
+    name.includes("автомат")
   )
 }
 
@@ -67,9 +89,11 @@ export function CheckoutShippingMethodList({
   addressReady,
   currencyCode,
   econt,
+  boxnow,
 }: CheckoutShippingMethodListProps) {
   const labels = useCheckoutLabels()
   const detectEcont = econt?.detect ?? defaultEcontDetect
+  const detectBoxnow = boxnow?.detect ?? defaultBoxnowDetect
 
   return (
     <div
@@ -104,7 +128,9 @@ export function CheckoutShippingMethodList({
                 : calculatedPricesMap[option.id]
             const isFree = price === 0
             const isEcontOffice = econt && detectEcont(option)
-            const hasExpanded = selected && isEcontOffice
+            const isBoxnowLocker =
+              boxnow && !isEcontOffice && detectBoxnow(option)
+            const hasExpanded = selected && (isEcontOffice || isBoxnowLocker)
 
             return (
               <div
@@ -142,6 +168,11 @@ export function CheckoutShippingMethodList({
                     {selected && isEcontOffice && econt?.selectedOffice && (
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {econt.selectedOffice.name}
+                      </p>
+                    )}
+                    {selected && isBoxnowLocker && boxnow?.selectedLocker && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {boxnow.selectedLocker.title}
                       </p>
                     )}
                   </div>
@@ -183,12 +214,21 @@ export function CheckoutShippingMethodList({
                   </span>
                 </button>
 
-                {hasExpanded && econt && (
+                {hasExpanded && isEcontOffice && econt && (
                   <EcontOfficeSelector
                     userCity={econt.userCity}
                     userAddress={econt.userAddress}
                     selectedOffice={econt.selectedOffice}
                     onSelect={econt.onSelectOffice}
+                  />
+                )}
+
+                {hasExpanded && isBoxnowLocker && boxnow && (
+                  <BoxNowLockerSelector
+                    userCity={boxnow.userCity}
+                    userAddress={boxnow.userAddress}
+                    selectedLocker={boxnow.selectedLocker}
+                    onSelect={boxnow.onSelectLocker}
                   />
                 )}
               </div>

@@ -21,6 +21,7 @@ import compareAddresses from "../data/util/compare-addresses"
 import { isManual, isStripeLike } from "../lib/payment-constants"
 import { CheckoutAddressForm } from "./address-form"
 import type { EcontOffice } from "./econt-office-selector"
+import type { BoxNowLocker } from "./boxnow-locker-selector"
 import { OrderSummary } from "./order-summary"
 import { CheckoutPaymentMethodList } from "./payment-method-list"
 import { CheckoutShippingMethodList } from "./shipping-method-list"
@@ -295,6 +296,49 @@ export function CheckoutClient({
     [cart?.metadata]
   )
 
+  const [selectedBoxnowLocker, setSelectedBoxnowLocker] =
+    useState<BoxNowLocker | null>(
+      cart?.metadata?.boxnow_locker_id
+        ? ({
+            id: cart.metadata.boxnow_locker_id as string,
+            title: (cart.metadata.boxnow_locker_title as string) ?? "",
+            addressLine1:
+              (cart.metadata.boxnow_locker_address as string) ?? "",
+            postalCode: (cart.metadata.boxnow_locker_postal as string) ?? "",
+            lat: 0,
+            lng: 0,
+          } as BoxNowLocker)
+        : null
+    )
+
+  const handleSelectBoxnowLocker = useCallback(
+    (locker: BoxNowLocker | null) => {
+      setSelectedBoxnowLocker(locker)
+      if (locker) {
+        updateCart({
+          metadata: {
+            ...(cart?.metadata ?? {}),
+            boxnow_locker_id: locker.id,
+            boxnow_locker_title: locker.title,
+            boxnow_locker_address: locker.addressLine1 ?? "",
+            boxnow_locker_postal: locker.postalCode ?? "",
+          },
+        }).catch(() => {})
+      } else {
+        updateCart({
+          metadata: {
+            ...(cart?.metadata ?? {}),
+            boxnow_locker_id: null,
+            boxnow_locker_title: null,
+            boxnow_locker_address: null,
+            boxnow_locker_postal: null,
+          },
+        }).catch(() => {})
+      }
+    },
+    [cart?.metadata]
+  )
+
   const [calculatedPricesMap, setCalculatedPricesMap] = useState<
     Record<string, number>
   >({})
@@ -401,8 +445,37 @@ export function CheckoutClient({
     }
   }
 
+  // A BoxNow shipping option requires a locker selection before the
+  // order can be placed (backend's createDeliveryRequest reads
+  // cart.metadata.boxnow_locker_id as destination.locationId).
+  const selectedShippingOption = useMemo(
+    () =>
+      shippingMethods.find((sm) => sm.id === selectedShippingMethod) ?? null,
+    [shippingMethods, selectedShippingMethod]
+  )
+  const selectedIsBoxnow = useMemo(() => {
+    const name = selectedShippingOption?.name?.toLowerCase() ?? ""
+    return (
+      name.includes("boxnow") ||
+      name.includes("box now") ||
+      name.includes("бокс нау") ||
+      name.includes("автомат")
+    )
+  }, [selectedShippingOption])
+  const selectedIsEcont = useMemo(() => {
+    const name = selectedShippingOption?.name?.toLowerCase() ?? ""
+    return (
+      !selectedIsBoxnow &&
+      (name.includes("офис") ||
+        name.includes("еконт") ||
+        name.includes("econt"))
+    )
+  }, [selectedShippingOption, selectedIsBoxnow])
+
   const deliveryReady =
-    !!selectedShippingMethod || (cart?.shipping_methods?.length ?? 0) > 0
+    (!!selectedShippingMethod || (cart?.shipping_methods?.length ?? 0) > 0) &&
+    (!selectedIsBoxnow || !!selectedBoxnowLocker) &&
+    (!selectedIsEcont || !!selectedEcontOffice)
 
   // Auto-initiate payment session when delivery is ready
   useEffect(() => {
@@ -473,6 +546,12 @@ export function CheckoutClient({
             econt={{
               selectedOffice: selectedEcontOffice,
               onSelectOffice: handleSelectEcontOffice,
+              userCity: formData["shipping_address.city"] ?? "",
+              userAddress: formData["shipping_address.address_1"] ?? "",
+            }}
+            boxnow={{
+              selectedLocker: selectedBoxnowLocker,
+              onSelectLocker: handleSelectBoxnowLocker,
               userCity: formData["shipping_address.city"] ?? "",
               userAddress: formData["shipping_address.address_1"] ?? "",
             }}

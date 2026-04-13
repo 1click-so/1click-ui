@@ -91,6 +91,15 @@ export type CheckoutLabels = {
   econtSearchPlaceholder: string
   econtNoResults: string
   econtChange: string
+
+  // BoxNow locker selector
+  boxnowLoadingLockers: string
+  boxnowNearestLockers: string
+  boxnowSearchAnother: string
+  boxnowSearchPlaceholder: string
+  boxnowNoResults: string
+  boxnowChange: string
+  boxnowUnavailable: string
 }
 
 export const defaultCheckoutLabels: CheckoutLabels = {
@@ -168,4 +177,13 @@ export const defaultCheckoutLabels: CheckoutLabels = {
   econtSearchPlaceholder: "Search by name, city, or address...",
   econtNoResults: "No offices found for",
   econtChange: "Change",
+
+  boxnowLoadingLockers: "Loading lockers...",
+  boxnowNearestLockers: "Nearest lockers",
+  boxnowSearchAnother: "Search for another locker",
+  boxnowSearchPlaceholder: "Search by name, address, or postal code...",
+  boxnowNoResults: "No lockers found for",
+  boxnowChange: "Change",
+  boxnowUnavailable:
+    "BoxNow is temporarily unavailable, please choose a different shipping method.",
 }
