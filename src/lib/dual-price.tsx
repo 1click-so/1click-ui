@@ -62,7 +62,7 @@ export function DualPrice({
   return (
     <span className={className}>
       {convertToLocale({ amount, currency_code: currencyCode })}
-      <span className={cn("ml-1.5 text-[11px] text-muted-foreground", bgnClassName)}>
+      <span className={cn("ml-1.5 text-muted-foreground/70 font-normal", bgnClassName)}>
         {toBGN(amount)}
       </span>
     </span>
