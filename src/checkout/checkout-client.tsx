@@ -22,6 +22,8 @@ import { isManual, isStripeLike } from "../lib/payment-constants"
 import { CheckoutAddressForm } from "./address-form"
 import type { EcontOffice } from "./econt-office-selector"
 import type { BoxNowLocker } from "./boxnow-locker-selector"
+import { MobileCheckoutBottomBar } from "./mobile-checkout-bottom-bar"
+import { MobileCheckoutTopBar } from "./mobile-checkout-top-bar"
 import { OrderSummary } from "./order-summary"
 import { CheckoutPaymentMethodList } from "./payment-method-list"
 import { CheckoutShippingMethodList } from "./shipping-method-list"
@@ -517,11 +519,24 @@ export function CheckoutClient({
     [cart?.region]
   )
 
+  const summaryCart = cart as HttpTypes.StoreCart & {
+    promotions?: HttpTypes.StorePromotion[]
+  }
+
   return (
-    <div className="max-w-[1140px] mx-auto px-5 py-8 sm:py-12">
-      <div className="flex flex-col sm:flex-row sm:justify-center gap-8 sm:gap-12">
-        {/* ═══ LEFT: FORM ════════════════════════════════════════════ */}
-        <div className="w-full sm:max-w-[480px] order-2 sm:order-1">
+    <>
+      {/* Mobile-only: collapsible order summary at the top of the page.
+          Lets the form fields start immediately below without wasting
+          vertical space on an always-expanded summary. */}
+      <MobileCheckoutTopBar
+        cart={summaryCart}
+        optimisticShippingCost={optimisticShippingCost}
+      />
+
+      <div className="max-w-[1140px] mx-auto px-5 py-8 sm:py-12">
+        <div className="flex flex-col sm:flex-row sm:justify-center gap-8 sm:gap-12">
+          {/* ═══ LEFT: FORM ════════════════════════════════════════════ */}
+          <div className="w-full sm:max-w-[480px]">
           <CheckoutAddressForm
             formData={formData}
             onChange={handleFormChange}
@@ -567,20 +582,27 @@ export function CheckoutClient({
             paymentError={paymentError}
             onCardChange={handleCardChange}
             onCardFieldError={setPaymentError}
+            beforePaymentButton={
+              <MobileCheckoutBottomBar
+                cart={summaryCart}
+                optimisticShippingCost={optimisticShippingCost}
+              />
+            }
           />
         </div>
 
-        {/* ═══ RIGHT: ORDER SUMMARY ══════════════════════════════════ */}
-        <div className="w-full sm:w-[420px] order-1 sm:order-2 flex-shrink-0">
+        {/* ═══ RIGHT: ORDER SUMMARY (desktop only) ═══════════════════ */}
+        <div className="hidden sm:block sm:w-[420px] flex-shrink-0">
           <div className="sm:sticky sm:top-6">
             <OrderSummary
-              cart={cart as HttpTypes.StoreCart & { promotions?: HttpTypes.StorePromotion[] }}
+              cart={summaryCart}
               optimisticShippingCost={optimisticShippingCost}
               onOptimisticShippingClear={() => setOptimisticShippingCost(null)}
             />
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

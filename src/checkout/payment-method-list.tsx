@@ -40,6 +40,9 @@ type CheckoutPaymentMethodListProps = {
     brand?: string
   }) => void
   onCardFieldError: (message: string | null) => void
+  /** Optional content rendered directly above the Place Order button.
+   * Used by CheckoutClient to slot the mobile order-summary bottom bar. */
+  beforePaymentButton?: React.ReactNode
 }
 
 const stripeElementStyle: StripeCardNumberElementOptions["style"] = {
@@ -62,6 +65,7 @@ export function CheckoutPaymentMethodList({
   paymentError,
   onCardChange,
   onCardFieldError,
+  beforePaymentButton,
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
   const stripeReady = useContext(StripeContext)
@@ -222,6 +226,10 @@ export function CheckoutPaymentMethodList({
             error={paymentError}
             data-testid="payment-error-message"
           />
+
+          {beforePaymentButton && (
+            <div className="mt-5">{beforePaymentButton}</div>
+          )}
 
           <div className="mt-5">
             <PaymentButton cart={cart} data-testid="submit-order-button" />
