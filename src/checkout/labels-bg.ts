@@ -45,12 +45,8 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
   noShippingOptions: "Няма налични опции за доставка за вашия адрес.",
   paymentDisabled: "Изберете начин на доставка, за да продължите.",
 
-  cardDetails: "Данни за картата",
-  cardNumber: "Номер на карта",
-  cardExpiry: "Дата на изтичане (ММ/ГГ)",
-  cardCvc: "Код за защита",
   codNote: "Плащане при доставка. Възможна е допълнителна такса.",
-  payByCard: "С карта",
+  payOnline: "Плащане онлайн",
   cashOnDelivery: "Наложен платеж",
   termsText:
     "С поръчката си приемате нашите Общи условия и Политика за поверителност.",

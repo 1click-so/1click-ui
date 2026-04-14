@@ -1,13 +1,9 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import {
-  CardCvcElement,
-  CardExpiryElement,
-  CardNumberElement,
-} from "@stripe/react-stripe-js"
-import type { StripeCardNumberElementOptions } from "@stripe/stripe-js"
-import { useContext, useMemo } from "react"
+import { PaymentElement } from "@stripe/react-stripe-js"
+import type { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
+import { useContext } from "react"
 
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
@@ -16,14 +12,19 @@ import { PaymentButton } from "./payment-button"
 import { StripeContext } from "./stripe-wrapper"
 
 /**
- * CheckoutPaymentMethodList — card vs cash-on-delivery radio list with
- * Stripe card fields expanded inline when the card option is selected,
- * plus the `PaymentButton` that places the order.
+ * CheckoutPaymentMethodList — online-payment vs cash-on-delivery radio
+ * list. The online tab hosts Stripe's `<PaymentElement />` in accordion
+ * layout, which renders every payment method enabled in the Stripe
+ * Dashboard (card, Apple Pay, Google Pay, Link, etc.) without any
+ * per-method code here.
  *
- * Presentational — state + handlers come from parent CheckoutClient.
+ * COD stays a separate rail — it's a Medusa "manual" provider, not a
+ * Stripe payment method.
  *
- * Extracted from mindpages-storefront checkout-client/index.tsx — the
- * `Начин на плащане` section (roughly lines 1010-1170).
+ * Extracted from mindpages-storefront checkout-client/index.tsx and
+ * migrated from Card Element to Payment Element per Medusa's official
+ * Stripe customization guide
+ * (docs.medusajs.com/resources/nextjs-starter/guides/customize-stripe).
  */
 
 type CheckoutPaymentMethodListProps = {
@@ -34,25 +35,16 @@ type CheckoutPaymentMethodListProps = {
   onPaymentTab: (tab: "card" | "cod") => void
   deliveryReady: boolean
   paymentError: string | null
-  onCardChange: (e: {
+  /** Fired when the Stripe PaymentElement's completion state changes.
+   * `complete === true` means the user has filled in valid details for
+   * the currently selected method and the Place Order button can enable. */
+  onPaymentElementChange: (event: {
     complete: boolean
-    error?: { message?: string }
-    brand?: string
+    selectedMethod: string | null
   }) => void
-  onCardFieldError: (message: string | null) => void
   /** Optional content rendered directly above the Place Order button.
    * Used by CheckoutClient to slot the mobile order-summary bottom bar. */
   beforePaymentButton?: React.ReactNode
-}
-
-const stripeElementStyle: StripeCardNumberElementOptions["style"] = {
-  base: {
-    fontFamily: "Inter, system-ui, sans-serif",
-    color: "#111827",
-    fontSize: "14px",
-    "::placeholder": { color: "#9CA3AF" },
-  },
-  invalid: { color: "#dc2626" },
 }
 
 export function CheckoutPaymentMethodList({
@@ -63,14 +55,18 @@ export function CheckoutPaymentMethodList({
   onPaymentTab,
   deliveryReady,
   paymentError,
-  onCardChange,
-  onCardFieldError,
+  onPaymentElementChange,
   beforePaymentButton,
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
   const stripeReady = useContext(StripeContext)
 
-  const style = useMemo(() => stripeElementStyle, [])
+  const handlePaymentElementChange = (event: StripePaymentElementChangeEvent) => {
+    onPaymentElementChange({
+      complete: event.complete,
+      selectedMethod: event.value?.type ?? null,
+    })
+  }
 
   return (
     <div
@@ -116,7 +112,7 @@ export function CheckoutPaymentMethodList({
                     )}
                   </div>
                   <span className="text-sm font-medium text-foreground">
-                    {labels.payByCard}
+                    {labels.payOnline}
                   </span>
                 </button>
 
@@ -130,54 +126,11 @@ export function CheckoutPaymentMethodList({
                   </div>
                 )}
                 {paymentTab === "card" && stripeReady && (
-                  <div className="px-4 pb-4 pt-2 space-y-2.5">
-                    <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">
-                        {labels.cardNumber}
-                      </label>
-                      <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-card hover:border-muted-foreground focus-within:border-primary focus-within:bg-primary/5 transition-all">
-                        <CardNumberElement
-                          options={{ style, showIcon: true }}
-                          onChange={(e) =>
-                            onCardChange({
-                              complete: e.complete,
-                              error: e.error,
-                              brand: e.brand,
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">
-                          {labels.cardExpiry}
-                        </label>
-                        <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-card hover:border-muted-foreground focus-within:border-primary focus-within:bg-primary/5 transition-all">
-                          <CardExpiryElement
-                            options={{ style }}
-                            onChange={(e) => {
-                              if (e.error)
-                                onCardFieldError(e.error.message ?? null)
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">
-                          {labels.cardCvc}
-                        </label>
-                        <div className="h-[44px] px-3 pt-[10px] border border-border rounded-lg bg-card hover:border-muted-foreground focus-within:border-primary focus-within:bg-primary/5 transition-all">
-                          <CardCvcElement
-                            options={{ style }}
-                            onChange={(e) => {
-                              if (e.error)
-                                onCardFieldError(e.error.message ?? null)
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                  <div className="px-4 pb-4 pt-2">
+                    <PaymentElement
+                      onChange={handlePaymentElementChange}
+                      options={{ layout: "accordion" }}
+                    />
                   </div>
                 )}
               </div>

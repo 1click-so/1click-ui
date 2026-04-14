@@ -37,13 +37,12 @@ export type CheckoutLabels = {
   noShippingOptions: string
   paymentDisabled: string
 
-  // Payment tabs + card fields
-  cardDetails: string
-  cardNumber: string
-  cardExpiry: string
-  cardCvc: string
+  // Payment tabs
   codNote: string
-  payByCard: string
+  /** Online-payment radio label. Covers every Stripe-enabled method
+   * (card + Apple Pay + Google Pay + Link + whatever else is turned on
+   * in the Stripe Dashboard). Replaces the old `payByCard`. */
+  payOnline: string
   cashOnDelivery: string
   termsText: string
 
@@ -130,12 +129,8 @@ export const defaultCheckoutLabels: CheckoutLabels = {
   noShippingOptions: "No shipping options available for your address.",
   paymentDisabled: "Select a shipping method to continue.",
 
-  cardDetails: "Card details",
-  cardNumber: "Card number",
-  cardExpiry: "Expiry (MM/YY)",
-  cardCvc: "Security code",
   codNote: "Cash on delivery. Additional fees may apply.",
-  payByCard: "Pay by card",
+  payOnline: "Pay online",
   cashOnDelivery: "Cash on delivery",
   termsText:
     "By placing your order you accept our Terms and Privacy Policy.",

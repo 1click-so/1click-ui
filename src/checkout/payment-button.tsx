@@ -14,13 +14,18 @@ import { ErrorMessage } from "./error-message"
 /**
  * PaymentButton — top-level "place order" button. Routes to the correct
  * variant based on the cart's active payment session:
- *   - StripePaymentButton: confirms card payment via Stripe.js, then calls
- *     placeOrder()
+ *   - StripePaymentButton: confirms payment via Stripe's Payment Element
+ *     (covers card + Apple Pay + Google Pay + Link + any wallet enabled
+ *     in the Stripe Dashboard), then calls placeOrder()
  *   - ManualPaymentButton: calls placeOrder() directly (COD / offline)
  *   - Disabled fallback when no payment session is set
  *
- * Extracted from mindpages-storefront
- * src/modules/checkout/components/payment-button/index.tsx.
+ * Migrated from Stripe Card Element + confirmCardPayment to Payment
+ * Element + confirmPayment per Medusa's official Stripe customization
+ * guide. 3DS / post-auth redirects use `redirect: "if_required"` and
+ * return to the current URL; the checkout page handles the return by
+ * reading query params on mount (or the store implements
+ * /api/capture-payment/[cartId] for a cleaner flow).
  */
 
 type PaymentButtonProps = {
@@ -165,6 +170,15 @@ function StripePaymentButton({
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  const stripe = useStripe()
+  const elements = useElements()
+
+  const session = cart.payment_collection?.payment_sessions?.find(
+    (s) => s.status === "pending"
+  )
+
+  const disabled = !stripe || !elements
+
   const onPaymentCompleted = async () => {
     await placeOrder()
       .catch((err) => {
@@ -175,59 +189,83 @@ function StripePaymentButton({
       })
   }
 
-  const stripe = useStripe()
-  const elements = useElements()
-  const card = elements?.getElement("cardNumber")
-
-  const session = cart.payment_collection?.payment_sessions?.find(
-    (s) => s.status === "pending"
-  )
-
-  const disabled = !stripe || !elements
-
   const handlePayment = async () => {
-    setSubmitting(true)
+    if (!stripe || !elements || !cart) {
+      return
+    }
 
-    if (!stripe || !elements || !card || !cart) {
+    setSubmitting(true)
+    setErrorMessage(null)
+
+    // Payment Element requires an explicit submit() before confirm.
+    const { error: submitError } = await elements.submit()
+    if (submitError) {
+      setErrorMessage(submitError.message ?? null)
       setSubmitting(false)
       return
     }
 
+    const clientSecret = session?.data?.client_secret as string | undefined
+    if (!clientSecret) {
+      setErrorMessage("Missing Stripe client secret.")
+      setSubmitting(false)
+      return
+    }
+
+    // redirect: "if_required" — Stripe only redirects when the method
+    // demands it (3DS challenge, bank-redirect APMs). Card + wallet
+    // flows return the paymentIntent here and we call placeOrder
+    // synchronously. When redirect IS required, Stripe navigates the
+    // browser to return_url; the checkout page handles the return by
+    // reading ?payment_intent=... on mount (future work).
     await stripe
-      .confirmCardPayment(session?.data?.client_secret as string, {
-        payment_method: {
-          card,
-          billing_details: {
-            name: `${cart.billing_address?.first_name ?? ""} ${cart.billing_address?.last_name ?? ""}`.trim(),
-            address: {
-              city: cart.billing_address?.city ?? undefined,
-              country: cart.billing_address?.country_code ?? undefined,
-              line1: cart.billing_address?.address_1 ?? undefined,
-              line2: cart.billing_address?.address_2 ?? undefined,
-              postal_code: cart.billing_address?.postal_code ?? undefined,
-              state: cart.billing_address?.province ?? undefined,
+      .confirmPayment({
+        elements,
+        clientSecret,
+        confirmParams: {
+          return_url: typeof window !== "undefined" ? window.location.href : "",
+          payment_method_data: {
+            billing_details: {
+              name: `${cart.billing_address?.first_name ?? ""} ${cart.billing_address?.last_name ?? ""}`.trim(),
+              address: {
+                city: cart.billing_address?.city ?? undefined,
+                country: cart.billing_address?.country_code ?? undefined,
+                line1: cart.billing_address?.address_1 ?? undefined,
+                line2: cart.billing_address?.address_2 ?? undefined,
+                postal_code: cart.billing_address?.postal_code ?? undefined,
+                state: cart.billing_address?.province ?? undefined,
+              },
+              email: cart.email,
+              phone: cart.billing_address?.phone ?? undefined,
             },
-            email: cart.email,
-            phone: cart.billing_address?.phone ?? undefined,
           },
         },
+        redirect: "if_required",
       })
       .then(({ error, paymentIntent }) => {
         if (error) {
           const pi = error.payment_intent
-          if (pi && (pi.status === "requires_capture" || pi.status === "succeeded")) {
+          if (
+            pi &&
+            (pi.status === "requires_capture" || pi.status === "succeeded")
+          ) {
             onPaymentCompleted()
+            return
           }
           setErrorMessage(error.message || null)
+          setSubmitting(false)
           return
         }
 
         if (
           paymentIntent &&
-          (paymentIntent.status === "requires_capture" || paymentIntent.status === "succeeded")
+          (paymentIntent.status === "requires_capture" ||
+            paymentIntent.status === "succeeded")
         ) {
           return onPaymentCompleted()
         }
+
+        setSubmitting(false)
       })
   }
 

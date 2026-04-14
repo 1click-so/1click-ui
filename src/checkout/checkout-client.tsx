@@ -488,12 +488,15 @@ export function CheckoutClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deliveryReady])
 
-  const handleCardChange = (e: {
+  // PaymentElement emits `complete: true` once the user has filled in
+  // valid details for the selected method (card, Apple Pay, Google Pay,
+  // etc.). We just clear any stale error — the actual confirmation
+  // happens in PaymentButton via stripe.confirmPayment.
+  const handlePaymentElementChange = (_e: {
     complete: boolean
-    error?: { message?: string }
-    brand?: string
+    selectedMethod: string | null
   }) => {
-    setPaymentError(e.error?.message ?? null)
+    setPaymentError(null)
   }
 
   const addressInput = useMemo(() => {
@@ -580,8 +583,7 @@ export function CheckoutClient({
             onPaymentTab={handlePaymentTab}
             deliveryReady={deliveryReady}
             paymentError={paymentError}
-            onCardChange={handleCardChange}
-            onCardFieldError={setPaymentError}
+            onPaymentElementChange={handlePaymentElementChange}
             beforePaymentButton={
               <MobileCheckoutBottomBar
                 cart={summaryCart}
