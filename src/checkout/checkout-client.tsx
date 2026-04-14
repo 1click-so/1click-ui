@@ -12,6 +12,7 @@ import {
 
 import {
   initiatePaymentSession,
+  placeOrder,
   setShippingMethod,
   updateCart,
 } from "../data/cart"
@@ -388,6 +389,44 @@ export function CheckoutClient({
       (s) => s.status === "pending"
     )
   const [paymentError, setPaymentError] = useState<string | null>(null)
+
+  // ── 3DS / bank-redirect return handler ──────────────────────────────
+  // Stripe Payment Element calls confirmPayment with
+  // redirect: "if_required". For methods that require a redirect (3DS
+  // challenge, bank-redirect APMs), the browser navigates to
+  // return_url (the checkout page itself) and comes back carrying
+  // ?payment_intent=...&payment_intent_client_secret=...&redirect_status=...
+  // We detect those on mount, call placeOrder when the status is
+  // succeeded, and surface a clear error otherwise. Run once — we strip
+  // the query params after handling so a refresh doesn't re-trigger.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const url = new URL(window.location.href)
+    const redirectStatus = url.searchParams.get("redirect_status")
+    const paymentIntentId = url.searchParams.get("payment_intent")
+    if (!redirectStatus || !paymentIntentId) return
+
+    // Strip the params immediately so refreshes and re-renders don't
+    // trigger this effect again. `replaceState` avoids a navigation.
+    ;[
+      "redirect_status",
+      "payment_intent",
+      "payment_intent_client_secret",
+    ].forEach((k) => url.searchParams.delete(k))
+    window.history.replaceState({}, "", url.toString())
+
+    if (redirectStatus === "succeeded") {
+      // placeOrder redirects to the order confirmation page on success.
+      placeOrder().catch((err: unknown) => {
+        setPaymentError(err instanceof Error ? err.message : String(err))
+      })
+    } else {
+      setPaymentError(
+        "Плащането не беше потвърдено. Моля, опитайте отново или изберете друг метод."
+      )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const hasCard = !!availablePaymentMethods?.some((m) => isStripeLike(m.id))
   const hasCod = !!availablePaymentMethods?.some((m) => isManual(m.id))
