@@ -5,9 +5,9 @@ import { useEffect } from "react"
 
 import { convertToLocale } from "../lib/money"
 import { DualPrice } from "../lib/dual-price"
+import { CheckoutLineItem } from "./checkout-line-item"
 import { useCheckoutLabels } from "./context"
 import { DiscountSection } from "./discount-section"
-import { LineItemCard } from "./line-item-card"
 
 /**
  * OrderSummary — the right column of the checkout: scrollable list of
@@ -73,26 +73,30 @@ export function OrderSummary({
       </div>
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-        <div className="px-6 pt-5 space-y-5">
+        {/* Items section — bg-muted accent matches the mobile top-bar
+            background so the items zone reads as a distinct surface from
+            the totals section below. */}
+        <div className="bg-muted px-5 sm:px-6 py-2 divide-y divide-border border-b border-border">
           {items
             .slice()
             .sort((a, b) => ((a.created_at ?? "") > (b.created_at ?? "") ? -1 : 1))
             .map((item) => (
-              <LineItemCard
-                key={item.id}
-                item={item}
-                currencyCode={cart.currency_code}
-              />
+              <div key={item.id} className="py-5 first:pt-3 last:pb-3">
+                <CheckoutLineItem
+                  item={item}
+                  currencyCode={cart.currency_code}
+                />
+              </div>
             ))}
         </div>
 
-        <div className="px-6 mt-6">
+        <div className="px-5 sm:px-6 mt-4">
           <DiscountSection cart={cart} />
         </div>
 
-        <div className="mx-6 my-5 h-px bg-border" />
+        <div className="mx-5 sm:mx-6 my-5 h-px bg-border" />
 
-        <div className="px-6 space-y-3">
+        <div className="px-5 sm:px-6 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{labels.subtotal}</span>
             <DualPrice
@@ -164,7 +168,7 @@ export function OrderSummary({
           </div>
         </div>
 
-        <div className="mx-6 mt-4 pt-4 border-t border-border">
+        <div className="mx-5 sm:mx-6 mt-4 pt-4 border-t border-border">
           <div className="flex justify-between items-center">
             <span className="text-lg font-bold text-foreground">
               {labels.total}
@@ -180,7 +184,7 @@ export function OrderSummary({
           </div>
         </div>
 
-        <div className="px-6 pb-5 pt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <div className="px-5 sm:px-6 pb-5 pt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <svg
             className="w-3.5 h-3.5"
             fill="none"

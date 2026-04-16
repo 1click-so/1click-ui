@@ -2,11 +2,10 @@
 
 import type { HttpTypes } from "@medusajs/types"
 
+import { CheckoutLineItem } from "./checkout-line-item"
 import { DualPrice } from "../lib/dual-price"
-import { convertToLocale } from "../lib/money"
 import { useCheckoutLabels } from "./context"
 import { DiscountSection } from "./discount-section"
-import { LineItemCard } from "./line-item-card"
 
 /**
  * MobileOrderSummaryBody — the expanded content shared by the two mobile
@@ -24,13 +23,14 @@ type MobileOrderSummaryBodyProps = {
     promotions?: HttpTypes.StorePromotion[]
   }
   shippingCost: number | null | undefined
-  displayTotal: number
+  /** Kept for parity with prior API; the final total is rendered by the
+   * parent bar's collapsed header (no need to duplicate inside the body). */
+  displayTotal?: number
 }
 
 export function MobileOrderSummaryBody({
   cart,
   shippingCost,
-  displayTotal,
 }: MobileOrderSummaryBodyProps) {
   const labels = useCheckoutLabels()
   const items = cart.items ?? []
@@ -38,18 +38,19 @@ export function MobileOrderSummaryBody({
 
   return (
     <div className="space-y-4 pt-4">
-      <div className="space-y-3">
+      <div className="divide-y divide-border">
         {items
           .slice()
           .sort((a, b) =>
             (a.created_at ?? "") > (b.created_at ?? "") ? -1 : 1
           )
           .map((item) => (
-            <LineItemCard
-              key={item.id}
-              item={item}
-              currencyCode={cart.currency_code}
-            />
+            <div key={item.id} className="py-5 first:pt-0">
+              <CheckoutLineItem
+                item={item}
+                currencyCode={cart.currency_code}
+              />
+            </div>
           ))}
       </div>
 
@@ -101,18 +102,6 @@ export function MobileOrderSummaryBody({
             </span>
           </div>
         )}
-      </div>
-
-      <div className="flex items-baseline justify-between pt-3 border-t border-border">
-        <span className="text-base font-bold text-foreground">
-          {labels.total}
-        </span>
-        <span className="text-xl font-bold text-foreground tracking-tight">
-          {convertToLocale({
-            amount: displayTotal,
-            currency_code: cart.currency_code,
-          })}
-        </span>
       </div>
     </div>
   )
