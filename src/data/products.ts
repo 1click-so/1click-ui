@@ -27,7 +27,7 @@ export async function getProductByHandle(
         limit: 1,
       },
       headers,
-      next,
+      next: { ...next, revalidate: 120 },
       cache: "force-cache",
     })
     .then(({ products }) => products[0] || null)
@@ -88,7 +88,7 @@ export const listProducts = async ({
           ...queryParams,
         },
         headers,
-        next,
+        next: { ...next, revalidate: 120 },
         cache: "force-cache",
       }
     )
