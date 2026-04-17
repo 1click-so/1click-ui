@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import type { SortOptions } from "../lib/sort-products"
 import { defaultStoreLabels, type StoreLabels } from "./labels"
 import { SortSelect } from "./sort-select"
-import { PaginatedProducts } from "./paginated-products"
+import { PaginatedProducts, type ProductCardComponent } from "./paginated-products"
 import { SkeletonProductGrid } from "./skeleton-product-grid"
 
 type StoreTemplateProps = {
@@ -10,6 +10,8 @@ type StoreTemplateProps = {
   page?: string
   countryCode: string
   labels?: StoreLabels
+  /** Override the default ProductPreview with a store-specific card. */
+  renderProduct?: ProductCardComponent
 }
 
 export function StoreTemplate({
@@ -17,6 +19,7 @@ export function StoreTemplate({
   page,
   countryCode,
   labels,
+  renderProduct,
 }: StoreTemplateProps) {
   const l = { ...defaultStoreLabels, ...labels }
   const pageNumber = page ? parseInt(page) : 1
@@ -38,6 +41,7 @@ export function StoreTemplate({
             sortBy={sort}
             page={pageNumber}
             countryCode={countryCode}
+            renderProduct={renderProduct}
           />
         </Suspense>
       </div>

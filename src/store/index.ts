@@ -3,7 +3,7 @@ export { bulgarianStoreLabels } from "./labels-bg"
 
 export { Pagination } from "./pagination"
 export { SortSelect, type SortSelectProps } from "./sort-select"
-export { PaginatedProducts } from "./paginated-products"
+export { PaginatedProducts, type ProductCardComponent } from "./paginated-products"
 export { SkeletonProductGrid } from "./skeleton-product-grid"
 export { StoreTemplate, type StoreTemplateProps } from "./store-template"
 export {

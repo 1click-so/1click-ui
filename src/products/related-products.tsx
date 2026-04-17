@@ -1,3 +1,4 @@
+import type { ComponentType } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { listProducts } from "../data/products"
 import { getRegion } from "../data/regions"
@@ -8,12 +9,15 @@ type RelatedProductsProps = {
   product: HttpTypes.StoreProduct
   countryCode: string
   labels?: Pick<ProductLabels, "relatedProducts" | "relatedProductsDescription">
+  /** Override the default ProductPreview with a store-specific card. */
+  renderProduct?: ComponentType<{ product: HttpTypes.StoreProduct }>
 }
 
 export async function RelatedProducts({
   product,
   countryCode,
   labels,
+  renderProduct: Card = ProductPreview,
 }: RelatedProductsProps) {
   const l = { ...defaultProductLabels, ...labels }
   const region = await getRegion(countryCode)
@@ -52,7 +56,7 @@ export async function RelatedProducts({
       <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-8">
         {products.map((p) => (
           <li key={p.id}>
-            <ProductPreview product={p} />
+            <Card product={p} />
           </li>
         ))}
       </ul>

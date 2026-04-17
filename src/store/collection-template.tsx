@@ -3,7 +3,7 @@ import type { HttpTypes } from "@medusajs/types"
 import type { SortOptions } from "../lib/sort-products"
 import type { StoreLabels } from "./labels"
 import { SortSelect } from "./sort-select"
-import { PaginatedProducts } from "./paginated-products"
+import { PaginatedProducts, type ProductCardComponent } from "./paginated-products"
 import { SkeletonProductGrid } from "./skeleton-product-grid"
 
 type CollectionTemplateProps = {
@@ -12,6 +12,8 @@ type CollectionTemplateProps = {
   page?: string
   countryCode: string
   labels?: StoreLabels
+  /** Override the default ProductPreview with a store-specific card. */
+  renderProduct?: ProductCardComponent
 }
 
 export function CollectionTemplate({
@@ -20,6 +22,7 @@ export function CollectionTemplate({
   page,
   countryCode,
   labels,
+  renderProduct,
 }: CollectionTemplateProps) {
   const pageNumber = page ? parseInt(page) : 1
   const sort = sortBy || "created_at"
@@ -47,6 +50,7 @@ export function CollectionTemplate({
             page={pageNumber}
             collectionId={collection.id}
             countryCode={countryCode}
+            renderProduct={renderProduct}
           />
         </Suspense>
       </div>

@@ -1,9 +1,15 @@
+import type { ComponentType } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { listProductsWithSort } from "../data/products"
 import { getRegion } from "../data/regions"
 import type { SortOptions } from "../lib/sort-products"
 import { ProductPreview } from "../products/product-preview"
 import { Pagination } from "./pagination"
+
+/** A component that renders a single product card. */
+export type ProductCardComponent = ComponentType<{
+  product: HttpTypes.StoreProduct
+}>
 
 const PRODUCT_LIMIT = 12
 
@@ -14,6 +20,7 @@ export async function PaginatedProducts({
   categoryId,
   productsIds,
   countryCode,
+  renderProduct: Card = ProductPreview,
 }: {
   sortBy?: SortOptions
   page: number
@@ -21,6 +28,8 @@ export async function PaginatedProducts({
   categoryId?: string
   productsIds?: string[]
   countryCode: string
+  /** Override the default ProductPreview with a store-specific card. */
+  renderProduct?: ProductCardComponent
 }) {
   const queryParams: HttpTypes.FindParams &
     HttpTypes.StoreProductListParams & { order?: string } = {
@@ -54,7 +63,7 @@ export async function PaginatedProducts({
       >
         {products.map((p) => (
           <li key={p.id}>
-            <ProductPreview product={p} />
+            <Card product={p} />
           </li>
         ))}
       </ul>

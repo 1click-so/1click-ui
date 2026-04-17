@@ -5,7 +5,7 @@ import type { SortOptions } from "../lib/sort-products"
 import type { StoreLabels } from "./labels"
 import LocalizedLink from "../common/localized-link"
 import { SortSelect } from "./sort-select"
-import { PaginatedProducts } from "./paginated-products"
+import { PaginatedProducts, type ProductCardComponent } from "./paginated-products"
 import { SkeletonProductGrid } from "./skeleton-product-grid"
 
 type CategoryTemplateProps = {
@@ -14,6 +14,8 @@ type CategoryTemplateProps = {
   page?: string
   countryCode: string
   labels?: StoreLabels
+  /** Override the default ProductPreview with a store-specific card. */
+  renderProduct?: ProductCardComponent
 }
 
 export function CategoryTemplate({
@@ -22,6 +24,7 @@ export function CategoryTemplate({
   page,
   countryCode,
   labels,
+  renderProduct,
 }: CategoryTemplateProps) {
   const pageNumber = page ? parseInt(page) : 1
   const sort = sortBy || "created_at"
@@ -102,6 +105,7 @@ export function CategoryTemplate({
             page={pageNumber}
             categoryId={category.id}
             countryCode={countryCode}
+            renderProduct={renderProduct}
           />
         </Suspense>
       </div>
