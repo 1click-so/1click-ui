@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
-import { useState } from "react"
+import { useContext, useState } from "react"
 
 import { placeOrder } from "../data/cart"
 import { DualPrice } from "../lib/dual-price"
@@ -10,6 +10,7 @@ import { isManual, isStripeLike } from "../lib/payment-constants"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 import { ErrorMessage } from "./error-message"
+import { StripeContext } from "./stripe-wrapper"
 
 /**
  * PaymentButton — top-level "place order" button. Routes to the correct
@@ -116,6 +117,7 @@ function OrderButton({
 
 export function PaymentButton({ cart, "data-testid": dataTestId }: PaymentButtonProps) {
   const labels = useCheckoutLabels()
+  const stripeReady = useContext(StripeContext)
 
   const notReady =
     !cart ||
@@ -126,7 +128,7 @@ export function PaymentButton({ cart, "data-testid": dataTestId }: PaymentButton
 
   const paymentSession = cart.payment_collection?.payment_sessions?.[0]
 
-  if (isStripeLike(paymentSession?.provider_id)) {
+  if (isStripeLike(paymentSession?.provider_id) && stripeReady) {
     return (
       <StripePaymentButton
         notReady={notReady}
