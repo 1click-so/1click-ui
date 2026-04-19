@@ -43,7 +43,7 @@ export function CartStickyFooter() {
       <Link href={hrefs.checkout} onClick={close}>
         <button
           type="button"
-          className="w-full h-[52px] bg-foreground hover:bg-foreground/90 active:bg-foreground/95 text-card text-[15px] sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2.5 transition-colors active:scale-[0.98]"
+          className="w-full h-[52px] bg-foreground hover:bg-foreground/90 active:bg-foreground/95 text-card text-[15px] sm:text-sm font-semibold rounded-[2px] flex items-center justify-center gap-2.5 transition-colors active:scale-[0.98]"
         >
           <svg
             width="16"

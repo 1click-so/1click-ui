@@ -49,7 +49,7 @@ export function CartCrossSellSidebar({
         {products.map((product) => (
           <div
             key={product.id}
-            className="bg-card rounded-2xl p-3.5 transition-shadow hover:shadow-md"
+            className="bg-card rounded-[2px] p-3.5 transition-shadow hover:shadow-md"
             style={{
               boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.08)",
             }}

@@ -52,7 +52,7 @@ export function MobileCheckoutBottomBar({
   if (!firstItem) return null
 
   return (
-    <div className="sm:hidden rounded-2xl border border-border bg-card overflow-hidden">
+    <div className="sm:hidden rounded-[2px] border border-border bg-card overflow-hidden">
       {open && (
         <div className="px-5 pt-5 pb-2">
           <MobileOrderSummaryBody

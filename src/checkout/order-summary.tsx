@@ -72,7 +72,7 @@ export function OrderSummary({
         </span>
       </div>
 
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-card border border-border rounded-[2px] overflow-hidden shadow-sm">
         {/* Items section — bg-muted accent matches the mobile top-bar
             background so the items zone reads as a distinct surface from
             the totals section below. */}

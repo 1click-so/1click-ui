@@ -51,13 +51,13 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
   }
 
   const qtyPill = (
-    <div className="inline-flex items-center rounded-full border border-border bg-card">
+    <div className="inline-flex items-center rounded-[2px] border border-border bg-card">
       <button
         type="button"
         onClick={() => handleQty(item.quantity - 1)}
         disabled={item.quantity <= 1 || updating}
         aria-label={labels.remove}
-        className="w-8 h-8 flex items-center justify-center rounded-full text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
       >
         <Minus className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
@@ -69,7 +69,7 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
         onClick={() => handleQty(item.quantity + 1)}
         disabled={updating}
         aria-label={labels.qty}
-        className="w-8 h-8 flex items-center justify-center rounded-full text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
       >
         <Plus className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
