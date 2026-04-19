@@ -57,6 +57,14 @@ type CheckoutShippingMethodListProps = {
     userCity: string
     userAddress: string
   }
+  /**
+   * Optional per-store carrier branding. Keyed by the stable fulfillment
+   * option id (shipping_option.data.id) — "econt-office", "boxnow-locker",
+   * etc. If a match is found, a small logo renders between the radio and
+   * the option name. Stores that don't supply a map get the unbranded
+   * (radio + text only) layout.
+   */
+  logoByFulfillmentOptionId?: Record<string, { src: string; alt: string }>
 }
 
 // Detection uses the stable fulfillment-option id set by the backend
@@ -90,6 +98,7 @@ export function CheckoutShippingMethodList({
   currencyCode,
   econt,
   boxnow,
+  logoByFulfillmentOptionId,
 }: CheckoutShippingMethodListProps) {
   const labels = useCheckoutLabels()
   const detectEcont = econt?.detect ?? defaultEcontDetect
@@ -131,6 +140,9 @@ export function CheckoutShippingMethodList({
             const isBoxnowLocker =
               boxnow && !isEcontOffice && detectBoxnow(option)
             const hasExpanded = selected && (isEcontOffice || isBoxnowLocker)
+            const logo = logoByFulfillmentOptionId
+              ? logoByFulfillmentOptionId[getFulfillmentOptionId(option) ?? ""]
+              : undefined
 
             return (
               <div
@@ -161,6 +173,19 @@ export function CheckoutShippingMethodList({
                       <div className="w-2 h-2 rounded-full bg-primary" />
                     )}
                   </div>
+                  {logo && (
+                    <span
+                      className="relative flex items-center justify-center w-10 h-7 mr-3 flex-shrink-0"
+                      aria-hidden="true"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={logo.src}
+                        alt={logo.alt}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </span>
+                  )}
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium text-foreground">
                       {option.name}

@@ -81,6 +81,13 @@ type CheckoutClientProps = {
   ) =>
     | Array<HttpTypes.StorePaymentProvider | { id: string }>
     | null
+  /**
+   * Optional per-store carrier branding for the shipping-method list.
+   * Keyed by the stable fulfillment option id set by the backend
+   * provider (shipping_option.data.id). See
+   * `CheckoutShippingMethodList` for rendering details.
+   */
+  logoByFulfillmentOptionId?: Record<string, { src: string; alt: string }>
 }
 
 export function CheckoutClient({
@@ -90,6 +97,7 @@ export function CheckoutClient({
   availablePaymentMethods,
   countryCode,
   paymentMethodFilter,
+  logoByFulfillmentOptionId,
 }: CheckoutClientProps) {
   // ── Address form ───────────────────────────────────────────────────
   const [addressError, setAddressError] = useState<string | null>(null)
@@ -649,6 +657,7 @@ export function CheckoutClient({
               userCity: formData["shipping_address.city"] ?? "",
               userAddress: formData["shipping_address.address_1"] ?? "",
             }}
+            logoByFulfillmentOptionId={logoByFulfillmentOptionId}
           />
 
           <CheckoutPaymentMethodList
