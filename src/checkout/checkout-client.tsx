@@ -494,24 +494,21 @@ export function CheckoutClient({
       shippingMethods.find((sm) => sm.id === selectedShippingMethod) ?? null,
     [shippingMethods, selectedShippingMethod]
   )
-  const selectedIsBoxnow = useMemo(() => {
-    const name = selectedShippingOption?.name?.toLowerCase() ?? ""
-    return (
-      name.includes("boxnow") ||
-      name.includes("box now") ||
-      name.includes("бокс нау") ||
-      name.includes("автомат")
-    )
+  // Delivery-type detection reads the fulfillment option id from
+  // shipping_option.data.id — the stable identifier set by the backend
+  // provider (see econt-fulfillment/service.ts → getFulfillmentOptions).
+  // DO NOT parse the display name: admins rename options freely, and
+  // "До точен адрес с ЕКОНТ" contains "еконт" but is address delivery,
+  // not office delivery.
+  const selectedFulfillmentOptionId = useMemo(() => {
+    const data = selectedShippingOption?.data as
+      | { id?: string }
+      | undefined
+      | null
+    return typeof data?.id === "string" ? data.id : null
   }, [selectedShippingOption])
-  const selectedIsEcont = useMemo(() => {
-    const name = selectedShippingOption?.name?.toLowerCase() ?? ""
-    return (
-      !selectedIsBoxnow &&
-      (name.includes("офис") ||
-        name.includes("еконт") ||
-        name.includes("econt"))
-    )
-  }, [selectedShippingOption, selectedIsBoxnow])
+  const selectedIsBoxnow = selectedFulfillmentOptionId === "boxnow-locker"
+  const selectedIsEcont = selectedFulfillmentOptionId === "econt-office"
 
   const deliveryReady =
     (!!selectedShippingMethod || (cart?.shipping_methods?.length ?? 0) > 0) &&
