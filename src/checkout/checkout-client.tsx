@@ -61,6 +61,26 @@ type CheckoutClientProps = {
     | Array<HttpTypes.StorePaymentProvider | { id: string }>
     | null
   countryCode: string
+  /**
+   * Per-store hook to restrict payment methods based on the currently
+   * selected shipping option. Called whenever the shipping selection
+   * changes; the returned array is what drives the Card / COD tab
+   * visibility. Return the input unchanged to leave everything available.
+   *
+   * Example — hide COD when a BoxNow locker is selected:
+   *   (methods, shippingOption) =>
+   *     shippingOption?.data?.id === "boxnow-locker"
+   *       ? methods?.filter((m) => !isManual(m.id)) ?? null
+   *       : methods
+   */
+  paymentMethodFilter?: (
+    methods:
+      | Array<HttpTypes.StorePaymentProvider | { id: string }>
+      | null,
+    selectedShippingOption: HttpTypes.StoreCartShippingOption | null
+  ) =>
+    | Array<HttpTypes.StorePaymentProvider | { id: string }>
+    | null
 }
 
 export function CheckoutClient({
@@ -69,6 +89,7 @@ export function CheckoutClient({
   availableShippingMethods,
   availablePaymentMethods,
   countryCode,
+  paymentMethodFilter,
 }: CheckoutClientProps) {
   // ── Address form ───────────────────────────────────────────────────
   const [addressError, setAddressError] = useState<string | null>(null)
@@ -357,6 +378,27 @@ export function CheckoutClient({
     [availableShippingMethods]
   )
 
+  // Resolved here (instead of near deliveryReady) because
+  // `effectiveAvailablePaymentMethods` needs to know the selection to
+  // invoke the per-store `paymentMethodFilter` before hasCard/hasCod
+  // are computed.
+  const selectedShippingOption = useMemo(
+    () =>
+      shippingMethods.find((sm) => sm.id === selectedShippingMethod) ?? null,
+    [shippingMethods, selectedShippingMethod]
+  )
+
+  // Per-store rule hook. Runs on every shipping-selection change so the
+  // Card / COD tabs react live — e.g. Alenika hides COD when BoxNow is
+  // chosen. Without a filter, the cart's region-wide methods pass through.
+  const effectiveAvailablePaymentMethods = useMemo(
+    () =>
+      paymentMethodFilter
+        ? paymentMethodFilter(availablePaymentMethods, selectedShippingOption)
+        : availablePaymentMethods,
+    [paymentMethodFilter, availablePaymentMethods, selectedShippingOption]
+  )
+
   useEffect(() => {
     if (!shippingMethods.length) {
       setIsLoadingPrices(false)
@@ -428,10 +470,10 @@ export function CheckoutClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const hasCard = !!availablePaymentMethods?.some((m) => isStripeLike(m.id))
-  const hasCod = !!availablePaymentMethods?.some((m) => isManual(m.id))
-  const cardId = availablePaymentMethods?.find((m) => isStripeLike(m.id))?.id
-  const codId = availablePaymentMethods?.find((m) => isManual(m.id))?.id
+  const hasCard = !!effectiveAvailablePaymentMethods?.some((m) => isStripeLike(m.id))
+  const hasCod = !!effectiveAvailablePaymentMethods?.some((m) => isManual(m.id))
+  const cardId = effectiveAvailablePaymentMethods?.find((m) => isStripeLike(m.id))?.id
+  const codId = effectiveAvailablePaymentMethods?.find((m) => isManual(m.id))?.id
 
   const [paymentTab, setPaymentTab] = useState<"card" | "cod">(
     isManual(activePaymentSession?.provider_id) ? "cod" : hasCard ? "card" : "cod"
@@ -489,11 +531,9 @@ export function CheckoutClient({
   // A BoxNow shipping option requires a locker selection before the
   // order can be placed (backend's createDeliveryRequest reads
   // cart.metadata.boxnow_locker_id as destination.locationId).
-  const selectedShippingOption = useMemo(
-    () =>
-      shippingMethods.find((sm) => sm.id === selectedShippingMethod) ?? null,
-    [shippingMethods, selectedShippingMethod]
-  )
+  // `selectedShippingOption` itself is defined higher up — it's needed
+  // earlier so the payment-method filter can react to shipping changes.
+  //
   // Delivery-type detection reads the fulfillment option id from
   // shipping_option.data.id — the stable identifier set by the backend
   // provider (see econt-fulfillment/service.ts → getFulfillmentOptions).
