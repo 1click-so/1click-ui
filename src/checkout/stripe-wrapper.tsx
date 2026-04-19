@@ -32,6 +32,15 @@ type StripeWrapperProps = {
    * https://stripe.com/docs/elements/appearance-api
    */
   appearance?: Appearance
+  /**
+   * Optional custom font sources loaded into the Stripe Elements iframe.
+   * Elements runs in an isolated iframe and cannot see the parent's
+   * loaded fonts, so custom fonts referenced in `appearance.fontFamily`
+   * must also be declared here via `{ cssSrc: "..." }` or
+   * `{ family, src, weight, style }`. See
+   * https://stripe.com/docs/js/appendix/style
+   */
+  fonts?: StripeElementsOptions["fonts"]
   children: ReactNode
 }
 
@@ -40,11 +49,13 @@ export function StripeWrapper({
   stripeKey,
   stripePromise,
   appearance,
+  fonts,
   children,
 }: StripeWrapperProps) {
   const options: StripeElementsOptions = {
     clientSecret: paymentSession.data?.client_secret as string | undefined,
     appearance,
+    fonts,
   }
 
   if (!stripeKey) {

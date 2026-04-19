@@ -1,7 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import type { Appearance } from "@stripe/stripe-js"
+import type { Appearance, StripeElementsOptions } from "@stripe/stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import type { ReactNode } from "react"
 
@@ -48,10 +48,21 @@ type PaymentWrapperProps = {
    * StripeWrapper. Pass brand colors, font, radius, etc.
    */
   appearance?: Appearance
+  /**
+   * Optional custom fonts for the Stripe Elements iframe. Required
+   * whenever `appearance.variables.fontFamily` references a custom
+   * font — the iframe cannot see the parent document's loaded fonts.
+   */
+  fonts?: StripeElementsOptions["fonts"]
   children: ReactNode
 }
 
-export function PaymentWrapper({ cart, appearance, children }: PaymentWrapperProps) {
+export function PaymentWrapper({
+  cart,
+  appearance,
+  fonts,
+  children,
+}: PaymentWrapperProps) {
   const paymentSession = cart.payment_collection?.payment_sessions?.find(
     (s) => s.status === "pending"
   )
@@ -78,6 +89,7 @@ export function PaymentWrapper({ cart, appearance, children }: PaymentWrapperPro
         stripeKey={stripeKey}
         stripePromise={stripePromise}
         appearance={appearance}
+        fonts={fonts}
       >
         {children}
       </StripeWrapper>
