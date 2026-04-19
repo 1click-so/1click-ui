@@ -15,12 +15,15 @@ export function OrderDeliveryCard({ order, labels }: OrderDeliveryCardProps) {
   const addr = order.shipping_address
 
   const hasEcontMetadata = !!metadata.econt_office_code
-  const methodName = (method?.name || "").toLowerCase()
-  const isPickupByName =
-    methodName.includes("еконт") ||
-    methodName.includes("econt") ||
-    methodName.includes("офис")
-  const isPickup = hasEcontMetadata || isPickupByName
+  // Prefer the stable fulfillment-option id (shipping_option.data.id)
+  // over name parsing. "До точен адрес с ЕКОНТ" contains "еконт" but is
+  // address delivery, not pickup — the id disambiguates cleanly.
+  const fulfillmentOptionId =
+    (method?.data as { id?: string } | undefined | null)?.id ?? null
+  const isPickupById =
+    fulfillmentOptionId === "econt-office" ||
+    fulfillmentOptionId === "boxnow-locker"
+  const isPickup = hasEcontMetadata || isPickupById
 
   return (
     <div className="bg-card rounded-xl p-5 shadow-sm">

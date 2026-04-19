@@ -59,23 +59,23 @@ type CheckoutShippingMethodListProps = {
   }
 }
 
+// Detection uses the stable fulfillment-option id set by the backend
+// provider (shipping_option.data.id) — NOT the display name. Admins
+// rename options freely, and Bulgarian labels overlap ("До точен
+// адрес с ЕКОНТ" contains "еконт" but is address delivery, not office).
+const getFulfillmentOptionId = (
+  option: HttpTypes.StoreCartShippingOption
+): string | null => {
+  const data = option.data as { id?: string } | undefined | null
+  return typeof data?.id === "string" ? data.id : null
+}
+
 const defaultEcontDetect = (option: HttpTypes.StoreCartShippingOption): boolean => {
-  const name = option.name?.toLowerCase() ?? ""
-  return (
-    name.includes("офис") ||
-    name.includes("еконт") ||
-    name.includes("econt")
-  )
+  return getFulfillmentOptionId(option) === "econt-office"
 }
 
 const defaultBoxnowDetect = (option: HttpTypes.StoreCartShippingOption): boolean => {
-  const name = option.name?.toLowerCase() ?? ""
-  return (
-    name.includes("boxnow") ||
-    name.includes("box now") ||
-    name.includes("бокс нау") ||
-    name.includes("автомат")
-  )
+  return getFulfillmentOptionId(option) === "boxnow-locker"
 }
 
 export function CheckoutShippingMethodList({

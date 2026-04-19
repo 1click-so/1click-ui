@@ -50,10 +50,21 @@ export function PaymentWrapper({ cart, children }: PaymentWrapperProps) {
     (s) => s.status === "pending"
   )
 
+  // Only wrap in StripeWrapper when the pending session is Stripe-backed
+  // AND already has a client_secret. A Stripe session without a secret
+  // means Medusa's initiatePaymentSession returned without a confirmed
+  // intent (can happen on first render, before CheckoutClient has auto-
+  // initiated the session). Rendering StripeWrapper without a secret
+  // throws and blows up the whole checkout page — so bail to the
+  // unwrapped tree until the secret is ready.
+  const hasClientSecret = !!(paymentSession?.data as { client_secret?: string } | undefined)
+    ?.client_secret
+
   if (
     isStripeLike(paymentSession?.provider_id) &&
     paymentSession &&
-    stripePromise
+    stripePromise &&
+    hasClientSecret
   ) {
     return (
       <StripeWrapper
