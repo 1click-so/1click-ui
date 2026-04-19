@@ -84,6 +84,47 @@ export function CheckoutPaymentMethodList({
         <div className="p-4 bg-muted rounded-lg border border-border">
           <p className="text-sm text-muted-foreground">{labels.paymentDisabled}</p>
         </div>
+      ) : hasCard && !hasCod ? (
+        // Single-method collapse (card only). Drop the radio header —
+        // there's nothing to choose between — and render PaymentElement
+        // directly inside the selected-state border. Session is already
+        // auto-initiated upstream (CheckoutClient `useEffect` on
+        // deliveryReady), so the card form is live without any click.
+        <div className="rounded-lg border border-primary bg-primary/5 overflow-hidden">
+          {!stripeReady && (
+            <div className="px-4 py-4 space-y-2.5 animate-pulse">
+              <div className="h-[44px] rounded-lg bg-muted" />
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="h-[44px] rounded-lg bg-muted" />
+                <div className="h-[44px] rounded-lg bg-muted" />
+              </div>
+            </div>
+          )}
+          {stripeReady && (
+            <div className="px-4 py-4">
+              <PaymentElement
+                onChange={handlePaymentElementChange}
+                options={{
+                  layout: "accordion",
+                  fields: { billingDetails: { address: "never" } },
+                }}
+              />
+            </div>
+          )}
+        </div>
+      ) : hasCod && !hasCard ? (
+        // Single-method collapse (COD only). Same logic — radio header
+        // is redundant; render the note directly.
+        <div className="rounded-lg border border-primary bg-primary/5 overflow-hidden">
+          <div className="px-4 py-4">
+            <p className="text-sm font-medium text-foreground">
+              {labels.cashOnDelivery}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {labels.codNote}
+            </p>
+          </div>
+        </div>
       ) : (
         <>
           <div className="space-y-2">
@@ -131,12 +172,6 @@ export function CheckoutPaymentMethodList({
                       onChange={handlePaymentElementChange}
                       options={{
                         layout: "accordion",
-                        // The shipping/billing address is already captured
-                        // at the top of checkout and every value is forwarded
-                        // to Stripe in payment-button.tsx via
-                        // confirmParams.payment_method_data.billing_details.
-                        // Hide the redundant Country dropdown (and any other
-                        // address fields Stripe might auto-include).
                         fields: { billingDetails: { address: "never" } },
                       }}
                     />
