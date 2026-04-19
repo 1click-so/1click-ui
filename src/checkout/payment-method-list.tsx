@@ -129,7 +129,16 @@ export function CheckoutPaymentMethodList({
                   <div className="px-4 pb-4 pt-2">
                     <PaymentElement
                       onChange={handlePaymentElementChange}
-                      options={{ layout: "accordion" }}
+                      options={{
+                        layout: "accordion",
+                        // The shipping/billing address is already captured
+                        // at the top of checkout and every value is forwarded
+                        // to Stripe in payment-button.tsx via
+                        // confirmParams.payment_method_data.billing_details.
+                        // Hide the redundant Country dropdown (and any other
+                        // address fields Stripe might auto-include).
+                        fields: { billingDetails: { address: "never" } },
+                      }}
                     />
                   </div>
                 )}
