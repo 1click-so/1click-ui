@@ -1,7 +1,11 @@
 "use client"
 
 import { Elements } from "@stripe/react-stripe-js"
-import type { Stripe, StripeElementsOptions } from "@stripe/stripe-js"
+import type {
+  Appearance,
+  Stripe,
+  StripeElementsOptions,
+} from "@stripe/stripe-js"
 import type { HttpTypes } from "@medusajs/types"
 import { createContext, type ReactNode } from "react"
 
@@ -21,6 +25,13 @@ type StripeWrapperProps = {
   paymentSession: HttpTypes.StorePaymentSession
   stripeKey?: string
   stripePromise: Promise<Stripe | null> | null
+  /**
+   * Optional per-store theming for every Stripe Element rendered under
+   * this wrapper (PaymentElement, etc.). Pass Stripe's Appearance
+   * object — theme, variables, rules. See
+   * https://stripe.com/docs/elements/appearance-api
+   */
+  appearance?: Appearance
   children: ReactNode
 }
 
@@ -28,10 +39,12 @@ export function StripeWrapper({
   paymentSession,
   stripeKey,
   stripePromise,
+  appearance,
   children,
 }: StripeWrapperProps) {
   const options: StripeElementsOptions = {
     clientSecret: paymentSession.data?.client_secret as string | undefined,
+    appearance,
   }
 
   if (!stripeKey) {

@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import type { Appearance } from "@stripe/stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import type { ReactNode } from "react"
 
@@ -42,10 +43,15 @@ const stripePromise = stripeKey
 
 type PaymentWrapperProps = {
   cart: HttpTypes.StoreCart
+  /**
+   * Optional per-store Stripe Elements appearance, forwarded to
+   * StripeWrapper. Pass brand colors, font, radius, etc.
+   */
+  appearance?: Appearance
   children: ReactNode
 }
 
-export function PaymentWrapper({ cart, children }: PaymentWrapperProps) {
+export function PaymentWrapper({ cart, appearance, children }: PaymentWrapperProps) {
   const paymentSession = cart.payment_collection?.payment_sessions?.find(
     (s) => s.status === "pending"
   )
@@ -71,6 +77,7 @@ export function PaymentWrapper({ cart, children }: PaymentWrapperProps) {
         paymentSession={paymentSession}
         stripeKey={stripeKey}
         stripePromise={stripePromise}
+        appearance={appearance}
       >
         {children}
       </StripeWrapper>
