@@ -572,6 +572,32 @@ export function CheckoutClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deliveryReady])
 
+  // Reconcile paymentTab with the currently-available methods. When
+  // the store's paymentMethodFilter strips a method in response to a
+  // shipping selection (e.g. BoxNow → no COD), the previously selected
+  // tab can point to a method that's no longer rendered. Result: the
+  // remaining tab's radio looks unselected and the form stays
+  // collapsed — exactly the "not pre-selected" symptom when switching
+  // from an Econt/COD state to BoxNow. Switch the tab (and reinitiate
+  // the session with the new provider) whenever availability changes
+  // out from under the current selection.
+  useEffect(() => {
+    if (!deliveryReady) return
+    if (paymentTab === "cod" && !hasCod && hasCard && cardId) {
+      handlePaymentTab("card")
+    } else if (paymentTab === "card" && !hasCard && hasCod && codId) {
+      handlePaymentTab("cod")
+    }
+  }, [
+    deliveryReady,
+    paymentTab,
+    hasCard,
+    hasCod,
+    cardId,
+    codId,
+    handlePaymentTab,
+  ])
+
   // PaymentElement emits `complete: true` once the user has filled in
   // valid details for the selected method (card, Apple Pay, Google Pay,
   // etc.). We just clear any stale error — the actual confirmation
