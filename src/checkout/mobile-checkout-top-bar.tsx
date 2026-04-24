@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
 
 import { cn } from "../lib/utils"
-import { convertToLocale } from "../lib/money"
+import { DualPrice } from "../lib/dual-price"
 import { useCheckoutLabels } from "./context"
 import { MobileOrderSummaryBody } from "./mobile-order-summary-body"
 
@@ -73,12 +73,12 @@ export function MobileCheckoutTopBar({
             />
           </svg>
         </span>
-        <span className="text-base font-bold text-foreground tracking-tight">
-          {convertToLocale({
-            amount: displayTotal,
-            currency_code: cart.currency_code,
-          })}
-        </span>
+        <DualPrice
+          amount={displayTotal}
+          currencyCode={cart.currency_code}
+          className="text-base font-bold text-foreground tracking-tight"
+          bgnClassName="ml-1.5 text-xs text-muted-foreground/70 font-normal"
+        />
       </button>
 
       {open && (

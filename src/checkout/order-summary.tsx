@@ -3,7 +3,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useEffect } from "react"
 
-import { convertToLocale } from "../lib/money"
 import { DualPrice } from "../lib/dual-price"
 import { CheckoutLineItem } from "./checkout-line-item"
 import { useCheckoutLabels } from "./context"
@@ -174,12 +173,12 @@ export function OrderSummary({
               {labels.total}
             </span>
             <div className="text-right">
-              <span className="text-2xl font-bold text-foreground tracking-tight">
-                {convertToLocale({
-                  amount: displayTotal ?? 0,
-                  currency_code: cart.currency_code,
-                })}
-              </span>
+              <DualPrice
+                amount={displayTotal ?? 0}
+                currencyCode={cart.currency_code}
+                className="text-2xl font-bold text-foreground tracking-tight"
+                bgnClassName="ml-2 text-sm text-muted-foreground/70 font-normal"
+              />
             </div>
           </div>
         </div>

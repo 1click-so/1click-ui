@@ -1,10 +1,10 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { Minus, Plus, X } from "lucide-react"
+import { Minus, Plus } from "lucide-react"
 import { useState } from "react"
 
-import { deleteLineItem, updateLineItem } from "../data/cart"
+import { updateLineItem } from "../data/cart"
 import { DualPrice } from "../lib/dual-price"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
@@ -13,13 +13,14 @@ import { useCheckoutLabels } from "./context"
  * CheckoutLineItem — flat row used INSIDE the OrderSummary card. Unlike
  * the cart-drawer LineItemCard (which is itself a card and lives alone
  * in the drawer), this component is borderless: rows sit on the parent
- * card's surface and use a divider above each row from the parent. That
- * gives the title ~70% of the row width — critical inside the narrow
- * sidebar/mobile-summary container where nested-card chrome was eating
- * the title down to "Стартов к..." ellipsis.
+ * card's surface and use a divider above each row from the parent.
+ *
+ * Checkout is master-level: customers cannot remove items from the
+ * order summary. Removal happens in the cart drawer only — the qty
+ * pill here allows adjustment down to 1, not zero.
  *
  * Layout:
- *   [thumb 56×56] [title (clamp 2) + variant + qty pill]   [price + ✕]
+ *   [thumb 56×56] [title (clamp 2) + variant + qty pill]   [price]
  */
 
 type CheckoutLineItemProps = {
@@ -41,22 +42,13 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
     }
   }
 
-  const handleRemove = async () => {
-    setUpdating(true)
-    try {
-      await deleteLineItem(item.id)
-    } finally {
-      setUpdating(false)
-    }
-  }
-
   const qtyPill = (
     <div className="inline-flex items-center rounded-[2px] border border-border bg-card">
       <button
         type="button"
         onClick={() => handleQty(item.quantity - 1)}
         disabled={item.quantity <= 1 || updating}
-        aria-label={labels.remove}
+        aria-label={labels.qty}
         className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
       >
         <Minus className="w-3.5 h-3.5" strokeWidth={2.25} />
@@ -89,17 +81,6 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
     </div>
   )
 
-  const removeBtn = (
-    <button
-      type="button"
-      onClick={handleRemove}
-      aria-label={labels.remove}
-      className="w-6 h-6 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-    >
-      <X className="w-3.5 h-3.5" strokeWidth={2} />
-    </button>
-  )
-
   return (
     <div
       className={cn(
@@ -120,7 +101,7 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
 
       {/* DESKTOP layout —
           row 1: title (left)  ·  price right-aligned, baseline of title line 1
-          row 2: qty pill (left) ·  X (right) */}
+          row 2: qty pill (left) */}
       <div className="hidden sm:flex flex-1 min-w-0 flex-col gap-2.5">
         <div className="flex items-baseline justify-between gap-3">
           {titleBlock}
@@ -130,16 +111,12 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
             className="text-sm font-bold text-foreground text-right flex-shrink-0"
           />
         </div>
-        <div className="flex items-center justify-between gap-3">
-          {qtyPill}
-          {removeBtn}
-        </div>
+        {qtyPill}
       </div>
 
       {/* MOBILE layout — title takes full content width, qty+price share
-          the row underneath. X floats absolute in the top-right of the
-          whole row, out of flow. */}
-      <div className="sm:hidden flex-1 min-w-0 flex flex-col gap-2 pr-7">
+          the row underneath. */}
+      <div className="sm:hidden flex-1 min-w-0 flex flex-col gap-2">
         {titleBlock}
         <div className="flex items-center justify-between gap-3">
           {qtyPill}
@@ -150,14 +127,6 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
           />
         </div>
       </div>
-      <button
-        type="button"
-        onClick={handleRemove}
-        aria-label={labels.remove}
-        className="sm:hidden absolute -top-1 -right-1 w-7 h-7 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors z-10"
-      >
-        <X className="w-3.5 h-3.5" strokeWidth={2} />
-      </button>
     </div>
   )
 }

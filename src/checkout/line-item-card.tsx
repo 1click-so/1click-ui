@@ -3,7 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
 
-import { deleteLineItem, updateLineItem } from "../data/cart"
+import { updateLineItem } from "../data/cart"
 import { DualPrice } from "../lib/dual-price"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
@@ -11,10 +11,10 @@ import { useCheckoutLabels } from "./context"
 /**
  * LineItemCard — a single cart line shown inside the checkout order
  * summary card. Includes thumbnail, title, variant, quantity select,
- * remove button, and dual-currency price.
+ * and dual-currency price.
  *
- * Extracted from mindpages-storefront checkout-client/index.tsx lines
- * 1392-1530 (originally named `ProductCard` inside OrderSummary).
+ * Checkout is master-level: customers cannot remove items here.
+ * Removal lives in the cart drawer only.
  */
 
 type LineItemCardProps = {
@@ -35,15 +35,6 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
     }
   }
 
-  const handleRemove = async () => {
-    setUpdating(true)
-    try {
-      await deleteLineItem(item.id)
-    } finally {
-      setUpdating(false)
-    }
-  }
-
   const total = item.total ?? 0
 
   return (
@@ -53,27 +44,6 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
         updating && "opacity-40 pointer-events-none"
       )}
     >
-      <button
-        type="button"
-        onClick={handleRemove}
-        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-muted hover:bg-border flex items-center justify-center transition-colors group"
-        aria-label={labels.remove}
-      >
-        <svg
-          className="w-3 h-3 text-muted-foreground group-hover:text-foreground"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-
       <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-card border border-border">
         {item.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -106,7 +76,7 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
         )}
       </div>
 
-      <div className="flex-1 min-w-0 pr-5">
+      <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground leading-tight truncate">
           {item.product_title}
         </p>
