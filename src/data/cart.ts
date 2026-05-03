@@ -1,7 +1,7 @@
 "use server"
 
 import type { HttpTypes } from "@medusajs/types"
-import { updateTag } from "next/cache"
+import { refresh, updateTag } from "next/cache"
 import { redirect } from "next/navigation"
 
 import medusaError from "../lib/medusa-error"
@@ -119,6 +119,17 @@ export async function updateCart(
       const fulfillmentCacheTag = await getCacheTag("fulfillment")
       updateTag(fulfillmentCacheTag)
 
+      // Trigger client router refresh so server components re-render
+      // with the updated cart. updateTag alone only invalidates the
+      // cache for the NEXT request — without refresh(), the current
+      // page keeps the stale cart prop and the UI looks frozen
+      // (the symptom: removed item stays grayed-out, payment session
+      // changes don't propagate to PaymentWrapper, etc).
+      // Verified via Next.js 16 docs: refresh() from next/cache is
+      // server-action-only and is the canonical post-mutation primitive.
+      // https://nextjs.org/docs/app/api-reference/functions/refresh
+      refresh()
+
       return cart
     })
     .catch(medusaError)
@@ -152,6 +163,8 @@ export async function addToCart({
 
       const fulfillmentCacheTag = await getCacheTag("fulfillment")
       updateTag(fulfillmentCacheTag)
+
+      refresh()
     })
     .catch(medusaError)
 }
@@ -182,6 +195,8 @@ export async function updateLineItem({
 
       const fulfillmentCacheTag = await getCacheTag("fulfillment")
       updateTag(fulfillmentCacheTag)
+
+      refresh()
     })
     .catch(medusaError)
 }
@@ -206,6 +221,8 @@ export async function deleteLineItem(lineId: string): Promise<void> {
 
       const fulfillmentCacheTag = await getCacheTag("fulfillment")
       updateTag(fulfillmentCacheTag)
+
+      refresh()
     })
     .catch(medusaError)
 }
@@ -224,6 +241,7 @@ export async function setShippingMethod({
     .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       updateTag(cartCacheTag)
+      refresh()
     })
     .catch(medusaError)
 }
@@ -239,6 +257,11 @@ export async function initiatePaymentSession(
     .then(async (resp) => {
       const cartCacheTag = await getCacheTag("carts")
       updateTag(cartCacheTag)
+      // Critical: without refresh() here the React-side cart prop
+      // keeps the OLD payment_session (with the now-canceled PI's
+      // client_secret) and Stripe Elements stays stuck on it. This is
+      // exactly the "PaymentIntent in terminal state" symptom.
+      refresh()
       return resp
     })
     .catch(medusaError)
@@ -295,6 +318,10 @@ export async function refreshPaymentIfTerminal(
       // sees the rotated session.
       const cartCacheTag = await getCacheTag("carts")
       updateTag(cartCacheTag)
+      // And refresh the client router so the storefront's server
+      // component re-renders with the rotated session's new
+      // client_secret. Stripe Elements re-keys + remounts on it.
+      refresh()
     }
     return { rotated: !!resp.rotated, reason: resp.reason }
   } catch {
@@ -362,6 +389,8 @@ export async function applyPromotions(codes: string[]): Promise<void> {
 
       const fulfillmentCacheTag = await getCacheTag("fulfillment")
       updateTag(fulfillmentCacheTag)
+
+      refresh()
     })
     .catch(medusaError)
 }
