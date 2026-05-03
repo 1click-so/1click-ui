@@ -3,8 +3,9 @@
 import type { HttpTypes } from "@medusajs/types"
 import { PaymentElement } from "@stripe/react-stripe-js"
 import type { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
-import { useContext } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 
+import { refreshPaymentIfTerminal } from "../data/cart"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 import { ErrorMessage } from "./error-message"
@@ -61,11 +62,49 @@ export function CheckoutPaymentMethodList({
   const labels = useCheckoutLabels()
   const stripeReady = useContext(StripeContext)
 
+  // Local copy of Stripe's PaymentElement completion flag. The same
+  // value is forwarded to the parent via `onPaymentElementChange`, but
+  // we keep an internal copy so the Place Order button can be gated
+  // here without making consumers thread the state down themselves.
+  const [paymentElementComplete, setPaymentElementComplete] = useState(false)
+
+  // Reset on tab change. PaymentElement only renders while
+  // `paymentTab === "card"`, so when the user switches away the element
+  // unmounts and the flag must drop to false — otherwise switching
+  // back to a fresh (empty) PaymentElement would leave the button
+  // erroneously enabled from the previous fill.
+  useEffect(() => {
+    setPaymentElementComplete(false)
+  }, [paymentTab])
+
   const handlePaymentElementChange = (event: StripePaymentElementChangeEvent) => {
+    setPaymentElementComplete(event.complete)
     onPaymentElementChange({
       complete: event.complete,
       selectedMethod: event.value?.type ?? null,
     })
+  }
+
+  // Defense-in-depth: server-side refreshPaymentIfTerminal in
+  // checkout/page.tsx is the primary line of defense against stale
+  // PaymentIntents. This handler covers the rare edge case where the PI
+  // goes terminal AFTER the page rendered (admin cancels via Dashboard
+  // mid-checkout, or the same cart in another tab). On loaderror we
+  // reconcile and reload — the next render mounts on a fresh
+  // client_secret. One-shot per element instance to prevent reload loops.
+  const recoveredRef = useRef(false)
+  const handlePaymentElementLoadError = (event: { error?: { message?: string } }) => {
+    const msg = event?.error?.message ?? ""
+    const isTerminalLike = /terminal state|payment[_ ]?intent.*(?:canceled|succeeded)/i.test(msg)
+    if (recoveredRef.current || !isTerminalLike) return
+    recoveredRef.current = true
+    refreshPaymentIfTerminal(cart.id)
+      .then((r) => {
+        if (r.rotated && typeof window !== "undefined") {
+          window.location.reload()
+        }
+      })
+      .catch(() => {})
   }
 
   return (
@@ -129,6 +168,7 @@ export function CheckoutPaymentMethodList({
                   <div className="px-4 pb-4 pt-2">
                     <PaymentElement
                       onChange={handlePaymentElementChange}
+                      onLoadError={handlePaymentElementLoadError}
                       options={{
                         layout: "accordion",
                         fields: { billingDetails: { address: "never" } },
@@ -188,7 +228,20 @@ export function CheckoutPaymentMethodList({
           )}
 
           <div className="mt-5">
-            <PaymentButton cart={cart} data-testid="submit-order-button" />
+            {/*
+              For card we forward the live PaymentElement completion flag
+              so the button stays disabled until the user has filled in
+              valid details (or Stripe Elements managed to initialise at
+              all). For COD the flag is irrelevant — pass `true` so the
+              button gates only on cart-level prerequisites.
+            */}
+            <PaymentButton
+              cart={cart}
+              paymentElementComplete={
+                paymentTab === "cod" ? true : paymentElementComplete
+              }
+              data-testid="submit-order-button"
+            />
           </div>
         </>
       )}

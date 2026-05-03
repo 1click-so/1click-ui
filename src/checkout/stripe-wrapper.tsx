@@ -15,6 +15,12 @@ import { createContext, type ReactNode } from "react"
  * so downstream components can know whether Stripe is ready without
  * importing the Elements hook directly.
  *
+ * Server-side reconciliation runs in checkout/page.tsx via
+ * `refreshPaymentIfTerminal` and is the primary defense against stale
+ * client_secrets. PaymentElement's `onLoadError` handler in
+ * `payment-method-list.tsx` is the client-side fallback when a PI goes
+ * terminal after the page loaded.
+ *
  * Extracted from mindpages-storefront
  * src/modules/checkout/components/payment-wrapper/stripe-wrapper.tsx.
  */
@@ -52,11 +58,16 @@ export function StripeWrapper({
   fonts,
   children,
 }: StripeWrapperProps) {
+  // `loader: "always"` forces Elements to fetch the payment method config
+  // up front, surfacing a config error (terminal-state PI, missing PMs)
+  // immediately instead of silently failing on first interaction.
   const options: StripeElementsOptions = {
     clientSecret: paymentSession.data?.client_secret as string | undefined,
     appearance,
     fonts,
+    loader: "always",
   }
+
 
   if (!stripeKey) {
     throw new Error(

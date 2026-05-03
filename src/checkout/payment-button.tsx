@@ -2,12 +2,13 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
-import { useContext, useState } from "react"
+import { useContext, useRef, useState } from "react"
 
 import { placeOrder } from "../data/cart"
 import { DualPrice } from "../lib/dual-price"
 import { isManual, isStripeLike } from "../lib/payment-constants"
 import { cn } from "../lib/utils"
+import { translatePaymentError } from "./payment-error-copy"
 import { useCheckoutLabels } from "./context"
 import { ErrorMessage } from "./error-message"
 import { StripeContext } from "./stripe-wrapper"
@@ -31,6 +32,21 @@ import { StripeContext } from "./stripe-wrapper"
 
 type PaymentButtonProps = {
   cart: HttpTypes.StoreCart
+  /**
+   * Set to the live `event.complete` boolean from Stripe's
+   * `<PaymentElement onChange>`. When `false`, the Place Order button
+   * stays disabled on the Stripe path even if every cart-level
+   * prerequisite is satisfied — preventing the click → cryptic
+   * "Could not retrieve elements store" failure when the user hasn't
+   * actually filled in payment details, or when Stripe Elements failed
+   * to initialise (e.g. malformed publishable key, network error).
+   *
+   * Ignored on the manual (COD) path. Defaults to `true` so consumers
+   * that don't track Stripe's element state (legacy callers or stores
+   * that don't render PaymentElement at all) keep their current
+   * behaviour. Pass it explicitly to enable proper gating.
+   */
+  paymentElementComplete?: boolean
   "data-testid"?: string
 }
 
@@ -115,23 +131,38 @@ function OrderButton({
   )
 }
 
-export function PaymentButton({ cart, "data-testid": dataTestId }: PaymentButtonProps) {
+export function PaymentButton({
+  cart,
+  paymentElementComplete = true,
+  "data-testid": dataTestId,
+}: PaymentButtonProps) {
   const labels = useCheckoutLabels()
   const stripeReady = useContext(StripeContext)
 
-  const notReady =
+  const cartNotReady =
     !cart ||
     !cart.shipping_address ||
     !cart.billing_address ||
     !cart.email ||
     (cart.shipping_methods?.length ?? 0) < 1
 
+  // `[0]` is the canonical Medusa pattern — every initiatePaymentSession
+  // call hard-deletes the existing session and creates a new one
+  // (parallelize step in @medusajs/core-flows
+  // payment-collection/workflows/create-payment-session.js), so there's
+  // ever only one session per payment_collection. Verified against the
+  // installed source.
   const paymentSession = cart.payment_collection?.payment_sessions?.[0]
 
   if (isStripeLike(paymentSession?.provider_id) && stripeReady) {
+    // Stripe path: also block on PaymentElement not yet `complete`. This
+    // is the gate that matters when Elements failed to initialise (bad
+    // pk, network blip) — `useStripe()`/`useElements()` return non-null
+    // as soon as the SDK script loads, so without this check the button
+    // appears clickable and the user gets an opaque error on submit.
     return (
       <StripePaymentButton
-        notReady={notReady}
+        notReady={cartNotReady || !paymentElementComplete}
         cart={cart}
         data-testid={dataTestId}
       />
@@ -141,7 +172,7 @@ export function PaymentButton({ cart, "data-testid": dataTestId }: PaymentButton
   if (isManual(paymentSession?.provider_id)) {
     return (
       <ManualPaymentButton
-        notReady={notReady}
+        notReady={cartNotReady}
         cart={cart}
         data-testid={dataTestId}
       />
@@ -172,6 +203,12 @@ function StripePaymentButton({
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // Hard re-entry guard. `submitting` state alone isn't enough: React
+  // batches state updates so two synchronous clicks both pass the
+  // submitting check before the first one's setState commits. A ref
+  // flips synchronously and blocks the second click cold.
+  const inFlightRef = useRef(false)
+
   const stripe = useStripe()
   const elements = useElements()
 
@@ -182,11 +219,26 @@ function StripePaymentButton({
   const disabled = !stripe || !elements
 
   const onPaymentCompleted = async () => {
+    // placeOrder either redirects (success) or throws (failure). On
+    // success the redirect navigates away — `submitting` stays true so
+    // the spinner persists during the redirect; React will unmount this
+    // component before the user sees a flash of an enabled button.
     await placeOrder()
-      .catch((err) => {
-        setErrorMessage(err.message)
+      .catch((err: unknown) => {
+        // Charged-card recovery: by this point Stripe has authorized
+        // (PI is requires_capture or succeeded), so the customer's
+        // card already has a hold or charge. We MUST surface this with
+        // the PI reference so support can reconcile manually if Medusa
+        // never recovers. Show in BG, never expose raw Stripe internals.
+        const piRef =
+          (session?.data as { id?: string } | undefined)?.id ?? "—"
+        const baseMsg = translatePaymentError(err, "card")
+        setErrorMessage(
+          `${baseMsg} Картата ви беше успешно оторизирана, но поръчката не е финализирана. Свържете се с нас на hello@alenika.bg с код: ${piRef}`
+        )
       })
       .finally(() => {
+        inFlightRef.current = false
         setSubmitting(false)
       })
   }
@@ -195,6 +247,9 @@ function StripePaymentButton({
     if (!stripe || !elements || !cart) {
       return
     }
+    // Hard re-entry guard — see ref declaration.
+    if (inFlightRef.current) return
+    inFlightRef.current = true
 
     setSubmitting(true)
     setErrorMessage(null)
@@ -202,14 +257,18 @@ function StripePaymentButton({
     // Payment Element requires an explicit submit() before confirm.
     const { error: submitError } = await elements.submit()
     if (submitError) {
-      setErrorMessage(submitError.message ?? null)
+      setErrorMessage(translatePaymentError(submitError, "card"))
+      inFlightRef.current = false
       setSubmitting(false)
       return
     }
 
     const clientSecret = session?.data?.client_secret as string | undefined
     if (!clientSecret) {
-      setErrorMessage("Missing Stripe client secret.")
+      setErrorMessage(
+        "Възникна проблем с инициализирането на плащането. Моля, презаредете страницата."
+      )
+      inFlightRef.current = false
       setSubmitting(false)
       return
     }
@@ -219,7 +278,8 @@ function StripePaymentButton({
     // flows return the paymentIntent here and we call placeOrder
     // synchronously. When redirect IS required, Stripe navigates the
     // browser to return_url; the checkout page handles the return by
-    // reading ?payment_intent=... on mount (future work).
+    // reading ?payment_intent=... on mount (see CheckoutClient
+    // 3DS-return useEffect).
     await stripe
       .confirmPayment({
         elements,
@@ -247,6 +307,9 @@ function StripePaymentButton({
       .then(({ error, paymentIntent }) => {
         if (error) {
           const pi = error.payment_intent
+          // Stripe sometimes returns a 200-shaped error when the PI
+          // already reached requires_capture / succeeded between
+          // confirm() submission and response. Treat as success.
           if (
             pi &&
             (pi.status === "requires_capture" || pi.status === "succeeded")
@@ -254,7 +317,8 @@ function StripePaymentButton({
             onPaymentCompleted()
             return
           }
-          setErrorMessage(error.message || null)
+          setErrorMessage(translatePaymentError(error, "card"))
+          inFlightRef.current = false
           setSubmitting(false)
           return
         }
@@ -267,6 +331,9 @@ function StripePaymentButton({
           return onPaymentCompleted()
         }
 
+        // Unexpected status (processing, requires_action without
+        // redirect, etc.) — release the lock so the user can retry.
+        inFlightRef.current = false
         setSubmitting(false)
       })
   }
@@ -275,7 +342,10 @@ function StripePaymentButton({
     <>
       <OrderButton
         onClick={handlePayment}
-        disabled={disabled || notReady}
+        // Disable on submit — `loading` is presentational only; without
+        // this the user can double-click and fire a second confirmPayment
+        // before the first one's state lands.
+        disabled={disabled || notReady || submitting}
         loading={submitting}
         total={cart.total ?? undefined}
         currencyCode={cart.currency_code}
@@ -302,19 +372,25 @@ function ManualPaymentButton({
   const labels = useCheckoutLabels()
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // See StripePaymentButton for why we need both submitting + ref.
+  const inFlightRef = useRef(false)
 
   const onPaymentCompleted = async () => {
     await placeOrder()
-      .catch((err) => {
-        setErrorMessage(err.message)
+      .catch((err: unknown) => {
+        setErrorMessage(translatePaymentError(err, "cod"))
       })
       .finally(() => {
+        inFlightRef.current = false
         setSubmitting(false)
       })
   }
 
   const handlePayment = () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     setSubmitting(true)
+    setErrorMessage(null)
     onPaymentCompleted()
   }
 
@@ -322,7 +398,10 @@ function ManualPaymentButton({
     <>
       <OrderButton
         onClick={handlePayment}
-        disabled={notReady}
+        // Disable on submit — `loading` is presentational only; double-
+        // click without this fires a second cart.complete before
+        // Medusa's idempotency takes effect, surfacing a confusing error.
+        disabled={notReady || submitting}
         loading={submitting}
         total={cart.total ?? undefined}
         currencyCode={cart.currency_code}

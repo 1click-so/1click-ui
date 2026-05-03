@@ -33,10 +33,17 @@ import type { TrackingClientHints } from "../tracking/types"
 /**
  * Retrieves a cart by its ID. If no ID is provided, it will use the cart ID
  * from the cookies.
+ *
+ * `noCache` bypasses Next.js's data cache for the read. Use after a
+ * mutation (e.g. initiatePaymentSession rotates the Stripe session) when
+ * the calling code MUST observe the fresh server state within the same
+ * request — the standard updateTag invalidation only guarantees freshness
+ * for the NEXT request, not the current one.
  */
 export async function retrieveCart(
   cartId?: string,
-  fields?: string
+  fields?: string,
+  noCache?: boolean
 ): Promise<HttpTypes.StoreCart | null> {
   const id = cartId || (await getCartId())
   fields ??=
@@ -51,8 +58,8 @@ export async function retrieveCart(
       method: "GET",
       query: { fields },
       headers,
-      next,
-      cache: "force-cache",
+      next: noCache ? undefined : next,
+      cache: noCache ? "no-store" : "force-cache",
     })
     .then(({ cart }: { cart: HttpTypes.StoreCart }) => cart)
     .catch(() => null)
@@ -235,6 +242,65 @@ export async function initiatePaymentSession(
       return resp
     })
     .catch(medusaError)
+}
+
+/**
+ * Asks the backend to validate the cart's Stripe PaymentIntent against
+ * Stripe's actual lifecycle and rotate the session if the PI is in a
+ * terminal state (canceled / succeeded / requires_capture).
+ *
+ * Backend: POST /store/carts/:id/refresh-payment-if-terminal
+ * (medusa-mindpages, src/api/store/carts/[id]/refresh-payment-if-terminal/route.ts)
+ *
+ * Why this exists: Medusa's payment_session.status drifts from Stripe's
+ * PI status — Medusa core's webhook subscriber explicitly drops
+ * `payment_intent.canceled` / `payment_intent.payment_failed` events
+ * (see node_modules/@medusajs/medusa/dist/subscribers/payment-webhook.js
+ * lines 17-23). The session record stays "pending" while the PI is
+ * dead. Mounting Elements on the dead client_secret fails with
+ * "PaymentIntent is in a terminal state".
+ *
+ * The storefront should call this in two places:
+ *   1. Server-side on checkout page mount (catches the common case of
+ *      a returning user with an aged cart cookie + canceled PI)
+ *   2. Client-side on Stripe Elements `loaderror` (defense-in-depth)
+ *
+ * Returns `{ rotated: boolean, reason: string }`. Caller should re-fetch
+ * the cart when `rotated === true` to pick up the fresh client_secret.
+ *
+ * Best-effort: never throws — a failed reconciliation should not block
+ * the page from rendering.
+ */
+export async function refreshPaymentIfTerminal(
+  cartId?: string
+): Promise<{ rotated: boolean; reason?: string }> {
+  const id = cartId || (await getCartId())
+  if (!id) return { rotated: false, reason: "no-cart" }
+
+  const headers = { ...(await getAuthHeaders()) }
+
+  try {
+    const resp = await sdkFetch<{
+      rotated: boolean
+      reason?: string
+      status?: string
+      previous_status?: string
+    }>(`/store/carts/${id}/refresh-payment-if-terminal`, {
+      method: "POST",
+      headers,
+      cache: "no-store",
+    })
+    if (resp.rotated) {
+      // Bust the carts cache so the next retrieveCart() in this request
+      // sees the rotated session.
+      const cartCacheTag = await getCacheTag("carts")
+      updateTag(cartCacheTag)
+    }
+    return { rotated: !!resp.rotated, reason: resp.reason }
+  } catch {
+    // Network blip / backend down — never block render.
+    return { rotated: false, reason: "request-failed" }
+  }
 }
 
 export async function applyPromotions(codes: string[]): Promise<void> {
