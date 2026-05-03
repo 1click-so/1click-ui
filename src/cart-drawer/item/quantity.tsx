@@ -4,12 +4,16 @@ import { useState } from "react"
 
 import { updateLineItem } from "../../data/cart"
 import { cn } from "../../lib/utils"
+import { useCartDrawer } from "../context"
 
 /**
  * CartItemQuantity — +/- quantity stepper for a single cart line item.
  *
- * Extracted from mindpages-storefront src/modules/cart-drawer/cart-item-quantity.tsx.
- * Uses the library's `updateLineItem` SDK wrapper.
+ * Optimistic: dispatches an "update_quantity" action against the
+ * CartDrawerProvider's useOptimistic state BEFORE awaiting the
+ * updateLineItem server action. The stepper number changes instantly;
+ * the server work happens in the background. On failure the optimistic
+ * state reverts automatically (parent `cart` prop unchanged).
  */
 
 type CartItemQuantityProps = {
@@ -25,18 +29,25 @@ export function CartItemQuantity({
   maxQuantity = 10,
   className,
 }: CartItemQuantityProps) {
+  const { applyOptimistic } = useCartDrawer()
   const [updating, setUpdating] = useState(false)
 
-  const change = async (newQty: number) => {
+  const change = (newQty: number) => {
     if (newQty < 1 || newQty > maxQuantity || updating) return
     setUpdating(true)
-    try {
-      await updateLineItem({ lineId, quantity: newQty })
-    } catch (e) {
-      console.error("Failed to update quantity", e)
-    } finally {
-      setUpdating(false)
-    }
+    applyOptimistic(
+      { type: "update_quantity", lineId, quantity: newQty },
+      async () => {
+        try {
+          await updateLineItem({ lineId, quantity: newQty })
+        } catch (e) {
+          console.error("Failed to update quantity", e)
+          throw e
+        } finally {
+          setUpdating(false)
+        }
+      }
+    )
   }
 
   return (

@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useState, type ReactNode } from "react"
+import { type ReactNode } from "react"
 import type { HttpTypes } from "@medusajs/types"
 
 import { deleteLineItem } from "../../data/cart"
@@ -31,17 +31,20 @@ type CartItemProps = {
 }
 
 export function CartItem({ item, currencyCode, children }: CartItemProps) {
-  const { labels, hrefs } = useCartDrawer()
-  const [removing, setRemoving] = useState(false)
+  const { labels, hrefs, applyOptimistic } = useCartDrawer()
 
-  const handleRemove = async () => {
-    setRemoving(true)
-    try {
-      await deleteLineItem(item.id)
-    } catch {
-      setRemoving(false)
-    }
+  // Optimistic remove: the item is filtered out of the optimistic cart
+  // immediately on click, so the row vanishes at React update speed.
+  // The deleteLineItem server action runs in the background. On failure
+  // useOptimistic auto-reverts (parent `cart` prop unchanged) and the
+  // row reappears.
+  const handleRemove = () => {
+    applyOptimistic(
+      { type: "remove", lineId: item.id },
+      () => deleteLineItem(item.id)
+    )
   }
+  const removing = false // optimistic remove unmounts the row immediately
 
   const total = item.total ?? 0
   const originalTotal = item.original_total ?? 0
