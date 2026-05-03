@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { PaymentElement } from "@stripe/react-stripe-js"
 import type { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
+import { useRouter } from "next/navigation"
 import { useContext, useEffect, useRef, useState } from "react"
 
 import { refreshPaymentIfTerminal } from "../data/cart"
@@ -61,12 +62,20 @@ export function CheckoutPaymentMethodList({
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
   const stripeReady = useContext(StripeContext)
+  const router = useRouter()
 
   // Local copy of Stripe's PaymentElement completion flag. The same
   // value is forwarded to the parent via `onPaymentElementChange`, but
   // we keep an internal copy so the Place Order button can be gated
   // here without making consumers thread the state down themselves.
   const [paymentElementComplete, setPaymentElementComplete] = useState(false)
+
+  // One-shot guard against the rotate-and-refresh loop. The previous
+  // implementation reloaded on every terminal-state error which, when
+  // the new PI ALSO hit a transient issue, looped. We only ever attempt
+  // recovery ONCE per Elements mount lifecycle. If it doesn't work, the
+  // user sees the error — manual page reload is preferable to a loop.
+  const recoveryAttempted = useRef(false)
 
   // Reset on tab change. PaymentElement only renders while
   // `paymentTab === "card"`, so when the user switches away the element
@@ -75,6 +84,9 @@ export function CheckoutPaymentMethodList({
   // erroneously enabled from the previous fill.
   useEffect(() => {
     setPaymentElementComplete(false)
+    // Allow another recovery attempt if the user toggled tabs and came
+    // back — the next Elements mount is a fresh attempt.
+    recoveryAttempted.current = false
   }, [paymentTab])
 
   const handlePaymentElementChange = (event: StripePaymentElementChangeEvent) => {
@@ -85,26 +97,62 @@ export function CheckoutPaymentMethodList({
     })
   }
 
-  // Defense-in-depth: server-side refreshPaymentIfTerminal in
-  // checkout/page.tsx is the primary line of defense against stale
-  // PaymentIntents. This handler covers the rare edge case where the PI
-  // goes terminal AFTER the page rendered (admin cancels via Dashboard
-  // mid-checkout, or the same cart in another tab). On loaderror we
-  // reconcile and reload — the next render mounts on a fresh
-  // client_secret. One-shot per element instance to prevent reload loops.
-  const recoveredRef = useRef(false)
+  // PaymentElement load error handler — reactive recovery for stale
+  // Stripe PaymentIntents.
+  //
+  // The cart's payment_session can hold a client_secret pointing at a
+  // PI in terminal state (canceled / succeeded / requires_capture).
+  // This happens because Medusa's payment-webhook subscriber explicitly
+  // drops `payment_intent.canceled` and `payment_intent.payment_failed`
+  // events (see node_modules/@medusajs/medusa/dist/subscribers/
+  // payment-webhook.js lines 17-23), so the session record never moves
+  // off "pending" even after Stripe declares the PI dead. Mounting
+  // Elements with that dead client_secret triggers Stripe's:
+  //   "PaymentIntent is in a terminal state and cannot be used to
+  //    initialize Elements."
+  //
+  // Recovery: ask the backend to reconcile against Stripe and rotate
+  // the session if the PI is actually terminal. On success, refresh
+  // the route — the server component re-fetches the cart, gets the
+  // fresh client_secret, PaymentWrapper remounts Elements with it.
+  //
+  // Loop safety:
+  //   1. ONE attempt per Elements mount (recoveryAttempted ref).
+  //      A previous version rotated on every terminal-state error
+  //      including ones the rotation couldn't fix → infinite loop.
+  //   2. We ONLY trigger when the error message indicates a terminal
+  //      state. Other PaymentElement load errors (network, missing
+  //      payment methods, config) get logged and left alone.
+  //   3. The backend only rotates when Stripe confirms terminal state.
+  //      Transient Stripe errors → backend returns rotated:false → no
+  //      refresh, no loop.
   const handlePaymentElementLoadError = (event: { error?: { message?: string } }) => {
-    const msg = event?.error?.message ?? ""
-    const isTerminalLike = /terminal state|payment[_ ]?intent.*(?:canceled|succeeded)/i.test(msg)
-    if (recoveredRef.current || !isTerminalLike) return
-    recoveredRef.current = true
-    refreshPaymentIfTerminal(cart.id)
-      .then((r) => {
-        if (r.rotated && typeof window !== "undefined") {
-          window.location.reload()
+    const message = event?.error?.message ?? ""
+
+    if (typeof console !== "undefined") {
+      // eslint-disable-next-line no-console
+      console.warn("[PaymentElement] load error:", message || event)
+    }
+
+    const isTerminalStateError = /terminal state/i.test(message)
+    if (!isTerminalStateError) return
+    if (recoveryAttempted.current) return
+    recoveryAttempted.current = true
+
+    void (async () => {
+      try {
+        const result = await refreshPaymentIfTerminal(cart.id)
+        if (result.rotated) {
+          // Re-render the server component to pull the fresh cart with
+          // the rotated session's new client_secret. PaymentWrapper
+          // will remount Elements once the new prop arrives.
+          router.refresh()
         }
-      })
-      .catch(() => {})
+      } catch {
+        // Server action failed — leave the user on the error state.
+        // They can manually reload; we won't loop.
+      }
+    })()
   }
 
   return (
