@@ -303,6 +303,49 @@ export async function refreshPaymentIfTerminal(
   }
 }
 
+/**
+ * Logs a checkout-side error or event to the backend's
+ * `checkout_error_log` table. Best-effort, append-only — used by the
+ * library's recovery paths and onLoadError handlers to give us
+ * operational visibility into what's failing on real users' browsers.
+ *
+ * Backend: POST /store/carts/:id/checkout-error-log
+ * (medusa-mindpages, src/api/store/carts/[id]/checkout-error-log/route.ts)
+ *
+ * Never throws. The log table is a write-only sink from the
+ * storefront's perspective — there is no read endpoint at /store/.
+ *
+ * @param errorType — must match one of CHECKOUT_ERROR_TYPES in the
+ *   backend service. Common values: "elements_load_error",
+ *   "stripe_confirm_error", "place_order_error". Unknown strings get
+ *   coerced to "other" by the backend.
+ */
+export async function logCheckoutError(
+  errorType: string,
+  errorMessage?: string,
+  context?: Record<string, unknown>
+): Promise<void> {
+  const id = await getCartId()
+  if (!id) return // pre-cart errors aren't useful to log against a cart
+
+  const headers = { ...(await getAuthHeaders()) }
+
+  try {
+    await sdkFetch(`/store/carts/${id}/checkout-error-log`, {
+      method: "POST",
+      headers,
+      body: {
+        error_type: errorType,
+        error_message: errorMessage,
+        context: context ?? {},
+      },
+      cache: "no-store",
+    })
+  } catch {
+    // Best-effort — never throw from the logger.
+  }
+}
+
 export async function applyPromotions(codes: string[]): Promise<void> {
   const cartId = await getCartId()
   if (!cartId) {

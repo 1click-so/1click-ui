@@ -6,7 +6,7 @@ import type { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
 import { useRouter } from "next/navigation"
 import { useContext, useEffect, useRef, useState } from "react"
 
-import { refreshPaymentIfTerminal } from "../data/cart"
+import { logCheckoutError, refreshPaymentIfTerminal } from "../data/cart"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 import { ErrorMessage } from "./error-message"
@@ -134,7 +134,16 @@ export function CheckoutPaymentMethodList({
       console.warn("[PaymentElement] load error:", message || event)
     }
 
+    // Log every load error to the backend so we have operational
+    // visibility on which carts are hitting which Stripe Elements
+    // failures. Append-only, write-only from storefront perspective.
     const isTerminalStateError = /terminal state/i.test(message)
+    void logCheckoutError("elements_load_error", message, {
+      is_terminal_state: isTerminalStateError,
+      will_attempt_recovery:
+        isTerminalStateError && !recoveryAttempted.current,
+    })
+
     if (!isTerminalStateError) return
     if (recoveryAttempted.current) return
     recoveryAttempted.current = true
