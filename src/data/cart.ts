@@ -16,6 +16,8 @@ import {
 } from "./cookies"
 import { getLocale } from "./locale-actions"
 import { getRegion } from "./regions"
+import { getTrackingAttribution } from "../tracking/get-tracking-attribution"
+import type { TrackingClientHints } from "../tracking/types"
 
 /**
  * Cart operations — retrieve, create, update, line items, shipping,
@@ -392,9 +394,16 @@ export async function setAddresses(
 /**
  * Places an order for a cart. If no cart ID is provided, uses the cart ID
  * from cookies. On success, redirects to the order confirmation page.
+ *
+ * `clientHints` is optional browser-only attribution data the server
+ * cannot read from cookies/headers (currently `engagementTimeMsec`).
+ * Storefronts pass it from a client component before triggering this
+ * server action — without it, ga_engagement_time_msec falls back to the
+ * backend's default of 100ms.
  */
 export async function placeOrder(
-  cartId?: string
+  cartId?: string,
+  clientHints?: TrackingClientHints
 ): Promise<HttpTypes.StoreCart | undefined> {
   const id = cartId || (await getCartId())
   if (!id) {
@@ -402,6 +411,49 @@ export async function placeOrder(
   }
 
   const headers = { ...(await getAuthHeaders()) }
+
+  // Meta Pixel + CAPI + GA4 Measurement Protocol attribution. Read
+  // _fbp/_fbc/_ga/_ga_<MID> cookies, UA, IP, referer from the current
+  // request, plus client-supplied engagement time, and persist them on
+  // cart metadata. Medusa copies cart.metadata → order.metadata at
+  // completion, so the order.placed subscriber (medusa-mindpages) can
+  // dedup the Browser-side Meta Purchase against the server-side CAPI
+  // Purchase, and forward the canonical GA4 client_id / session_id /
+  // engagement_time to the GA4 Measurement Protocol Purchase event.
+  //
+  // Existing metadata (e.g., boxnow_locker_*, econt_office_*) MUST be
+  // preserved — Medusa replaces the metadata field wholesale on update,
+  // it does not merge. Fetch fresh metadata uncached and merge.
+  //
+  // Best-effort: never throws — if no trackers are configured or cookies
+  // aren't set, the spread is empty and order completion proceeds normally.
+  try {
+    const attribution = await getTrackingAttribution(clientHints)
+    if (Object.keys(attribution).length > 0) {
+      const { cart: freshCart } = await sdkFetch<HttpTypes.StoreCartResponse>(
+        `/store/carts/${id}`,
+        {
+          method: "GET",
+          query: { fields: "id,metadata" },
+          headers,
+          cache: "no-store",
+        }
+      )
+      await sdk.store.cart.update(
+        id,
+        {
+          metadata: {
+            ...(freshCart.metadata ?? {}),
+            ...(attribution as Record<string, string | number>),
+          },
+        },
+        {},
+        headers
+      )
+    }
+  } catch {
+    // Attribution writeback is non-critical — never block the order.
+  }
 
   const cartRes = await sdk.store.cart
     .complete(id, {}, headers)
