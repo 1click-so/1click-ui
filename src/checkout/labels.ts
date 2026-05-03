@@ -17,6 +17,14 @@ export type CheckoutLabels = {
   // Form fields
   email: string
   country: string
+  /**
+   * Localized name of the single-region country (e.g. "България"). When
+   * the cart's region has exactly one country, the country select
+   * collapses to a readonly field showing this name instead of the
+   * dropdown's English `display_name`. Optional — falls back to the
+   * country's `display_name` when omitted.
+   */
+  singleCountryName?: string
   firstName: string
   lastName: string
   address: string
@@ -110,6 +118,7 @@ export const defaultCheckoutLabels: CheckoutLabels = {
 
   email: "Email",
   country: "Country",
+  singleCountryName: undefined,
   firstName: "First name",
   lastName: "Last name",
   address: "Address",

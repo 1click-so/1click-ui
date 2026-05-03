@@ -7,7 +7,7 @@ import {
   distanceMeters,
   formatDistance,
   geocodeAddress,
-  transliterateBgToLatin,
+  normalizeForMatch,
 } from "../lib/geocode"
 import { listBoxNowLockers } from "../data/boxnow"
 import type { BoxNowLocker } from "../data/boxnow-types"
@@ -108,12 +108,12 @@ export function BoxNowLockerSelector({
   //
   // Both sides are transliterated Cyrillic→Latin so "Sofia" matches
   // "София" and vice versa. Idempotent on already-Latin input.
-  const cityNormalized = transliterateBgToLatin(userCity.trim())
+  const cityNormalized = normalizeForMatch(userCity.trim())
   const cityLockedLockers = useMemo(() => {
     if (!cityNormalized) return lockers
     return lockers.filter((l) => {
-      const line1 = transliterateBgToLatin(l.addressLine1 ?? "")
-      const line2 = transliterateBgToLatin(l.addressLine2 ?? "")
+      const line1 = normalizeForMatch(l.addressLine1 ?? "")
+      const line2 = normalizeForMatch(l.addressLine2 ?? "")
       return line2.includes(cityNormalized) || line1.includes(cityNormalized)
     })
   }, [lockers, cityNormalized])
@@ -149,13 +149,13 @@ export function BoxNowLockerSelector({
     if (!search.trim() || search.trim().length < 2) return []
     // Normalize query and locker fields through Cyrillic→Latin so the
     // user can search "Vitosha" and match "Витоша" (and vice versa).
-    const q = transliterateBgToLatin(search.trim())
+    const q = normalizeForMatch(search.trim())
     // Search is also city-locked — only lockers in the user's city.
     // Uncapped; container scrolls.
     return cityLockedLockers.filter((l) => {
-      const title = transliterateBgToLatin(l.title ?? "")
-      const line1 = transliterateBgToLatin(l.addressLine1 ?? "")
-      const line2 = transliterateBgToLatin(l.addressLine2 ?? "")
+      const title = normalizeForMatch(l.title ?? "")
+      const line1 = normalizeForMatch(l.addressLine1 ?? "")
+      const line2 = normalizeForMatch(l.addressLine2 ?? "")
       const postal = (l.postalCode ?? "").toLowerCase()
       return (
         title.includes(q) ||

@@ -26,6 +26,7 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
 
   email: "Имейл",
   country: "Държава",
+  singleCountryName: "България",
   firstName: "Собствено име",
   lastName: "Фамилно име",
   address: "Адрес",

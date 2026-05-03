@@ -78,21 +78,41 @@ export function CheckoutAddressForm({
           required
         />
 
-        <SelectField
-          label={labels.country}
-          name="shipping_address.country_code"
-          autoComplete="country"
-          value={formData["shipping_address.country_code"] ?? ""}
-          onChange={onChange}
-          required
-        >
-          <option value="" disabled />
-          {countries.map((c) => (
-            <option key={c.iso_2} value={c.iso_2}>
-              {c.display_name}
-            </option>
-          ))}
-        </SelectField>
+        {countries.length === 1 ? (
+          // Single-country region — render a readonly field showing the
+          // localized country name. The dropdown UX is misleading when
+          // there's nothing to choose, and the `display_name` from the
+          // region is in English by default. The actual country_code
+          // remains in formData (initialised from the cart) so submission
+          // still carries it.
+          <Field
+            label={labels.country}
+            name="shipping_address.country_code_display"
+            value={
+              labels.singleCountryName ??
+              countries[0]?.display_name ??
+              ""
+            }
+            onChange={() => {}}
+            readOnly
+          />
+        ) : (
+          <SelectField
+            label={labels.country}
+            name="shipping_address.country_code"
+            autoComplete="country"
+            value={formData["shipping_address.country_code"] ?? ""}
+            onChange={onChange}
+            required
+          >
+            <option value="" disabled />
+            {countries.map((c) => (
+              <option key={c.iso_2} value={c.iso_2}>
+                {c.display_name}
+              </option>
+            ))}
+          </SelectField>
+        )}
 
         <div className="grid grid-cols-2 gap-2.5">
           <Field

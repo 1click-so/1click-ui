@@ -126,9 +126,18 @@ export function CheckoutShippingMethodList({
       ) : (
         <div className="space-y-2">
           {shippingMethods.map((option) => {
+            // `cantCalc` fades a calculated-price option to opacity-40
+            // when its price never resolved. Critically gated on BOTH
+            // `!isLoadingPrices` AND `!shippingLoading` so we don't
+            // visually punish an option just because the user is
+            // mid-courier-switch — the in-flight setShippingMethod
+            // call would otherwise leave a brief window where prices
+            // are calculated=true but the new option's price hasn't
+            // landed in the map yet, making it look broken.
             const cantCalc =
               option.price_type === "calculated" &&
               !isLoadingPrices &&
+              !shippingLoading &&
               typeof calculatedPricesMap[option.id] !== "number"
             const selected = option.id === selectedShippingMethodId
             const price =

@@ -26,6 +26,36 @@ export function transliterateBgToLatin(s: string): string {
 }
 
 /**
+ * normalizeForMatch — produce a canonical key for fuzzy place-name matching.
+ *
+ * Built on `transliterateBgToLatin` but additionally collapses common
+ * Bulgarian / South Slavic Latinization variants:
+ *
+ *   - "София"  →  "sofiya"  →  "sofia"   (strict transliteration → common)
+ *   - "Sofia"  →  "sofia"   →  "sofia"
+ *   - "Sofiya" →  "sofiya"  →  "sofia"
+ *   - "Sofija" →  "sofija"  →  "sofia"
+ *   - "Sofiia" →  "sofiia"  →  "sofia"
+ *
+ * Rule: any "iy" / "ij" / "ii" before a vowel collapses to "i". This is
+ * the ONE pattern that breaks substring matching for Bulgarian cities.
+ * Strict transliteration emits "ya" for "я" (correct on passports), but
+ * BoxNow / Econt / OpenStreetMap commonly use the more colloquial "ia"
+ * spelling — so users typing "Sofia" must match data containing "София".
+ *
+ * Use this — not `transliterateBgToLatin` directly — wherever you compare
+ * a user-entered place name against an external data source's name.
+ * Reserve `transliterateBgToLatin` for outbound contexts (API queries,
+ * passport-shaped output) where the strict form is required.
+ */
+export function normalizeForMatch(s: string): string {
+  return transliterateBgToLatin(s)
+    .replace(/iy(?=[aeiouy])/g, "i")
+    .replace(/ij(?=[aeiouy])/g, "i")
+    .replace(/ii(?=[aeiouy])/g, "i")
+}
+
+/**
  * Shared geo helpers used by Bulgarian fulfillment selectors (Econt, BoxNow).
  *
  * Extracted from the original EcontOfficeSelector so multiple provider
