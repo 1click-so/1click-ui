@@ -61,8 +61,12 @@ export function StripeWrapper({
   // `loader: "always"` forces Elements to fetch the payment method config
   // up front, surfacing a config error (terminal-state PI, missing PMs)
   // immediately instead of silently failing on first interaction.
+  const clientSecret = paymentSession.data?.client_secret as
+    | string
+    | undefined
+
   const options: StripeElementsOptions = {
-    clientSecret: paymentSession.data?.client_secret as string | undefined,
+    clientSecret,
     appearance,
     fonts,
     loader: "always",
@@ -81,15 +85,23 @@ export function StripeWrapper({
     )
   }
 
-  if (!paymentSession?.data?.client_secret) {
+  if (!clientSecret) {
     throw new Error(
       "Stripe client secret is missing. Cannot initialize Stripe."
     )
   }
 
+  // `key={clientSecret}` forces React to unmount + remount <Elements>
+  // when the session is rotated and a new client_secret arrives.
+  // Stripe's React SDK explicitly states options are immutable:
+  //   "Because props are immutable, you can't change `options` after
+  //    setting it." — https://docs.stripe.com/stripe-js/react
+  // Without the key, after recovery rotates the session, the cart prop
+  // updates but Elements keeps its old options (and old, dead
+  // client_secret) — the user stays stuck on the terminal-state error.
   return (
     <StripeContext.Provider value={true}>
-      <Elements options={options} stripe={stripePromise}>
+      <Elements key={clientSecret} options={options} stripe={stripePromise}>
         {children}
       </Elements>
     </StripeContext.Provider>

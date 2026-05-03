@@ -487,17 +487,38 @@ export function CheckoutClient({
     isManual(activePaymentSession?.provider_id) ? "cod" : hasCard ? "card" : "cod"
   )
 
+  // Tracks which (cart.id, provider_id) pairs we've already initiated.
+  // The cart prop is server-rendered ONCE and stays referentially
+  // unchanged for the lifetime of the page until router.refresh, so
+  // `activePaymentSession` derived from it stays stale-falsy after
+  // initiatePaymentSession runs. Without this guard, the auto-init
+  // useEffect + the reconcile useEffect + handleSelectShipping all fire
+  // initiatePaymentSession in quick succession on a fresh cart. Each
+  // call cancels the previous Stripe PI (Medusa's
+  // createPaymentSessionsWorkflow does delete-old + create-new in
+  // parallel), so by the time Stripe Elements finishes loading the
+  // first PI's client_secret, that PI is already canceled — Stripe
+  // returns "PaymentIntent is in a terminal state".
+  const initiatedSessionsRef = useRef<Set<string>>(new Set())
+
   const handlePaymentTab = useCallback(
     async (tab: "card" | "cod") => {
       setPaymentTab(tab)
       setPaymentError(null)
       const pid = tab === "card" ? cardId : codId
-      if (pid) {
-        try {
-          await initiatePaymentSession(cart, { provider_id: pid })
-        } catch (err: unknown) {
-          setPaymentError(err instanceof Error ? err.message : String(err))
-        }
+      if (!pid) return
+
+      const key = `${cart.id}:${pid}`
+      if (initiatedSessionsRef.current.has(key)) return
+      initiatedSessionsRef.current.add(key)
+
+      try {
+        await initiatePaymentSession(cart, { provider_id: pid })
+      } catch (err: unknown) {
+        // Failure: drop the guard so a retry (e.g. user toggling tabs)
+        // can attempt again instead of being silently locked out.
+        initiatedSessionsRef.current.delete(key)
+        setPaymentError(err instanceof Error ? err.message : String(err))
       }
     },
     [cart, cardId, codId]
@@ -522,12 +543,21 @@ export function CheckoutClient({
     try {
       await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
       setShippingLoading(false)
-      // Re-initiate payment in background
+      // Re-initiate payment in background — but ONLY if we haven't
+      // already initiated this (cart, provider) pair. Same reasoning
+      // as the handlePaymentTab guard: cart prop is stale, multiple
+      // re-render-triggered effects would otherwise stack init calls
+      // and cancel each other's PIs.
       const pid = paymentTab === "card" ? cardId : codId
       if (pid) {
-        initiatePaymentSession(cart, { provider_id: pid }).catch((err) => {
-          setPaymentError(err instanceof Error ? err.message : String(err))
-        })
+        const key = `${cart.id}:${pid}`
+        if (!initiatedSessionsRef.current.has(key)) {
+          initiatedSessionsRef.current.add(key)
+          initiatePaymentSession(cart, { provider_id: pid }).catch((err) => {
+            initiatedSessionsRef.current.delete(key)
+            setPaymentError(err instanceof Error ? err.message : String(err))
+          })
+        }
       }
     } catch (err: unknown) {
       setSelectedShippingMethod(prev)
