@@ -538,10 +538,20 @@ export async function setAddresses(
  * Storefronts pass it from a client component before triggering this
  * server action — without it, ga_engagement_time_msec falls back to the
  * backend's default of 100ms.
+ *
+ * `redirectPath` overrides the default post-success redirect URL. Pass
+ * a template containing literal `{id}` and `{country}` placeholders —
+ * they get substituted with `order.id` and the lowercase country code.
+ *
+ * Default (backward-compatible): "/{country}/order/{id}/confirmed" — used
+ * by stores like MindPages whose URL structure includes the country
+ * segment. Stores that flattened away the country segment (e.g., Alenika
+ * after commit 85cf5e1) should pass "/order/{id}/confirmed".
  */
 export async function placeOrder(
   cartId?: string,
-  clientHints?: TrackingClientHints
+  clientHints?: TrackingClientHints,
+  redirectPath?: string
 ): Promise<HttpTypes.StoreCart | undefined> {
   const id = cartId || (await getCartId())
   if (!id) {
@@ -604,13 +614,20 @@ export async function placeOrder(
 
   if (cartRes && cartRes.type === "order") {
     const countryCode =
-      cartRes.order.shipping_address?.country_code?.toLowerCase()
+      cartRes.order.shipping_address?.country_code?.toLowerCase() ?? ""
 
     const orderCacheTag = await getCacheTag("orders")
     updateTag(orderCacheTag)
 
     await removeCartId()
-    redirect(`/${countryCode}/order/${cartRes.order.id}/confirmed`)
+
+    const template =
+      redirectPath ?? "/{country}/order/{id}/confirmed"
+    const finalPath = template
+      .replace(/\{id\}/g, cartRes.order.id)
+      .replace(/\{country\}/g, countryCode)
+
+    redirect(finalPath)
   }
 
   return cartRes?.cart

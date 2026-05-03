@@ -20,6 +20,7 @@ import { calculatePriceForShippingOption } from "../data/fulfillment"
 import { updateCustomer } from "../data/customer"
 import compareAddresses from "../data/util/compare-addresses"
 import { isManual, isStripeLike } from "../lib/payment-constants"
+import { useOrderConfirmedPath } from "./context"
 import { CheckoutAddressForm } from "./address-form"
 import type { EcontOffice } from "./econt-office-selector"
 import type { BoxNowLocker } from "./boxnow-locker-selector"
@@ -99,6 +100,7 @@ export function CheckoutClient({
   paymentMethodFilter,
   logoByFulfillmentOptionId,
 }: CheckoutClientProps) {
+  const orderConfirmedPath = useOrderConfirmedPath()
   // ── Address form ───────────────────────────────────────────────────
   const [addressError, setAddressError] = useState<string | null>(null)
   const [, setAddressSaving] = useState(false)
@@ -467,9 +469,11 @@ export function CheckoutClient({
 
     if (redirectStatus === "succeeded") {
       // placeOrder redirects to the order confirmation page on success.
-      placeOrder().catch((err: unknown) => {
-        setPaymentError(err instanceof Error ? err.message : String(err))
-      })
+      placeOrder(undefined, undefined, orderConfirmedPath).catch(
+        (err: unknown) => {
+          setPaymentError(err instanceof Error ? err.message : String(err))
+        }
+      )
     } else {
       setPaymentError(
         "Плащането не беше потвърдено. Моля, опитайте отново или изберете друг метод."

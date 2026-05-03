@@ -9,7 +9,7 @@ import { DualPrice } from "../lib/dual-price"
 import { isManual, isStripeLike } from "../lib/payment-constants"
 import { cn } from "../lib/utils"
 import { translatePaymentError } from "./payment-error-copy"
-import { useCheckoutLabels } from "./context"
+import { useCheckoutLabels, useOrderConfirmedPath } from "./context"
 import { ErrorMessage } from "./error-message"
 import { StripeContext } from "./stripe-wrapper"
 
@@ -200,6 +200,7 @@ function StripePaymentButton({
   "data-testid"?: string
 }) {
   const labels = useCheckoutLabels()
+  const orderConfirmedPath = useOrderConfirmedPath()
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -223,7 +224,7 @@ function StripePaymentButton({
     // success the redirect navigates away — `submitting` stays true so
     // the spinner persists during the redirect; React will unmount this
     // component before the user sees a flash of an enabled button.
-    await placeOrder()
+    await placeOrder(undefined, undefined, orderConfirmedPath)
       .catch((err: unknown) => {
         // Charged-card recovery: by this point Stripe has authorized
         // (PI is requires_capture or succeeded), so the customer's
@@ -370,13 +371,14 @@ function ManualPaymentButton({
   "data-testid"?: string
 }) {
   const labels = useCheckoutLabels()
+  const orderConfirmedPath = useOrderConfirmedPath()
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   // See StripePaymentButton for why we need both submitting + ref.
   const inFlightRef = useRef(false)
 
   const onPaymentCompleted = async () => {
-    await placeOrder()
+    await placeOrder(undefined, undefined, orderConfirmedPath)
       .catch((err: unknown) => {
         setErrorMessage(translatePaymentError(err, "cod"))
       })
