@@ -37,6 +37,7 @@ type LineLike = {
   metadata?: Record<string, unknown> | null
   total?: number | null
   subtotal?: number | null
+  unit_price?: number | null
   quantity?: number
 }
 

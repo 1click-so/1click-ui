@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -98,6 +98,8 @@
     "./checkout/shipping-method-list": "./src/checkout/shipping-method-list.tsx",
     "./checkout/payment-method-list": "./src/checkout/payment-method-list.tsx",
     "./checkout/checkout-client": "./src/checkout/checkout-client.tsx",
+    "./checkout/use-checkout-orchestration": "./src/checkout/use-checkout-orchestration.ts",
+    "./checkout/payment-error-copy": "./src/checkout/payment-error-copy.ts",
     "./lib/get-product-price": "./src/lib/get-product-price.ts",
     "./lib/get-percentage-diff": "./src/lib/get-percentage-diff.ts",
     "./lib/product": "./src/lib/product.ts",
