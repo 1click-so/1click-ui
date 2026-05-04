@@ -294,6 +294,80 @@ export async function initiatePaymentSession(
  * Best-effort: never throws — a failed reconciliation should not block
  * the page from rendering.
  */
+/**
+ * Asks the backend to sync the cart's pending Stripe payment session
+ * to the cart's current total WITHOUT rotating the session when
+ * possible. Use this after any cart mutation that changes the total
+ * (shipping method, discount, address change that affects tax) — the
+ * happy path returns the SAME `client_secret`, so storefront
+ * `<Elements>` doesn't unmount + remount.
+ *
+ * Backend: POST /store/carts/:id/sync-payment-amount
+ * (medusa-mindpages, src/api/store/carts/[id]/sync-payment-amount/route.ts)
+ *
+ * Behaviour:
+ *   - Same provider + amount unchanged       → no-op, returns same secret
+ *   - Same provider + amount changed         → in-place update via
+ *       stripe.paymentIntents.update; client_secret unchanged
+ *   - Provider mismatch OR Stripe rejects    → falls back to
+ *       createPaymentSessionsWorkflow (rotation); new client_secret
+ *
+ * The backend route always returns successfully on the happy path —
+ * no need to wrap in try/catch for normal use. Network errors throw.
+ *
+ * Why this is preferred over `initiatePaymentSession` after shipping
+ * changes: `initiatePaymentSession` always rotates (Medusa's
+ * createPaymentSessionsWorkflow always deletes + creates), which
+ * forces `<Elements>` to remount and triggers cascading effects
+ * (tracking refires, refs reset, Stripe iframe reload). Calling
+ * `syncPaymentAmount` instead keeps the session alive when only the
+ * amount changed, so none of that happens.
+ */
+export async function syncPaymentAmount(
+  cartId: string,
+  providerId?: string
+): Promise<{
+  synced: boolean
+  rotated?: boolean
+  client_secret?: string
+  provider_id?: string
+  reason?: string
+}> {
+  const headers = { ...(await getAuthHeaders()) }
+
+  try {
+    const resp = await sdkFetch<{
+      synced: boolean
+      rotated?: boolean
+      client_secret?: string
+      provider_id?: string
+      reason?: string
+    }>(`/store/carts/${cartId}/sync-payment-amount`, {
+      method: "POST",
+      headers,
+      body: providerId ? { provider_id: providerId } : {},
+      cache: "no-store",
+    })
+
+    if (resp.rotated) {
+      // Rotation produced a new client_secret — bust the cart cache
+      // and refresh so the storefront re-renders with it. Skipping
+      // refresh on the in-place update path is intentional: the
+      // client_secret is unchanged, so the storefront's existing
+      // <Elements> mount keeps working with no UI churn.
+      const cartCacheTag = await getCacheTag("carts")
+      updateTag(cartCacheTag)
+      refresh()
+    }
+    return resp
+  } catch {
+    // Network blip / backend down — return a synthetic "not synced"
+    // result so the caller can decide what to do (typically: fall
+    // back to initiatePaymentSession to recreate from scratch).
+    return { synced: false, reason: "request-failed" }
+  }
+}
+
 export async function refreshPaymentIfTerminal(
   cartId?: string
 ): Promise<{ rotated: boolean; reason?: string }> {

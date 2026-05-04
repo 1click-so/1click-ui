@@ -6,16 +6,28 @@ import { loadStripe } from "@stripe/stripe-js"
 import type { ReactNode } from "react"
 
 import { isStripeLike } from "../lib/payment-constants"
-import { StripeWrapper } from "./stripe-wrapper"
+import { StripeScopeProvider } from "./stripe-wrapper"
 
 /**
- * PaymentWrapper — top-level wrapper for the checkout tree. Inspects the
- * cart's active payment session; if it's Stripe-backed, wraps children
- * in a Stripe `<Elements>` provider. Otherwise passes through.
+ * PaymentWrapper — provides Stripe Elements scope context to descendants.
  *
- * Stores mount this at the top of their checkout page:
+ * IMPORTANT: this no longer wraps children in `<Elements>`. The actual
+ * `<Elements key={clientSecret}>` mount lives at `<StripeElementsScope>`
+ * inside payment-method-list.tsx, scoped to just the PaymentElement.
  *
- *   <PaymentWrapper cart={cart}>
+ * Why: every cart-amount change rotates the Stripe payment session
+ * (Medusa's createPaymentSessionsWorkflow always deletes + recreates
+ * — see @medusajs/core-flows/dist/payment-collection/workflows/
+ * create-payment-session.js:112-118), producing a new client_secret.
+ * If `<Elements>` wraps the whole checkout tree, every rotation
+ * unmounts + remounts every form field, every tracking ref, the entire
+ * Stripe iframe — for one shipping-method change. Scoping `<Elements>`
+ * to just the payment widget contains the remount cost to that widget.
+ *
+ * Stores still mount this at the top of their checkout page exactly
+ * as before:
+ *
+ *   <PaymentWrapper cart={cart} appearance={...} fonts={...}>
  *     <CheckoutClient ... />
  *   </PaymentWrapper>
  *
@@ -23,9 +35,6 @@ import { StripeWrapper } from "./stripe-wrapper"
  *   - NEXT_PUBLIC_STRIPE_KEY  OR
  *     NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY
  *   - NEXT_PUBLIC_MEDUSA_PAYMENTS_ACCOUNT_ID (optional, for connect accounts)
- *
- * Extracted from mindpages-storefront
- * src/modules/checkout/components/payment-wrapper/index.tsx.
  */
 
 const stripeKey =
@@ -44,8 +53,9 @@ const stripePromise = stripeKey
 type PaymentWrapperProps = {
   cart: HttpTypes.StoreCart
   /**
-   * Optional per-store Stripe Elements appearance, forwarded to
-   * StripeWrapper. Pass brand colors, font, radius, etc.
+   * Optional per-store Stripe Elements appearance — brand colors, font,
+   * radius, etc. Forwarded to the StripeElementsScope provider so the
+   * eventual `<Elements>` mount picks it up.
    */
   appearance?: Appearance
   /**
@@ -67,34 +77,30 @@ export function PaymentWrapper({
     (s) => s.status === "pending"
   )
 
-  // Only wrap in StripeWrapper when the pending session is Stripe-backed
-  // AND already has a client_secret. A Stripe session without a secret
-  // means Medusa's initiatePaymentSession returned without a confirmed
-  // intent (can happen on first render, before CheckoutClient has auto-
-  // initiated the session). Rendering StripeWrapper without a secret
-  // throws and blows up the whole checkout page — so bail to the
-  // unwrapped tree until the secret is ready.
-  const hasClientSecret = !!(paymentSession?.data as { client_secret?: string } | undefined)
-    ?.client_secret
-
-  if (
+  // "Ready" means: Stripe-backed pending session exists with a usable
+  // client_secret AND the publishable key + Stripe.js promise are
+  // available. Anything short of that and StripeElementsScope renders
+  // its fallback (skeleton) instead of mounting `<Elements>`.
+  const hasClientSecret = !!(
+    paymentSession?.data as { client_secret?: string } | undefined
+  )?.client_secret
+  const ready =
     isStripeLike(paymentSession?.provider_id) &&
-    paymentSession &&
-    stripePromise &&
+    !!paymentSession &&
+    !!stripePromise &&
     hasClientSecret
-  ) {
-    return (
-      <StripeWrapper
-        paymentSession={paymentSession}
-        stripeKey={stripeKey}
-        stripePromise={stripePromise}
-        appearance={appearance}
-        fonts={fonts}
-      >
-        {children}
-      </StripeWrapper>
-    )
-  }
 
-  return <div>{children}</div>
+  return (
+    <StripeScopeProvider
+      value={{
+        ready,
+        paymentSession,
+        stripePromise,
+        appearance,
+        fonts,
+      }}
+    >
+      {children}
+    </StripeScopeProvider>
+  )
 }

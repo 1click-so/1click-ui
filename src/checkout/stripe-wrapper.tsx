@@ -7,64 +7,115 @@ import type {
   StripeElementsOptions,
 } from "@stripe/stripe-js"
 import type { HttpTypes } from "@medusajs/types"
-import { createContext, type ReactNode } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 
 /**
- * StripeWrapper — wraps children in a Stripe `<Elements>` provider seeded
- * with the payment session's client secret. Also exposes `StripeContext`
- * so downstream components can know whether Stripe is ready without
- * importing the Elements hook directly.
+ * Stripe Elements scope — context + scoped wrapper.
  *
- * Server-side reconciliation runs in checkout/page.tsx via
- * `refreshPaymentIfTerminal` and is the primary defense against stale
- * client_secrets. PaymentElement's `onLoadError` handler in
- * `payment-method-list.tsx` is the client-side fallback when a PI goes
- * terminal after the page loaded.
+ * Why this is now SCOPED instead of wrapping the whole checkout:
  *
- * Extracted from mindpages-storefront
- * src/modules/checkout/components/payment-wrapper/stripe-wrapper.tsx.
+ * Stripe's React SDK explicitly states that `<Elements>` props are
+ * immutable: "Because props are immutable, you can't change `options`
+ * after setting it." (https://docs.stripe.com/stripe-js/react). So
+ * when a payment session rotates and a new client_secret arrives, the
+ * only way to refresh `<Elements>` is to remount it via a key change.
+ *
+ * Earlier versions wrapped `<Elements>` around the entire checkout
+ * tree. Result: every cart-amount change rotated the Stripe payment
+ * session in Medusa (createPaymentSessionsWorkflow ALWAYS deletes +
+ * recreates — verified at @medusajs/core-flows/dist/payment-collection/
+ * workflows/create-payment-session.js:112-118), which produced a new
+ * client_secret, which forced a full unmount + remount of the entire
+ * checkout subtree. Tracking refs reset, address form state lost,
+ * tracking events refired, Stripe iframe re-loaded from CDN — all on a
+ * single shipping-method change.
+ *
+ * The fix: PaymentWrapper now provides this scope via context, but does
+ * NOT mount `<Elements>`. The actual `<Elements key={clientSecret}>`
+ * mount lives at `<StripeElementsScope>` which wraps just the
+ * PaymentElement inside payment-method-list.tsx. Rotation now only
+ * remounts the payment widget; address form, shipping selector,
+ * orchestration tree — all stay mounted.
+ *
+ * Backwards-compat:
+ *   - `StripeContext` (boolean) is still exported and consumers (e.g.
+ *     payment-method-list's stripeReady check) read it as before. It's
+ *     now derived from the scope context's `ready` flag.
+ *   - `StripeWrapper` (the old whole-tree wrapper) is removed. Stores
+ *     consume `<PaymentWrapper>` which provides this scope. Direct
+ *     consumers of `StripeWrapper` (none in this monorepo at v1.15.0)
+ *     would need to migrate.
  */
 
+// Boolean context kept for the existing `useContext(StripeContext)`
+// usage in payment-method-list.tsx and any storefront-side consumers.
 export const StripeContext = createContext(false)
 
-type StripeWrapperProps = {
-  paymentSession: HttpTypes.StorePaymentSession
-  stripeKey?: string
+type StripeScopeValue = {
+  /** True when a Stripe-backed pending session with a client_secret exists. */
+  ready: boolean
+  paymentSession?: HttpTypes.StorePaymentSession
   stripePromise: Promise<Stripe | null> | null
-  /**
-   * Optional per-store theming for every Stripe Element rendered under
-   * this wrapper (PaymentElement, etc.). Pass Stripe's Appearance
-   * object — theme, variables, rules. See
-   * https://stripe.com/docs/elements/appearance-api
-   */
   appearance?: Appearance
-  /**
-   * Optional custom font sources loaded into the Stripe Elements iframe.
-   * Elements runs in an isolated iframe and cannot see the parent's
-   * loaded fonts, so custom fonts referenced in `appearance.fontFamily`
-   * must also be declared here via `{ cssSrc: "..." }` or
-   * `{ family, src, weight, style }`. See
-   * https://stripe.com/docs/js/appendix/style
-   */
   fonts?: StripeElementsOptions["fonts"]
-  children: ReactNode
 }
 
-export function StripeWrapper({
-  paymentSession,
-  stripeKey,
-  stripePromise,
-  appearance,
-  fonts,
-  children,
-}: StripeWrapperProps) {
-  // `loader: "always"` forces Elements to fetch the payment method config
-  // up front, surfacing a config error (terminal-state PI, missing PMs)
-  // immediately instead of silently failing on first interaction.
-  const clientSecret = paymentSession.data?.client_secret as
-    | string
-    | undefined
+const StripeScopeContext = createContext<StripeScopeValue>({
+  ready: false,
+  stripePromise: null,
+})
 
+export function StripeScopeProvider({
+  value,
+  children,
+}: {
+  value: StripeScopeValue
+  children: ReactNode
+}) {
+  return (
+    <StripeContext.Provider value={value.ready}>
+      <StripeScopeContext.Provider value={value}>
+        {children}
+      </StripeScopeContext.Provider>
+    </StripeContext.Provider>
+  )
+}
+
+export function useStripeScope(): StripeScopeValue {
+  return useContext(StripeScopeContext)
+}
+
+/**
+ * StripeElementsScope — wraps children in Stripe's `<Elements>` provider
+ * keyed by the current client_secret. Renders `fallback` (or null) when
+ * Stripe isn't ready yet (no session, no key, non-Stripe provider).
+ *
+ * Place this around the smallest possible subtree that needs Stripe
+ * Elements (typically just the `<PaymentElement>`). Anything outside
+ * this scope is NOT torn down when the payment session rotates.
+ */
+export function StripeElementsScope({
+  fallback = null,
+  children,
+}: {
+  fallback?: ReactNode
+  children: ReactNode
+}) {
+  const { ready, paymentSession, stripePromise, appearance, fonts } =
+    useStripeScope()
+
+  const clientSecret = (
+    paymentSession?.data as { client_secret?: string } | undefined
+  )?.client_secret
+
+  if (!ready || !stripePromise || !clientSecret) {
+    return <>{fallback}</>
+  }
+
+  // `loader: "always"` forces Elements to fetch the payment method
+  // config up front, so a config error (terminal-state PI, missing
+  // payment methods) surfaces immediately via onLoadError instead of
+  // silently failing on first user interaction.
   const options: StripeElementsOptions = {
     clientSecret,
     appearance,
@@ -72,38 +123,12 @@ export function StripeWrapper({
     loader: "always",
   }
 
-
-  if (!stripeKey) {
-    throw new Error(
-      "Stripe key is missing. Set NEXT_PUBLIC_STRIPE_KEY or NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY environment variable."
-    )
-  }
-
-  if (!stripePromise) {
-    throw new Error(
-      "Stripe promise is missing. Make sure you have provided a valid Stripe key."
-    )
-  }
-
-  if (!clientSecret) {
-    throw new Error(
-      "Stripe client secret is missing. Cannot initialize Stripe."
-    )
-  }
-
-  // `key={clientSecret}` forces React to unmount + remount <Elements>
-  // when the session is rotated and a new client_secret arrives.
-  // Stripe's React SDK explicitly states options are immutable:
-  //   "Because props are immutable, you can't change `options` after
-  //    setting it." — https://docs.stripe.com/stripe-js/react
-  // Without the key, after recovery rotates the session, the cart prop
-  // updates but Elements keeps its old options (and old, dead
-  // client_secret) — the user stays stuck on the terminal-state error.
+  // `key={clientSecret}` forces a remount when the session rotates.
+  // Stripe's React SDK requires this — options are immutable. Now that
+  // this wraps only the payment widget, the remount cost is contained.
   return (
-    <StripeContext.Provider value={true}>
-      <Elements key={clientSecret} options={options} stripe={stripePromise}>
-        {children}
-      </Elements>
-    </StripeContext.Provider>
+    <Elements key={clientSecret} options={options} stripe={stripePromise}>
+      {children}
+    </Elements>
   )
 }

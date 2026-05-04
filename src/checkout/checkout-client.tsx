@@ -12,6 +12,7 @@ import {
 
 import {
   initiatePaymentSession,
+  syncPaymentAmount,
   placeOrder,
   setShippingMethod,
   updateCart,
@@ -547,21 +548,36 @@ export function CheckoutClient({
     try {
       await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
       setShippingLoading(false)
-      // Re-initiate payment in background — but ONLY if we haven't
-      // already initiated this (cart, provider) pair. Same reasoning
-      // as the handlePaymentTab guard: cart prop is stale, multiple
-      // re-render-triggered effects would otherwise stack init calls
-      // and cancel each other's PIs.
+      // Sync the Stripe payment session's amount to the cart's new
+      // total. The route prefers stripe.paymentIntents.update (in
+      // place, same client_secret) over rotation. When it succeeds,
+      // <Elements> does NOT remount, so InitiateCheckout doesn't
+      // refire and the address-form/orchestration tree stays mounted.
+      // If the route reports `synced: false` (e.g. Medusa's
+      // refresh-collection deleted the session because amount drift
+      // exceeded its threshold), fall back to initiatePaymentSession
+      // which bootstraps a fresh one.
       const pid = paymentTab === "card" ? cardId : codId
       if (pid) {
-        const key = `${cart.id}:${pid}`
-        if (!initiatedSessionsRef.current.has(key)) {
-          initiatedSessionsRef.current.add(key)
-          initiatePaymentSession(cart, { provider_id: pid }).catch((err) => {
-            initiatedSessionsRef.current.delete(key)
+        ;(async () => {
+          try {
+            const result = await syncPaymentAmount(cart.id, pid)
+            if (!result.synced) {
+              const key = `${cart.id}:${pid}`
+              if (!initiatedSessionsRef.current.has(key)) {
+                initiatedSessionsRef.current.add(key)
+                await initiatePaymentSession(cart, {
+                  provider_id: pid,
+                }).catch((err) => {
+                  initiatedSessionsRef.current.delete(key)
+                  throw err
+                })
+              }
+            }
+          } catch (err) {
             setPaymentError(err instanceof Error ? err.message : String(err))
-          })
-        }
+          }
+        })()
       }
     } catch (err: unknown) {
       setSelectedShippingMethod(prev)

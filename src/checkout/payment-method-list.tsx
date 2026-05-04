@@ -4,14 +4,14 @@ import type { HttpTypes } from "@medusajs/types"
 import { PaymentElement } from "@stripe/react-stripe-js"
 import type { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
 import { useRouter } from "next/navigation"
-import { useContext, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { logCheckoutError, refreshPaymentIfTerminal } from "../data/cart"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 import { ErrorMessage } from "./error-message"
 import { PaymentButton } from "./payment-button"
-import { StripeContext } from "./stripe-wrapper"
+import { StripeElementsScope } from "./stripe-wrapper"
 
 /**
  * CheckoutPaymentMethodList — online-payment vs cash-on-delivery radio
@@ -61,7 +61,6 @@ export function CheckoutPaymentMethodList({
   beforePaymentButton,
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
-  const stripeReady = useContext(StripeContext)
   const router = useRouter()
 
   // Local copy of Stripe's PaymentElement completion flag. The same
@@ -72,22 +71,33 @@ export function CheckoutPaymentMethodList({
 
   // One-shot guard against the rotate-and-refresh loop. The previous
   // implementation reloaded on every terminal-state error which, when
-  // the new PI ALSO hit a transient issue, looped. We only ever attempt
-  // recovery ONCE per Elements mount lifecycle. If it doesn't work, the
-  // user sees the error — manual page reload is preferable to a loop.
+  // the new PI ALSO hit a transient issue, looped. We only attempt
+  // recovery ONCE per (clientSecret, paymentTab) combination — a fresh
+  // client_secret after rotation is a new opportunity to recover, but
+  // a repeated terminal state on the SAME secret means the rotation
+  // didn't help and we'd loop.
+  //
+  // The clientSecret reset is keyed off the cart's pending payment
+  // session — it changes whenever the session rotates. Since Elements
+  // is now scoped to just the PaymentElement (StripeElementsScope),
+  // this component does NOT remount on rotation; the ref persists
+  // across rotations and we have to clear it explicitly.
   const recoveryAttempted = useRef(false)
+  const currentClientSecret = (
+    cart.payment_collection?.payment_sessions?.find(
+      (s) => s.status === "pending"
+    )?.data as { client_secret?: string } | undefined
+  )?.client_secret
 
-  // Reset on tab change. PaymentElement only renders while
-  // `paymentTab === "card"`, so when the user switches away the element
-  // unmounts and the flag must drop to false — otherwise switching
-  // back to a fresh (empty) PaymentElement would leave the button
-  // erroneously enabled from the previous fill.
+  // Reset on tab change OR when clientSecret rotates. PaymentElement
+  // only renders while `paymentTab === "card"`, so when the user
+  // switches away the element unmounts and the flag must drop to false
+  // — otherwise switching back to a fresh (empty) PaymentElement would
+  // leave the button erroneously enabled from the previous fill.
   useEffect(() => {
     setPaymentElementComplete(false)
-    // Allow another recovery attempt if the user toggled tabs and came
-    // back — the next Elements mount is a fresh attempt.
     recoveryAttempted.current = false
-  }, [paymentTab])
+  }, [paymentTab, currentClientSecret])
 
   const handlePaymentElementChange = (event: StripePaymentElementChangeEvent) => {
     setPaymentElementComplete(event.complete)
@@ -212,25 +222,36 @@ export function CheckoutPaymentMethodList({
                   </span>
                 </button>
 
-                {paymentTab === "card" && !stripeReady && (
-                  <div className="px-4 pb-4 pt-2 space-y-2.5 animate-pulse">
-                    <div className="h-[44px] rounded-lg bg-muted" />
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="h-[44px] rounded-lg bg-muted" />
-                      <div className="h-[44px] rounded-lg bg-muted" />
-                    </div>
-                  </div>
-                )}
-                {paymentTab === "card" && stripeReady && (
+                {paymentTab === "card" && (
                   <div className="px-4 pb-4 pt-2">
-                    <PaymentElement
-                      onChange={handlePaymentElementChange}
-                      onLoadError={handlePaymentElementLoadError}
-                      options={{
-                        layout: "accordion",
-                        fields: { billingDetails: { address: "never" } },
-                      }}
-                    />
+                    {/*
+                      StripeElementsScope wraps ONLY the PaymentElement
+                      in <Elements key={clientSecret}>. When the payment
+                      session rotates (every cart-amount change), only
+                      this widget remounts — the rest of checkout stays
+                      put. Fallback renders the skeleton while Stripe
+                      isn't ready (no session, no key, COD-only cart).
+                    */}
+                    <StripeElementsScope
+                      fallback={
+                        <div className="space-y-2.5 animate-pulse">
+                          <div className="h-[44px] rounded-lg bg-muted" />
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div className="h-[44px] rounded-lg bg-muted" />
+                            <div className="h-[44px] rounded-lg bg-muted" />
+                          </div>
+                        </div>
+                      }
+                    >
+                      <PaymentElement
+                        onChange={handlePaymentElementChange}
+                        onLoadError={handlePaymentElementLoadError}
+                        options={{
+                          layout: "accordion",
+                          fields: { billingDetails: { address: "never" } },
+                        }}
+                      />
+                    </StripeElementsScope>
                   </div>
                 )}
               </div>

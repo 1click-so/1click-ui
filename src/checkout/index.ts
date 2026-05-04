@@ -8,7 +8,12 @@ export {
 export { defaultCheckoutLabels, type CheckoutLabels } from "./labels"
 export { bulgarianCheckoutLabels } from "./labels-bg"
 export { ErrorMessage } from "./error-message"
-export { StripeWrapper, StripeContext } from "./stripe-wrapper"
+export {
+  StripeContext,
+  StripeScopeProvider,
+  StripeElementsScope,
+  useStripeScope,
+} from "./stripe-wrapper"
 export { PaymentWrapper } from "./payment-wrapper"
 export { PaymentButton } from "./payment-button"
 export {
