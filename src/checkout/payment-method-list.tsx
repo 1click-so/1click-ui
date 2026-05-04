@@ -4,14 +4,14 @@ import type { HttpTypes } from "@medusajs/types"
 import { PaymentElement } from "@stripe/react-stripe-js"
 import type { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 
 import { logCheckoutError, refreshPaymentIfTerminal } from "../data/cart"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 import { ErrorMessage } from "./error-message"
 import { PaymentButton } from "./payment-button"
-import { StripeElementsScope } from "./stripe-wrapper"
+import { StripeContext, StripeElementsScope } from "./stripe-wrapper"
 
 /**
  * CheckoutPaymentMethodList — online-payment vs cash-on-delivery radio
@@ -62,6 +62,11 @@ export function CheckoutPaymentMethodList({
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
   const router = useRouter()
+  // Boolean context — true when the cart's pending session is Stripe-
+  // backed AND has a usable client_secret. Used to gate the inner
+  // PaymentElement skeleton vs the real element. Same value
+  // StripeElementsScope reads from useStripeScope().
+  const stripeReady = useContext(StripeContext)
 
   // Local copy of Stripe's PaymentElement completion flag. The same
   // value is forwarded to the parent via `onPaymentElementChange`, but
@@ -191,7 +196,27 @@ export function CheckoutPaymentMethodList({
           <p className="text-sm text-muted-foreground">{labels.paymentDisabled}</p>
         </div>
       ) : (
-        <>
+        // ── Stripe Elements scope ──────────────────────────────────────
+        // Wraps the entire interactive payment section (radio cards +
+        // PaymentElement + PaymentButton) so `<StripePaymentButton>`'s
+        // useStripe()/useElements() hooks find an <Elements> ancestor.
+        //
+        // `passthrough` matters: COD-only carts have no Stripe session
+        // and no client_secret, so <Elements> can't mount. Without
+        // passthrough the wrapper would render `null` (its default
+        // fallback) and the COD radio + ManualPaymentButton would
+        // disappear entirely — checkout dead for COD users. With
+        // passthrough, when Stripe isn't ready we render children
+        // directly (no <Elements>); ManualPaymentButton doesn't use
+        // Stripe hooks so it works fine without context.
+        //
+        // Critically, this scope is INSIDE CheckoutPaymentMethodList,
+        // not at the checkout root. When the payment session rotates
+        // and a new client_secret arrives, only this section remounts
+        // — the orchestration tree, address form, shipping selector,
+        // and tracking refs upstream are NOT torn down. That's the
+        // whole point of moving away from PaymentWrapper-wraps-all.
+        <StripeElementsScope passthrough>
           <div className="space-y-2">
             {hasCard && (
               <div
@@ -225,24 +250,15 @@ export function CheckoutPaymentMethodList({
                 {paymentTab === "card" && (
                   <div className="px-4 pb-4 pt-2">
                     {/*
-                      StripeElementsScope wraps ONLY the PaymentElement
-                      in <Elements key={clientSecret}>. When the payment
-                      session rotates (every cart-amount change), only
-                      this widget remounts — the rest of checkout stays
-                      put. Fallback renders the skeleton while Stripe
-                      isn't ready (no session, no key, COD-only cart).
+                      Skeleton vs PaymentElement gated by stripeReady.
+                      When ready=true we're inside <Elements> (outer
+                      passthrough scope mounted it) and PaymentElement
+                      can render. When ready=false (Stripe still
+                      initialising) we show the skeleton — rendering
+                      PaymentElement without an <Elements> ancestor
+                      throws.
                     */}
-                    <StripeElementsScope
-                      fallback={
-                        <div className="space-y-2.5 animate-pulse">
-                          <div className="h-[44px] rounded-lg bg-muted" />
-                          <div className="grid grid-cols-2 gap-2.5">
-                            <div className="h-[44px] rounded-lg bg-muted" />
-                            <div className="h-[44px] rounded-lg bg-muted" />
-                          </div>
-                        </div>
-                      }
-                    >
+                    {stripeReady ? (
                       <PaymentElement
                         onChange={handlePaymentElementChange}
                         onLoadError={handlePaymentElementLoadError}
@@ -251,7 +267,15 @@ export function CheckoutPaymentMethodList({
                           fields: { billingDetails: { address: "never" } },
                         }}
                       />
-                    </StripeElementsScope>
+                    ) : (
+                      <div className="space-y-2.5 animate-pulse">
+                        <div className="h-[44px] rounded-lg bg-muted" />
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <div className="h-[44px] rounded-lg bg-muted" />
+                          <div className="h-[44px] rounded-lg bg-muted" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -321,7 +345,7 @@ export function CheckoutPaymentMethodList({
               data-testid="submit-order-button"
             />
           </div>
-        </>
+        </StripeElementsScope>
       )}
     </div>
   )

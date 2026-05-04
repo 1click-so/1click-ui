@@ -87,18 +87,35 @@ export function useStripeScope(): StripeScopeValue {
 
 /**
  * StripeElementsScope — wraps children in Stripe's `<Elements>` provider
- * keyed by the current client_secret. Renders `fallback` (or null) when
- * Stripe isn't ready yet (no session, no key, non-Stripe provider).
+ * keyed by the current client_secret.
  *
- * Place this around the smallest possible subtree that needs Stripe
- * Elements (typically just the `<PaymentElement>`). Anything outside
- * this scope is NOT torn down when the payment session rotates.
+ * Behaviour when Stripe isn't ready (no session, no key, non-Stripe
+ * provider):
+ *   - default               → renders `fallback` (or null) instead of children
+ *   - `passthrough` mode    → renders children directly, without `<Elements>`
+ *
+ * Use `passthrough` when wrapping a section that contains BOTH Stripe-
+ * dependent UI (e.g. `<PaymentElement>`) AND non-Stripe UI (e.g. a
+ * Place Order button that routes to a manual/COD branch when the cart's
+ * active session isn't Stripe-backed). Without passthrough, COD-only
+ * carts (no Stripe session, no client_secret) would render nothing
+ * inside the wrapper at all — the COD radio + manual button would
+ * disappear, breaking checkout for COD users.
+ *
+ * Place this around the smallest subtree that needs `useStripe()` /
+ * `useElements()` context (PaymentElement + StripePaymentButton).
+ * Anything outside this scope is NOT torn down when the payment
+ * session rotates and a new client_secret arrives — that's the whole
+ * point of moving away from the v1.14.x "wrap the entire checkout"
+ * approach.
  */
 export function StripeElementsScope({
   fallback = null,
+  passthrough = false,
   children,
 }: {
   fallback?: ReactNode
+  passthrough?: boolean
   children: ReactNode
 }) {
   const { ready, paymentSession, stripePromise, appearance, fonts } =
@@ -109,7 +126,7 @@ export function StripeElementsScope({
   )?.client_secret
 
   if (!ready || !stripePromise || !clientSecret) {
-    return <>{fallback}</>
+    return <>{passthrough ? children : fallback}</>
   }
 
   // `loader: "always"` forces Elements to fetch the payment method
