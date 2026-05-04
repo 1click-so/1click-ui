@@ -12,6 +12,11 @@ export type OrderLabels = {
   contactInfo: string
   delivery: string
   paymentMethod: string
+  paymentMethodTitles: {
+    card: string
+    cod: string
+    paypal: string
+  }
   needHelp: string
   contactUs: string
   returnsExchanges: string
@@ -38,6 +43,11 @@ export const defaultOrderLabels: OrderLabels = {
   contactInfo: "Contact info",
   delivery: "Delivery",
   paymentMethod: "Payment method",
+  paymentMethodTitles: {
+    card: "Credit / debit card",
+    cod: "Cash on delivery",
+    paypal: "PayPal",
+  },
   needHelp: "Need help?",
   contactUs: "Contact us",
   returnsExchanges: "Returns & exchanges",
