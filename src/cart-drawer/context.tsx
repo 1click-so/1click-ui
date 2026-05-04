@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from "react"
 
+import { isProductLine } from "../lib/cart-helpers"
 import { defaultCartDrawerLabels, type CartDrawerLabels } from "./labels"
 
 /**
@@ -239,8 +240,17 @@ export function CartDrawerProvider({
     reduceCart
   )
 
+  // totalItems counts PRODUCT lines only. Backend-injected fee lines
+  // (e.g. COD fee added by the payment-session middleware) are excluded
+  // — otherwise the auto-open useEffect below treats a fee insertion
+  // as "a new item was added," opens the drawer mid-checkout, and
+  // locks body scroll. See @1click/ui/src/lib/cart-helpers.ts for the
+  // shared predicate.
   const totalItems =
-    optimisticCart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
+    optimisticCart?.items?.reduce(
+      (acc, item) => (isProductLine(item) ? acc + item.quantity : acc),
+      0
+    ) || 0
 
   // Auto-open when items are added (count increases AFTER initial load)
   useEffect(() => {

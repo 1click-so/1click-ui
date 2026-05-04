@@ -11,6 +11,7 @@ export const bulgarianOrderLabels: OrderLabels = {
   discount: "Отстъпка",
   tax: "ДДС",
   total: "Общо",
+  codFee: "Такса наложен платеж",
   contactInfo: "Данни за контакт",
   delivery: "Доставка",
   paymentMethod: "Метод на плащане",

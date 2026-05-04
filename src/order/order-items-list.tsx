@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { OrderItem } from "./order-item"
+import { isProductLine } from "../lib/cart-helpers"
 import { defaultOrderLabels, type OrderLabels } from "./labels"
 
 type OrderItemsListProps = {
@@ -9,7 +10,11 @@ type OrderItemsListProps = {
 
 export function OrderItemsList({ order, labels }: OrderItemsListProps) {
   const l = { ...defaultOrderLabels, ...labels }
-  const items = order.items || []
+  // Render product lines only — backend-injected fee lines (e.g. COD
+  // fee, see medusa-mindpages/src/api/store/payment-collections/[id]/
+  // payment-sessions/middleware.ts) are hidden here and surfaced as a
+  // dedicated row in OrderTotals instead.
+  const items = (order.items || []).filter(isProductLine)
 
   return (
     <div>

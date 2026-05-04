@@ -5,6 +5,7 @@ import { useState } from "react"
 
 import { cn } from "../lib/utils"
 import { DualPrice } from "../lib/dual-price"
+import { isProductLine } from "../lib/cart-helpers"
 import { useCheckoutLabels } from "./context"
 import { MobileOrderSummaryBody } from "./mobile-order-summary-body"
 
@@ -25,18 +26,26 @@ type MobileCheckoutBottomBarProps = {
     promotions?: HttpTypes.StorePromotion[]
   }
   optimisticShippingCost: number | null
+  /** Admin-editable label for the COD fee row in the expanded body. */
+  codFeeLabel?: string
 }
 
 export function MobileCheckoutBottomBar({
   cart,
   optimisticShippingCost,
+  codFeeLabel,
 }: MobileCheckoutBottomBarProps) {
   const labels = useCheckoutLabels()
   const [open, setOpen] = useState(false)
 
-  const items = cart.items ?? []
-  const itemCount = items.reduce((s, i) => s + i.quantity, 0)
-  const firstItem = items[0]
+  // The collapsed bar shows a product thumbnail + product item count.
+  // Filter out the COD fee line so the thumbnail isn't its empty
+  // placeholder and the count reflects what the customer actually
+  // ordered. The expanded body (MobileOrderSummaryBody) handles its
+  // own filtering and renders the fee as a totals row.
+  const productItems = (cart.items ?? []).filter(isProductLine)
+  const itemCount = productItems.reduce((s, i) => s + i.quantity, 0)
+  const firstItem = productItems[0]
 
   const shippingCost =
     optimisticShippingCost !== null
@@ -59,6 +68,7 @@ export function MobileCheckoutBottomBar({
             cart={cart}
             shippingCost={shippingCost}
             displayTotal={displayTotal}
+            codFeeLabel={codFeeLabel}
           />
         </div>
       )}

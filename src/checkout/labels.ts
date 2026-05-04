@@ -74,6 +74,10 @@ export type CheckoutLabels = {
   discount: string
   discountCode: string
   discountSub: string
+  /** Default label for the cash-on-delivery fee row. Used as the third-
+   *  level fallback when neither a per-store override nor the fee line
+   *  item's own title is available. */
+  codFee: string
   recommended: string
   recommendedSoon: string
   recommendedSoonSub: string
@@ -161,6 +165,7 @@ export const defaultCheckoutLabels: CheckoutLabels = {
   discount: "Discount",
   discountCode: "Discount code",
   discountSub: "Save with a promo code",
+  codFee: "Cash on delivery fee",
   recommended: "Recommended for you",
   recommendedSoon: "Coming soon",
   recommendedSoonSub: "Personalized recommendations",

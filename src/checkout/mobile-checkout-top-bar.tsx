@@ -26,11 +26,14 @@ type MobileCheckoutTopBarProps = {
     promotions?: HttpTypes.StorePromotion[]
   }
   optimisticShippingCost: number | null
+  /** Admin-editable label for the COD fee row in the expanded body. */
+  codFeeLabel?: string
 }
 
 export function MobileCheckoutTopBar({
   cart,
   optimisticShippingCost,
+  codFeeLabel,
 }: MobileCheckoutTopBarProps) {
   const labels = useCheckoutLabels()
   const [open, setOpen] = useState(false)
@@ -87,6 +90,7 @@ export function MobileCheckoutTopBar({
             cart={cart}
             shippingCost={shippingCost}
             displayTotal={displayTotal}
+            codFeeLabel={codFeeLabel}
           />
         </div>
       )}

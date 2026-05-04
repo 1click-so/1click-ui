@@ -1,9 +1,10 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 
 import { DualPrice } from "../lib/dual-price"
+import { findFeeLine, isProductLine } from "../lib/cart-helpers"
 import { CheckoutLineItem } from "./checkout-line-item"
 import { useCheckoutLabels } from "./context"
 import { DiscountSection } from "./discount-section"
@@ -27,17 +28,32 @@ type OrderSummaryProps = {
    */
   optimisticShippingCost: number | null
   onOptimisticShippingClear?: () => void
+  /**
+   * Admin-editable label for the cash-on-delivery fee row, sourced from
+   * the cash_on_delivery integration_setting on the backend. Optional —
+   * falls back to the fee line item's title, then to `labels.codFee`.
+   */
+  codFeeLabel?: string
 }
 
 export function OrderSummary({
   cart,
   optimisticShippingCost,
   onOptimisticShippingClear,
+  codFeeLabel,
 }: OrderSummaryProps) {
   const labels = useCheckoutLabels()
 
-  const items = cart.items ?? []
-  const itemCount = items.reduce((s, i) => s + i.quantity, 0)
+  // Split products from any backend-injected fee line item. Fee renders
+  // as a dedicated totals row between Shipping and Tax — never as a
+  // product line with an empty thumbnail.
+  const allItems = cart.items ?? []
+  const productItems = useMemo(
+    () => allItems.filter(isProductLine),
+    [allItems]
+  )
+  const codFeeItem = useMemo(() => findFeeLine(allItems), [allItems])
+  const itemCount = productItems.reduce((s, i) => s + i.quantity, 0)
 
   const shippingCost =
     optimisticShippingCost !== null ? optimisticShippingCost : cart.shipping_total
@@ -49,6 +65,19 @@ export function OrderSummary({
         (cart.shipping_total ?? 0) +
         optimisticShippingCost
       : cart.total
+
+  // Subtotal excludes the fee line. Medusa's `cart.item_total` sums all
+  // items including the fee — for the visible breakdown we want only
+  // products. Subtract the fee's net (subtotal) so the visible Subtotal
+  // line stays product-only while the Tax row continues to reflect the
+  // full cart.tax_total (which includes the fee's tax portion).
+  const productSubtotal = useMemo(() => {
+    if (!codFeeItem) return cart.item_total ?? 0
+    const feeNet = codFeeItem.subtotal ?? codFeeItem.total ?? 0
+    return Math.max(0, (cart.item_total ?? 0) - feeNet)
+  }, [cart.item_total, codFeeItem])
+
+  const codFeeAmount = codFeeItem?.total ?? 0
 
   // Clear optimistic override once server cart reflects the new shipping cost
   useEffect(() => {
@@ -76,7 +105,7 @@ export function OrderSummary({
             background so the items zone reads as a distinct surface from
             the totals section below. */}
         <div className="bg-muted px-5 sm:px-6 py-2 divide-y divide-border border-b border-border">
-          {items
+          {productItems
             .slice()
             .sort((a, b) => ((a.created_at ?? "") > (b.created_at ?? "") ? -1 : 1))
             .map((item) => (
@@ -99,7 +128,7 @@ export function OrderSummary({
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{labels.subtotal}</span>
             <DualPrice
-              amount={cart.item_total ?? 0}
+              amount={productSubtotal}
               currencyCode={cart.currency_code}
               className="font-medium text-foreground"
             />
@@ -125,6 +154,19 @@ export function OrderSummary({
               </span>
             )}
           </div>
+
+          {codFeeAmount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                {codFeeLabel ?? codFeeItem?.title ?? labels.codFee}
+              </span>
+              <DualPrice
+                amount={codFeeAmount}
+                currencyCode={cart.currency_code}
+                className="font-medium text-foreground"
+              />
+            </div>
+          )}
 
           {!!cart.discount_total && (
             <div className="flex justify-between text-sm text-success">

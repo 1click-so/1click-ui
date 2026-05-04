@@ -3,6 +3,7 @@
 import Link from "next/link"
 
 import { DualPrice } from "../lib/dual-price"
+import { productTotal } from "../lib/cart-helpers"
 import { useCartDrawer } from "./context"
 
 /**
@@ -16,7 +17,11 @@ export function CartStickyFooter() {
   const { cart, close, labels, hrefs } = useCartDrawer()
   if (!cart || !cart.items?.length) return null
 
-  const total = cart.total ?? 0
+  // Drawer is pre-checkout context — never read `cart.total` here.
+  // `cart.total` includes shipping/tax/COD fee, all of which are
+  // checkout-context state that must not leak into the shopping
+  // drawer. Sum of product line totals only.
+  const total = productTotal(cart.items)
   const currencyCode = cart.currency_code
 
   return (

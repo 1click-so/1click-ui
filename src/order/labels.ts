@@ -9,6 +9,10 @@ export type OrderLabels = {
   discount: string
   tax: string
   total: string
+  /** Default label for the cash-on-delivery fee row. Used as the third-
+   *  level fallback when neither a per-store override nor the fee line
+   *  item's own title is available. */
+  codFee: string
   contactInfo: string
   delivery: string
   paymentMethod: string
@@ -40,6 +44,7 @@ export const defaultOrderLabels: OrderLabels = {
   discount: "Discount",
   tax: "Tax",
   total: "Total",
+  codFee: "Cash on delivery fee",
   contactInfo: "Contact info",
   delivery: "Delivery",
   paymentMethod: "Payment method",

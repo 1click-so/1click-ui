@@ -1,9 +1,11 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import { useMemo } from "react"
 
 import { CheckoutLineItem } from "./checkout-line-item"
 import { DualPrice } from "../lib/dual-price"
+import { findFeeLine, isProductLine } from "../lib/cart-helpers"
 import { useCheckoutLabels } from "./context"
 import { DiscountSection } from "./discount-section"
 
@@ -26,20 +28,41 @@ type MobileOrderSummaryBodyProps = {
   /** Kept for parity with prior API; the final total is rendered by the
    * parent bar's collapsed header (no need to duplicate inside the body). */
   displayTotal?: number
+  /** Admin-editable label for the COD fee row. Falls back to the line
+   * item's title, then to `labels.codFee`. */
+  codFeeLabel?: string
 }
 
 export function MobileOrderSummaryBody({
   cart,
   shippingCost,
+  codFeeLabel,
 }: MobileOrderSummaryBodyProps) {
   const labels = useCheckoutLabels()
-  const items = cart.items ?? []
+  const allItems = cart.items ?? []
+  // Same product/fee split as the desktop summary — products render as
+  // line item rows, fee renders as a totals row between Shipping and
+  // any discount.
+  const productItems = useMemo(
+    () => allItems.filter(isProductLine),
+    [allItems]
+  )
+  const codFeeItem = useMemo(() => findFeeLine(allItems), [allItems])
   const shippingKnown = shippingCost !== null && shippingCost !== undefined
+
+  const productSubtotal = useMemo(() => {
+    if (!codFeeItem) return cart.item_total ?? 0
+    const feeNet = codFeeItem.subtotal ?? codFeeItem.total ?? 0
+    return Math.max(0, (cart.item_total ?? 0) - feeNet)
+  }, [cart.item_total, codFeeItem])
+
+  const codFeeAmount = codFeeItem?.total ?? 0
+  const productItemCount = productItems.reduce((s, i) => s + i.quantity, 0)
 
   return (
     <div className="space-y-4 pt-4">
       <div className="divide-y divide-border">
-        {items
+        {productItems
           .slice()
           .sort((a, b) =>
             (a.created_at ?? "") > (b.created_at ?? "") ? -1 : 1
@@ -59,11 +82,10 @@ export function MobileOrderSummaryBody({
       <div className="space-y-2 pt-2">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">
-            {labels.subtotal} • {items.reduce((s, i) => s + i.quantity, 0)}{" "}
-            {labels.items}
+            {labels.subtotal} • {productItemCount} {labels.items}
           </span>
           <DualPrice
-            amount={cart.item_total ?? 0}
+            amount={productSubtotal}
             currencyCode={cart.currency_code}
             className="font-medium text-foreground"
           />
@@ -89,6 +111,19 @@ export function MobileOrderSummaryBody({
             </span>
           )}
         </div>
+
+        {codFeeAmount > 0 && (
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">
+              {codFeeLabel ?? codFeeItem?.title ?? labels.codFee}
+            </span>
+            <DualPrice
+              amount={codFeeAmount}
+              currencyCode={cart.currency_code}
+              className="font-medium text-foreground"
+            />
+          </div>
+        )}
 
         {!!cart.discount_total && (
           <div className="flex justify-between text-sm text-success">

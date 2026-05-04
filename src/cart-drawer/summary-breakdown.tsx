@@ -1,6 +1,7 @@
 "use client"
 
 import { convertToLocale } from "../lib/money"
+import { productTotal } from "../lib/cart-helpers"
 import { useCartDrawer } from "./context"
 
 /**
@@ -16,7 +17,10 @@ export function CartSummaryBreakdown() {
   if (!cart) return null
 
   const currencyCode = cart.currency_code
-  const subtotal = cart.subtotal ?? 0
+  // Pre-checkout context — drawer summary shows products only. Don't
+  // read `cart.subtotal` (would include any fee line item the backend
+  // has attached). Sum filtered product line totals instead.
+  const subtotal = productTotal(cart.items)
   const discount = cart.discount_total ?? 0
   const hasDiscount = discount > 0
 

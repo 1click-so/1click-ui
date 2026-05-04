@@ -17,6 +17,12 @@ type OrderCompletedTemplateProps = {
   locale?: string
   contactHref?: string
   returnsHref?: string
+  /**
+   * Admin-editable label for the cash-on-delivery fee row in the totals
+   * breakdown. Optional — falls back to the fee line item's title, then
+   * to the translated `labels.codFee` default.
+   */
+  codFeeLabel?: string
 }
 
 export function OrderCompletedTemplate({
@@ -25,6 +31,7 @@ export function OrderCompletedTemplate({
   locale,
   contactHref,
   returnsHref,
+  codFeeLabel,
 }: OrderCompletedTemplateProps) {
   const l = { ...defaultOrderLabels, ...labels }
 
@@ -44,7 +51,7 @@ export function OrderCompletedTemplate({
           <div className="lg:col-span-3">
             <div className="bg-card rounded-xl p-5 sm:p-6 shadow-sm">
               <OrderItemsList order={order} labels={l} />
-              <OrderTotals order={order} labels={l} />
+              <OrderTotals order={order} labels={l} codFeeLabel={codFeeLabel} />
             </div>
           </div>
 

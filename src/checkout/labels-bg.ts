@@ -69,6 +69,7 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
   discount: "Отстъпка",
   discountCode: "Код за отстъпка",
   discountSub: "Спестете с промо код",
+  codFee: "Такса наложен платеж",
   recommended: "Препоръчано за вас",
   recommendedSoon: "Скоро тук",
   recommendedSoonSub: "Персонализирани предложения за вас",

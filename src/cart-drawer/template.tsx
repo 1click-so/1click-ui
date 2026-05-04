@@ -16,6 +16,7 @@ import { CartRewardsPoints } from "./rewards-points"
 import { CartStickyFooter } from "./sticky-footer"
 import { CartEmpty } from "./empty"
 import { useCartDrawer } from "./context"
+import { isProductLine } from "../lib/cart-helpers"
 
 /**
  * CartDrawerTemplate — optional default assembly that composes every cart
@@ -77,7 +78,12 @@ export function CartDrawerTemplate({
   config = {},
 }: CartDrawerTemplateProps) {
   const { cart } = useCartDrawer()
-  const items = cart?.items || []
+  // Cart drawer is pre-checkout / shopping context — render PRODUCT
+  // lines only. Backend-injected fee lines (COD fee, future surcharges)
+  // are excluded by `isProductLine`. The same predicate gates `hasItems`
+  // so a cart containing only a fee (edge case) renders empty rather
+  // than showing a single fake-product row.
+  const items = (cart?.items || []).filter(isProductLine)
   const hasItems = items.length > 0
   const currencyCode = cart?.currency_code || "eur"
 
