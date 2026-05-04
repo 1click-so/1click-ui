@@ -32,7 +32,9 @@ export {
   trackAddToCart,
   trackInitiateCheckout,
   trackPurchase,
+  type ExtraTrackingContext,
 } from "./fbq"
+export { fireCapiEvent, generateEventId, type CapiEventInput, type CapiUserData } from "./capi"
 export {
   trackGAViewItem,
   trackGAAddToCart,

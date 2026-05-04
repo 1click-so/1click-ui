@@ -5,9 +5,15 @@ import type { TrackingConfig, TrackingConfigResponse } from "./types"
 /**
  * Server-side fetch of the Medusa backend's public tracking config.
  *
- * Hits `GET {MEDUSA_BACKEND_URL}/store/integrations/tracking`, which
- * returns only non-sensitive IDs (pixelId, containerId, measurementId,
+ * Hits `GET {MEDUSA_BACKEND_URL}/store/integrations`, which returns
+ * only non-sensitive IDs (pixelId, containerId, measurementId,
  * publicKey). Access tokens never traverse this surface.
+ *
+ * Earlier versions of this helper called `/store/integrations/tracking`
+ * which 404s — the actual backend route lives at `/store/integrations`
+ * (see `medusa-mindpages/src/api/store/integrations/route.ts`). The bug
+ * silently swallowed the 404 and returned `{}`, so `pixelId` was always
+ * `undefined` and `<MetaPixel>` rendered nothing — pixel never loaded.
  *
  * Response is cached for 5 minutes (`revalidate: 300`) — these IDs
  * change rarely (admin → Settings → Integrations), and the cache
@@ -39,7 +45,7 @@ export async function getTrackingConfig(): Promise<TrackingConfig> {
     }
 
     const res = await fetch(
-      `${baseUrl}/store/integrations/tracking`,
+      `${baseUrl}/store/integrations`,
       init as RequestInit
     )
 
