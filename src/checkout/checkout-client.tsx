@@ -95,6 +95,7 @@ export function CheckoutClient({
               countries={o.regionCountries}
               addressInput={o.addressInput}
               addressError={o.addressError}
+              pulseFields={o.pulseFields}
             />
 
             <CheckoutShippingMethodList

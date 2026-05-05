@@ -35,6 +35,21 @@ type CheckoutAddressFormProps = {
   /** Current address input (for saved-address match detection) */
   addressInput: HttpTypes.StoreCartAddress | null
   addressError: string | null
+  /**
+   * Hide the country field entirely. Useful for single-country stores
+   * (Alenika is BG-only) where the field is redundant. The
+   * `country_code` value still lives in formData (initialized from the
+   * `countryCode` prop on `useCheckoutOrchestration`), so submissions
+   * still carry it. Default false — library-generic.
+   */
+  hideCountry?: boolean
+  /**
+   * Set of formData keys that are required-but-empty AND should be
+   * visually pulsed (3s-idle attention cue). The orchestration hook
+   * computes this; the form just reads it and applies the soft-blue
+   * pulse class to matching fields. Empty set / undefined = no cue.
+   */
+  pulseFields?: Set<string>
 }
 
 export function CheckoutAddressForm({
@@ -46,8 +61,11 @@ export function CheckoutAddressForm({
   countries,
   addressInput,
   addressError,
+  hideCountry = false,
+  pulseFields,
 }: CheckoutAddressFormProps) {
   const labels = useCheckoutLabels()
+  const p = (k: string) => !!pulseFields?.has(k)
 
   return (
     <div>
@@ -76,42 +94,43 @@ export function CheckoutAddressForm({
           onChange={onChange}
           onBlur={onBlur}
           required
+          pulse={p("email")}
         />
 
-        {countries.length === 1 ? (
-          // Single-country region — render a readonly field showing the
-          // localized country name. The dropdown UX is misleading when
-          // there's nothing to choose, and the `display_name` from the
-          // region is in English by default. The actual country_code
-          // remains in formData (initialised from the cart) so submission
-          // still carries it.
-          <Field
-            label={labels.country}
-            name="shipping_address.country_code_display"
-            value={
-              labels.singleCountryName ??
-              countries[0]?.display_name ??
-              ""
-            }
-            onChange={() => {}}
-            readOnly
-          />
-        ) : (
-          <SelectField
-            label={labels.country}
-            name="shipping_address.country_code"
-            autoComplete="country"
-            value={formData["shipping_address.country_code"] ?? ""}
-            onChange={onChange}
-            required
-          >
-            <option value="" disabled />
-            {countries.map((c) => (
-              <option key={c.iso_2} value={c.iso_2}>
-                {c.display_name}
-              </option>
-            ))}
-          </SelectField>
+        {!hideCountry && (
+          countries.length === 1 ? (
+            // Single-country region — render a readonly field showing
+            // the localized country name. (Library-default rendering
+            // when `hideCountry` isn't passed.) The actual country_code
+            // remains in formData so submission still carries it.
+            <Field
+              label={labels.country}
+              name="shipping_address.country_code_display"
+              value={
+                labels.singleCountryName ??
+                countries[0]?.display_name ??
+                ""
+              }
+              onChange={() => {}}
+              readOnly
+            />
+          ) : (
+            <SelectField
+              label={labels.country}
+              name="shipping_address.country_code"
+              autoComplete="country"
+              value={formData["shipping_address.country_code"] ?? ""}
+              onChange={onChange}
+              required
+            >
+              <option value="" disabled />
+              {countries.map((c) => (
+                <option key={c.iso_2} value={c.iso_2}>
+                  {c.display_name}
+                </option>
+              ))}
+            </SelectField>
+          )
         )}
 
         <div className="grid grid-cols-2 gap-2.5">
@@ -123,6 +142,7 @@ export function CheckoutAddressForm({
             onChange={onChange}
             onBlur={onBlur}
             required
+            pulse={p("shipping_address.first_name")}
           />
           <Field
             label={labels.lastName}
@@ -132,6 +152,7 @@ export function CheckoutAddressForm({
             onChange={onChange}
             onBlur={onBlur}
             required
+            pulse={p("shipping_address.last_name")}
           />
         </div>
 
@@ -143,6 +164,7 @@ export function CheckoutAddressForm({
           onChange={onChange}
           onBlur={onBlur}
           required
+          pulse={p("shipping_address.address_1")}
         />
 
         <Field
@@ -163,6 +185,7 @@ export function CheckoutAddressForm({
             onChange={onChange}
             onBlur={onBlur}
             required
+            pulse={p("shipping_address.postal_code")}
           />
           <Field
             label={labels.city}
@@ -172,6 +195,7 @@ export function CheckoutAddressForm({
             onChange={onChange}
             onBlur={onBlur}
             required
+            pulse={p("shipping_address.city")}
           />
         </div>
 
@@ -183,6 +207,7 @@ export function CheckoutAddressForm({
           value={formData["shipping_address.phone"] ?? ""}
           onChange={onChange}
           onBlur={onBlur}
+          pulse={p("shipping_address.phone")}
         />
       </div>
 

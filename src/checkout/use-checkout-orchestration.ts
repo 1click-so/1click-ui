@@ -318,6 +318,39 @@ export function useCheckoutOrchestration({
     (f) => (formData[f] ?? "").trim().length > 0
   )
 
+  // ── 3-second idle attention cue ────────────────────────────────────
+  // After 3 seconds of no typing/focus activity AND not all required
+  // fields filled, flag the empty required fields with a soft-blue
+  // pulse so the customer knows where to look. Recommended by user
+  // 2026-05-06 after a real customer reported being stuck on the
+  // shipping section without realising one address field was empty.
+  //
+  // Color: sky-500 (in the Field primitive). Distinct from focus
+  // (orange/primary) and error (red/destructive).
+  // Threshold: 3s of no formData change. Resets per-field (a field
+  // unflags itself the moment it becomes non-empty).
+  // First load: yes — we want stuck customers to see the cue
+  // immediately, not only after they've already tried to interact.
+  const PULSE_IDLE_MS = 3000
+  const [pulseFields, setPulseFields] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    if (allRequiredFilled) {
+      if (pulseFields.size > 0) setPulseFields(new Set())
+      return
+    }
+    const timer = setTimeout(() => {
+      const empty = REQUIRED_ADDRESS_FIELDS.filter(
+        (f) => !((formData[f] ?? "").trim().length > 0)
+      )
+      setPulseFields(new Set(empty))
+    }, PULSE_IDLE_MS)
+    return () => clearTimeout(timer)
+    // We intentionally depend on the FULL formData object so any
+    // keystroke / saved-address selection / blur-driven update resets
+    // the timer. allRequiredFilled is also tracked so the cue clears
+    // the moment the last empty required field gets a value.
+  }, [formData, allRequiredFilled])
+
   // First-render seed of lastSavedSnapshotRef. When a returning user
   // lands on /checkout with a cart that already has email + shipping
   // address persisted server-side, formData initializes from the cart
@@ -1059,12 +1092,48 @@ export function useCheckoutOrchestration({
         }
         const returnUrl =
           typeof window !== "undefined" ? window.location.href : ""
+
+        // billing_details MUST be passed in confirmParams.payment_method_data
+        // because PaymentElement is mounted with fields.billingDetails.address
+        // = "never" (in payment-method-list.tsx). Without this Stripe throws
+        // an IntegrationError ("did not pass confirmParams.payment_method_data
+        // .billing_details.address.country"). Read straight from the address
+        // form state which is the same address we just persisted via
+        // prepareCheckout above.
+        const firstName = formData["shipping_address.first_name"] ?? ""
+        const lastName = formData["shipping_address.last_name"] ?? ""
+        const billingDetails = {
+          name: `${firstName} ${lastName}`.trim() || undefined,
+          email: formData.email || undefined,
+          phone: formData["shipping_address.phone"] || undefined,
+          address: {
+            line1: formData["shipping_address.address_1"] || undefined,
+            line2: undefined,
+            city: formData["shipping_address.city"] || undefined,
+            state: formData["shipping_address.province"] || undefined,
+            postal_code: formData["shipping_address.postal_code"] || undefined,
+            // ISO 3166-1 alpha-2, uppercase per Stripe convention.
+            country:
+              formData["shipping_address.country_code"]?.toUpperCase() ||
+              undefined,
+          },
+        }
+
         // eslint-disable-next-line no-console
-        console.log("[buy-click] stripe.confirmPayment() …")
-        const { error } = await stripeBundle.stripe.confirmPayment({
+        console.log("[buy-click] stripe.confirmPayment() …", {
+          has_country: !!billingDetails.address.country,
+        })
+        const { error } = await (stripeBundle.stripe as unknown as {
+          confirmPayment: (args: unknown) => Promise<{ error?: unknown }>
+        }).confirmPayment({
           elements: stripeBundle.elements,
           clientSecret: prep.client_secret,
-          confirmParams: { return_url: returnUrl },
+          confirmParams: {
+            return_url: returnUrl,
+            payment_method_data: {
+              billing_details: billingDetails,
+            },
+          },
           redirect: "if_required",
         })
         if (error) {
@@ -1094,10 +1163,24 @@ export function useCheckoutOrchestration({
           )
           throw error
         }
+        // confirmPayment succeeded synchronously (no redirect needed,
+        // e.g. non-3DS card flow). The PaymentIntent is now in
+        // requires_capture or succeeded — cart.complete will pass
+        // authorize.
+        // eslint-disable-next-line no-console
+        console.log("[buy-click] stripe.confirmPayment SUCCESS (no redirect)")
+        void logCheckoutError("stripe_confirm_succeeded", "ok", {
+          cart_id: cart.id,
+          client_secret_prefix: prep.client_secret.slice(0, 8),
+        })
       }
 
       // eslint-disable-next-line no-console
       console.log("[buy-click] placeOrder() …")
+      void logCheckoutError("order_placed", "called", {
+        cart_id: cart.id,
+        path: paymentTab,
+      })
       const tracking = resolvePlaceOrderTracking?.()
       await placeOrder(undefined, tracking, orderConfirmedPath).catch(
         (e: unknown) => {
@@ -1139,6 +1222,7 @@ export function useCheckoutOrchestration({
     regionCountries,
     addressesInRegion,
     saveAddress,
+    pulseFields,
 
     // Shipping
     shippingMethods,
