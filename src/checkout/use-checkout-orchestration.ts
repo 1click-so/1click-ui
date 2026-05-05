@@ -320,6 +320,31 @@ export function useCheckoutOrchestration({
     (f) => (formData[f] ?? "").trim().length > 0
   )
 
+  // First-render seed of lastSavedSnapshotRef. When a returning user
+  // lands on /checkout with a cart that already has email + shipping
+  // address persisted server-side, formData initializes from the cart
+  // and matches what's already saved. Without this seed, the auto-save
+  // effect sees ref="" (not yet seeded) vs a populated snapshot and
+  // schedules a redundant `updateCart` 600ms after mount. That fires
+  // before the auto-init payment-session effect can complete its
+  // `flushAddressSave` await, so the Place Order button render gets
+  // delayed by a full updateCart round-trip on every checkout reload.
+  //
+  // Guard with `cart?.email && cart?.shipping_address?.first_name` so
+  // we only seed when the cart genuinely has the data persisted; a
+  // half-populated cart leaves ref="" so the user's first save fires
+  // normally.
+  const snapshotSeededRef = useRef(false)
+  if (
+    !snapshotSeededRef.current &&
+    allRequiredFilled &&
+    cart?.email &&
+    cart?.shipping_address?.first_name
+  ) {
+    snapshotSeededRef.current = true
+    lastSavedSnapshotRef.current = snapshotAddressForm(formData, sameAsBilling)
+  }
+
   const saveAddress = useCallback(async () => {
     if (!allRequiredFilled) return
     const snapshot = snapshotAddressForm(formData, sameAsBilling)
