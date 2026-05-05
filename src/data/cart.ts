@@ -368,6 +368,83 @@ export async function syncPaymentAmount(
   }
 }
 
+/**
+ * Prepares a cart for completion by writing all deferred state in one
+ * atomic backend call:
+ *   - shipping address + billing address
+ *   - shipping method
+ *   - carrier metadata (econt_office_*, boxnow_locker_*)
+ *   - COD-fee line item (if COD provider) — added/removed via shared
+ *     utility used by the existing payment-sessions middleware
+ *   - payment session (Stripe deferred-intent PaymentIntent OR COD intent)
+ *
+ * Backend: POST /store/carts/:id/prepare-checkout
+ * (medusa-mindpages, src/api/store/carts/[id]/prepare-checkout/route.ts)
+ *
+ * After this returns, the storefront:
+ *   - Card path: calls `stripe.confirmPayment({ elements, clientSecret })`,
+ *     then `placeOrder()` (Medusa's standard /complete endpoint).
+ *   - COD path: calls `placeOrder()` directly.
+ *
+ * Why split from completeCart: Medusa's `authorizePaymentSessionStep`
+ * throws when the Stripe PaymentIntent is in `requires_payment_method`
+ * (the deferred-intent default). The storefront must call
+ * `stripe.confirmPayment` between this prepare call and `complete` so
+ * the PI transitions to `requires_capture` (manual capture) or
+ * `succeeded` (auto-capture) — both pass the authorize check.
+ *
+ * Returns the freshly-created session's `client_secret` (null for COD)
+ * so the storefront can immediately hand it to `stripe.confirmPayment`.
+ */
+export async function prepareCheckout(
+  cartId: string,
+  payload: {
+    shipping_address: {
+      first_name: string
+      last_name: string
+      address_1: string
+      address_2?: string
+      city: string
+      postal_code: string
+      country_code: string
+      phone?: string
+    }
+    shipping_method_id: string
+    shipping_method_data?: Record<string, unknown>
+    carrier_metadata?: Record<string, unknown>
+    payment_provider: string
+  }
+): Promise<{
+  cart_id: string
+  payment_collection_id: string | null
+  client_secret: string | null
+  provider_id: string | null
+}> {
+  const headers = { ...(await getAuthHeaders()) }
+
+  const resp = await sdkFetch<{
+    cart_id: string
+    payment_collection_id: string | null
+    client_secret: string | null
+    provider_id: string | null
+  }>(`/store/carts/${cartId}/prepare-checkout`, {
+    method: "POST",
+    headers,
+    body: payload,
+    cache: "no-store",
+  })
+
+  // The backend wrote to the cart (address, shipping, COD-fee, session).
+  // Bust the cart cache and re-refresh so any post-call cart read sees
+  // the new state. The storefront's Buy click flow doesn't depend on
+  // re-reading the cart between prepare and complete (the order_id and
+  // client_secret come from `resp`), but other consumers might.
+  const cartCacheTag = await getCacheTag("carts")
+  updateTag(cartCacheTag)
+
+  return resp
+}
+
 export async function refreshPaymentIfTerminal(
   cartId?: string
 ): Promise<{ rotated: boolean; reason?: string }> {

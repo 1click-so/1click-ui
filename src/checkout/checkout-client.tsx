@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import type { Appearance, StripeElementsOptions } from "@stripe/stripe-js"
 
 import { CheckoutAddressForm } from "./address-form"
 import { MobileCheckoutBottomBar } from "./mobile-checkout-bottom-bar"
@@ -8,6 +9,7 @@ import { MobileCheckoutTopBar } from "./mobile-checkout-top-bar"
 import { OrderSummary } from "./order-summary"
 import { CheckoutPaymentMethodList } from "./payment-method-list"
 import { CheckoutShippingMethodList } from "./shipping-method-list"
+import { PaymentWrapper } from "./payment-wrapper"
 import { useCheckoutOrchestration } from "./use-checkout-orchestration"
 
 /**
@@ -40,6 +42,9 @@ type CheckoutClientProps = {
     | Array<HttpTypes.StorePaymentProvider | { id: string }>
     | null
   logoByFulfillmentOptionId?: Record<string, { src: string; alt: string }>
+  /** Stripe Elements appearance + fonts forwarded to PaymentWrapper. */
+  appearance?: Appearance
+  fonts?: StripeElementsOptions["fonts"]
 }
 
 export function CheckoutClient({
@@ -50,6 +55,8 @@ export function CheckoutClient({
   countryCode,
   paymentMethodFilter,
   logoByFulfillmentOptionId,
+  appearance,
+  fonts,
 }: CheckoutClientProps) {
   const o = useCheckoutOrchestration({
     cart,
@@ -60,8 +67,15 @@ export function CheckoutClient({
     paymentMethodFilter,
   })
 
+  const buyButtonNotReady = !o.deliveryReady || !o.addressReady
+
   return (
-    <>
+    <PaymentWrapper
+      cart={cart}
+      amount={o.optimisticTotalCents}
+      appearance={appearance}
+      fonts={fonts}
+    >
       {/* Mobile-only: collapsible order summary at the top. */}
       <MobileCheckoutTopBar
         cart={o.summaryCart}
@@ -117,6 +131,8 @@ export function CheckoutClient({
               deliveryReady={o.deliveryReady}
               paymentError={o.paymentError}
               onPaymentElementChange={o.handlePaymentElementChange}
+              performBuyClick={o.performBuyClick}
+              buyButtonNotReady={buyButtonNotReady}
               beforePaymentButton={
                 <MobileCheckoutBottomBar
                   cart={o.summaryCart}
@@ -140,6 +156,6 @@ export function CheckoutClient({
           </div>
         </div>
       </div>
-    </>
+    </PaymentWrapper>
   )
 }

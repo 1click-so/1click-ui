@@ -11,11 +11,9 @@ import {
 } from "react"
 
 import {
-  initiatePaymentSession,
   logCheckoutError,
   placeOrder,
-  setShippingMethod,
-  syncPaymentAmount,
+  prepareCheckout,
   updateCart,
 } from "../data/cart"
 import { calculatePriceForShippingOption } from "../data/fulfillment"
@@ -614,43 +612,15 @@ export function useCheckoutOrchestration({
         : null
     )
 
+  // Carrier metadata is held in client state ONLY and written to the cart
+  // exactly once at Buy click via prepareCheckout. No eager updateCart on
+  // selection — that path was the source of the office-vs-direct-address
+  // and BoxNow-vs-Econt mismatched-data bugs.
   const handleSelectEcontOffice = useCallback(
     (office: EcontOffice | null) => {
       setSelectedEcontOffice(office)
-      if (office) {
-        const addr = [office.address?.street, office.address?.num]
-          .filter(Boolean)
-          .join(" ")
-        updateCart({
-          metadata: {
-            ...(cart?.metadata ?? {}),
-            // Sibling carrier: always null when picking Econt
-            boxnow_locker_id: null,
-            boxnow_locker_title: null,
-            boxnow_locker_address: null,
-            boxnow_locker_postal: null,
-            // New selection
-            econt_office_code: office.code,
-            econt_office_name: office.name,
-            econt_office_city: office.address?.city?.name || "",
-            econt_office_address: addr,
-            econt_office_phone: office.phones?.[0] || "",
-          },
-        }).catch(() => {})
-      } else {
-        updateCart({
-          metadata: {
-            ...(cart?.metadata ?? {}),
-            econt_office_code: null,
-            econt_office_name: null,
-            econt_office_city: null,
-            econt_office_address: null,
-            econt_office_phone: null,
-          },
-        }).catch(() => {})
-      }
     },
-    [cart?.metadata]
+    []
   )
 
   const [selectedBoxnowLocker, setSelectedBoxnowLocker] =
@@ -671,43 +641,11 @@ export function useCheckoutOrchestration({
   const handleSelectBoxnowLocker = useCallback(
     (locker: BoxNowLocker | null) => {
       setSelectedBoxnowLocker(locker)
-      if (locker) {
-        updateCart({
-          metadata: {
-            ...(cart?.metadata ?? {}),
-            // Sibling carrier: always null when picking BoxNow
-            econt_office_code: null,
-            econt_office_name: null,
-            econt_office_city: null,
-            econt_office_address: null,
-            econt_office_phone: null,
-            // New selection
-            boxnow_locker_id: locker.id,
-            boxnow_locker_title: locker.title,
-            boxnow_locker_address: locker.addressLine1 ?? "",
-            boxnow_locker_postal: locker.postalCode ?? "",
-          },
-        }).catch(() => {})
-      } else {
-        updateCart({
-          metadata: {
-            ...(cart?.metadata ?? {}),
-            boxnow_locker_id: null,
-            boxnow_locker_title: null,
-            boxnow_locker_address: null,
-            boxnow_locker_postal: null,
-          },
-        }).catch(() => {})
-      }
     },
-    [cart?.metadata]
+    []
   )
 
   // ── Payment ─────────────────────────────────────────────────────────
-  const activePaymentSession =
-    cart?.payment_collection?.payment_sessions?.find(
-      (s) => s.status === "pending"
-    )
   const [paymentError, setPaymentError] = useState<string | null>(null)
 
   const hasCard = !!effectiveAvailablePaymentMethods?.some((m) =>
@@ -723,12 +661,11 @@ export function useCheckoutOrchestration({
     isManual(m.id)
   )?.id
 
+  // Default tab: card when available, else COD. The eager-session model
+  // used to seed from the cart's pending session provider; in the
+  // deferred-intent model there is no session at mount.
   const [paymentTab, setPaymentTab] = useState<"card" | "cod">(
-    isManual(activePaymentSession?.provider_id)
-      ? "cod"
-      : hasCard
-      ? "card"
-      : "cod"
+    hasCard ? "card" : "cod"
   )
 
   // Optimistic COD-fee state. Painted instantly on tab toggle so the
@@ -741,31 +678,18 @@ export function useCheckoutOrchestration({
     null
   )
 
-  // Tracks `(cart.id, provider_id)` pairs we've already initiated. Without
-  // this guard, the auto-init useEffect, the reconcile useEffect, and a
-  // rapid handleSelectShipping all fire `initiatePaymentSession` in quick
-  // succession on a fresh cart. Each call cancels the previous Stripe
-  // PI in parallel; whichever Elements instance mounted first now holds
-  // a dead client_secret → "PaymentIntent in terminal state" on first
-  // card-load. Set lifetime is the lifetime of this hook instance.
-  const initiatedSessionsRef = useRef<Set<string>>(new Set())
-
+  // Payment tab selection is client state only. No payment session is
+  // created until Buy click. This eliminates the entire class of
+  // session-rotation / amount-drift / iframe-remount bugs caused by the
+  // old eager-session model.
   const handlePaymentTab = useCallback(
-    async (tab: "card" | "cod") => {
+    (tab: "card" | "cod") => {
       setPaymentTab(tab)
       setPaymentError(null)
 
-      // Belt-and-braces: ensure address persistence has caught up to
-      // the latest formData before initiating a payment session.
-      // Without this, a user who fills the form, lands on COD, and
-      // clicks fast enough to beat the 600ms auto-save debounce sees
-      // the Place Order button stay disabled because cart.email /
-      // cart.billing_address haven't reached the server yet.
-      await flushAddressSave()
-
-      // Optimistic prediction — paint totals BEFORE the network call.
-      // Currency must match the configured fee currency or the middleware
-      // skips the fee server-side, so optimistic must skip too.
+      // Optimistic COD-fee prediction so the totals row updates instantly.
+      // Currency must match the configured fee currency or the backend
+      // skips the fee at apply time, so we mirror that gate here.
       if (codConfig) {
         const codCurrencyMatches =
           codConfig.fee_currency.toLowerCase() ===
@@ -776,42 +700,22 @@ export function useCheckoutOrchestration({
           setOptimisticCodFee(0)
         }
       }
-
-      const pid = tab === "card" ? cardId : codId
-      if (!pid) return
-
-      const key = `${cart.id}:${pid}`
-      if (initiatedSessionsRef.current.has(key)) return
-      initiatedSessionsRef.current.add(key)
-
-      try {
-        await initiatePaymentSession(cart, { provider_id: pid })
-      } catch (err: unknown) {
-        // Drop the guard so a retry can attempt again instead of being
-        // silently locked out.
-        initiatedSessionsRef.current.delete(key)
-        setPaymentError(err instanceof Error ? err.message : String(err))
-        // Roll back optimistic fee so UI doesn't keep a phantom row.
-        if (codConfig) setOptimisticCodFee(null)
-      }
     },
-    [cart, cardId, codId, codConfig, flushAddressSave]
+    [cart.currency_code, codConfig]
   )
 
+  // Shipping selection is client state only. No setShippingMethod call,
+  // no metadata-clear updateCart, no syncPaymentAmount — all of those
+  // wrote to the cart between toggles and produced the stale-data
+  // bug class. The shipping method ID is sent to the backend exactly
+  // once at Buy click via prepareCheckout.
   const handleSelectShipping = useCallback(
-    async (id: string) => {
+    (id: string) => {
       setShippingError(null)
-      const prev = selectedShippingMethod
-      setShippingLoading(true)
       setSelectedShippingMethod(id)
 
-      // Belt-and-braces: same reason as handlePaymentTab — make sure
-      // the form's email/address have reached the server before we
-      // run shipping mutations that the server may rely on (e.g.
-      // calculated price by region/postal).
-      await flushAddressSave()
-
-      // Optimistic shipping cost from known-or-flat-priced options.
+      // Optimistic shipping cost — paint the totals row immediately so
+      // the customer sees the right number before any network call.
       const option = shippingMethods.find((m) => m.id === id)
       if (option) {
         const price =
@@ -821,78 +725,13 @@ export function useCheckoutOrchestration({
         if (price !== undefined) setOptimisticShippingCost(price)
       }
 
-      // Clear ALL carrier-specific metadata on shipping switch.
-      // Without this, picking BoxNow → locker → switching to Econt
-      // office → switching to direct-address leaves both
-      // boxnow_locker_* AND econt_office_* set on the cart, and admin's
-      // order-fulfillment widget detects the FIRST non-empty group
-      // (BoxNow wins) — generating a waybill to the wrong destination.
+      // Switching shipping invalidates any previously-selected carrier-
+      // specific destination (e.g. picking direct address after BoxNow
+      // locker). All client state — no eager metadata-clear updateCart.
       setSelectedBoxnowLocker(null)
       setSelectedEcontOffice(null)
-      updateCart({
-        metadata: {
-          ...(cart?.metadata ?? {}),
-          boxnow_locker_id: null,
-          boxnow_locker_title: null,
-          boxnow_locker_address: null,
-          boxnow_locker_postal: null,
-          econt_office_code: null,
-          econt_office_name: null,
-          econt_office_city: null,
-          econt_office_address: null,
-          econt_office_phone: null,
-        },
-      }).catch(() => {})
-
-      try {
-        await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
-        setShippingLoading(false)
-
-        // syncPaymentAmount preserves the Stripe client_secret on
-        // amount-only changes (no <Elements> remount, no card-form
-        // blank-out). On `synced: false` (provider mismatch / Stripe
-        // rejection / Medusa deleted the session for amount-drift) the
-        // initiatedSessionsRef-guarded fallback bootstraps a fresh one.
-        const pid = paymentTab === "card" ? cardId : codId
-        if (pid) {
-          ;(async () => {
-            try {
-              const result = await syncPaymentAmount(cart.id, pid)
-              if (!result.synced) {
-                const key = `${cart.id}:${pid}`
-                if (!initiatedSessionsRef.current.has(key)) {
-                  initiatedSessionsRef.current.add(key)
-                  await initiatePaymentSession(cart, {
-                    provider_id: pid,
-                  }).catch((err) => {
-                    initiatedSessionsRef.current.delete(key)
-                    throw err
-                  })
-                }
-              }
-            } catch (err) {
-              setPaymentError(
-                err instanceof Error ? err.message : String(err)
-              )
-            }
-          })()
-        }
-      } catch (err: unknown) {
-        setSelectedShippingMethod(prev)
-        setShippingError(err instanceof Error ? err.message : String(err))
-        setShippingLoading(false)
-      }
     },
-    [
-      cart,
-      selectedShippingMethod,
-      shippingMethods,
-      calculatedPricesMap,
-      paymentTab,
-      cardId,
-      codId,
-      flushAddressSave,
-    ]
+    [shippingMethods, calculatedPricesMap]
   )
 
   // ── Delivery readiness ──────────────────────────────────────────────
@@ -922,15 +761,6 @@ export function useCheckoutOrchestration({
     (!selectedIsBoxnow || !!selectedBoxnowLocker || hasBoxnowLockerInCart) &&
     (!selectedIsEcont || !!selectedEcontOffice || hasEcontOfficeInCart)
 
-  // Auto-initiate payment session when delivery is ready
-  useEffect(() => {
-    if (deliveryReady && !activePaymentSession) {
-      const defaultTab = hasCod ? "cod" : hasCard ? "card" : null
-      if (defaultTab) handlePaymentTab(defaultTab)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deliveryReady])
-
   // Reconcile paymentTab with currently-available methods. When the
   // store's paymentMethodFilter strips a method in response to a shipping
   // change (e.g. BoxNow → no COD), the previously selected tab can point
@@ -938,20 +768,12 @@ export function useCheckoutOrchestration({
   // radio looking unselected and the form collapsed.
   useEffect(() => {
     if (!deliveryReady) return
-    if (paymentTab === "cod" && !hasCod && hasCard && cardId) {
+    if (paymentTab === "cod" && !hasCod && hasCard) {
       handlePaymentTab("card")
-    } else if (paymentTab === "card" && !hasCard && hasCod && codId) {
+    } else if (paymentTab === "card" && !hasCard && hasCod) {
       handlePaymentTab("cod")
     }
-  }, [
-    deliveryReady,
-    paymentTab,
-    hasCard,
-    hasCod,
-    cardId,
-    codId,
-    handlePaymentTab,
-  ])
+  }, [deliveryReady, paymentTab, hasCard, hasCod, handlePaymentTab])
 
   const handlePaymentElementChange = useCallback(
     (_e: { complete: boolean; selectedMethod: string | null }) => {
@@ -961,21 +783,16 @@ export function useCheckoutOrchestration({
   )
 
   // ── 3DS / bank-redirect return handler ──────────────────────────────
-  // Stripe Payment Element calls confirmPayment with redirect:
-  // "if_required". For methods that require a redirect (3DS challenge,
-  // bank-redirect APMs), the browser navigates to return_url and comes
-  // back carrying ?payment_intent=...&redirect_status=...
+  // Stripe confirmPayment with redirect: "if_required" navigates to
+  // return_url ONLY when the method demands it (3DS challenge, bank-
+  // redirect APMs). On return the browser carries
+  //   ?payment_intent=...&redirect_status=succeeded|...
   //
-  // This handler:
-  //   1. Validates `payment_intent` matches the cart's active payment
-  //      session id. If the cart was rotated mid-redirect (different
-  //      tab, cookie change), we abort instead of completing a cart
-  //      whose payment_collection points elsewhere.
-  //   2. On succeeded → calls placeOrder; on failure translates the
-  //      error via translatePaymentError so a Bulgarian customer
-  //      doesn't see raw Medusa English. Logs to checkout_error_log
-  //      so we have operational visibility into 3DS failure rates.
-  //   3. On non-succeeded redirect_status → translated copy + log.
+  // In the deferred-intent flow, the PaymentIntent was created at Buy
+  // click via prepareCheckout; the cart already has a pending session
+  // pointing at that PI. After 3DS succeeds the PI is in
+  // requires_capture / succeeded — completeCart can authorize. We just
+  // call placeOrder (= /complete).
   //
   // Strips query params before async work so a refresh / re-render
   // doesn't re-trigger this effect.
@@ -991,30 +808,12 @@ export function useCheckoutOrchestration({
 
     threeDSHandledRef.current = true
 
-    // Strip params immediately so refreshes don't re-fire.
     ;[
       "redirect_status",
       "payment_intent",
       "payment_intent_client_secret",
     ].forEach((k) => url.searchParams.delete(k))
     window.history.replaceState({}, "", url.toString())
-
-    // Validate the PI matches the cart's active session. Mismatch =
-    // cart was rotated mid-redirect; completing it would corrupt state.
-    const sessionPi =
-      (activePaymentSession?.data as { id?: string } | undefined)?.id ?? null
-    if (sessionPi && sessionPi !== paymentIntentId) {
-      const message =
-        "Сесията за плащане не съвпада с поръчката. Моля, презаредете страницата и опитайте отново."
-      setPaymentError(message)
-      void logCheckoutError("place_order_error", "pi_mismatch", {
-        via: "3ds_return",
-        cartId: cart.id,
-        sessionPi,
-        paymentIntentId,
-      })
-      return
-    }
 
     if (redirectStatus === "succeeded") {
       const tracking = resolvePlaceOrderTracking?.()
@@ -1050,6 +849,185 @@ export function useCheckoutOrchestration({
   const summaryCart = cart as HttpTypes.StoreCart & {
     promotions?: HttpTypes.StorePromotion[]
   }
+
+  // ── Optimistic total (for Stripe Elements deferred-intent mode) ─────
+  // Stripe's deferred-intent <Elements> needs `amount` + `currency` at
+  // mount time (no PaymentIntent on the backend yet). We compute the
+  // displayed total from cart.subtotal + tax + optimistic shipping +
+  // optimistic COD fee. Reflects what the customer sees in the order
+  // summary, so the iframe's "Pay €X" matches it.
+  //
+  // amount is in the smallest currency unit (cents/stotinki). Round to
+  // protect against float drift in optimistic deltas.
+  const optimisticTotalCents = useMemo(() => {
+    const cartSubtotal = cart?.subtotal ?? 0
+    const cartTaxTotal = cart?.tax_total ?? 0
+    const cartShipping = cart?.shipping_total ?? 0
+    const cartTotal = cart?.total ?? 0
+    // Prefer the optimistic shipping when set (toggle just happened);
+    // otherwise fall back to whatever the cart already has (e.g. a
+    // returning user with persisted shipping_methods, though in the
+    // deferred model that won't happen until Buy click).
+    const shippingCost =
+      optimisticShippingCost !== null ? optimisticShippingCost : cartShipping
+    const codFee = optimisticCodFee ?? 0
+
+    // If we have any optimistic delta, recompute from parts. Otherwise
+    // trust cart.total (covers tax adjustments correctly during typing).
+    const computedTotal =
+      optimisticShippingCost !== null || optimisticCodFee !== null
+        ? cartSubtotal + cartTaxTotal + shippingCost + codFee
+        : cartTotal
+
+    return Math.max(50, Math.round(computedTotal * 100))
+  }, [
+    cart?.subtotal,
+    cart?.tax_total,
+    cart?.shipping_total,
+    cart?.total,
+    optimisticShippingCost,
+    optimisticCodFee,
+  ])
+
+  // ── Buy-click payload builder ───────────────────────────────────────
+  // Constructs the prepareCheckout request body from current client
+  // state. Called by PaymentButton on click.
+  const buildPrepareCheckoutPayload = useCallback(() => {
+    const carrierMetadata: Record<string, unknown> = {}
+    if (selectedEcontOffice) {
+      const addr = [
+        selectedEcontOffice.address?.street,
+        selectedEcontOffice.address?.num,
+      ]
+        .filter(Boolean)
+        .join(" ")
+      carrierMetadata.econt_office_code = selectedEcontOffice.code
+      carrierMetadata.econt_office_name = selectedEcontOffice.name
+      carrierMetadata.econt_office_city =
+        selectedEcontOffice.address?.city?.name || ""
+      carrierMetadata.econt_office_address = addr
+      carrierMetadata.econt_office_phone =
+        selectedEcontOffice.phones?.[0] || ""
+    }
+    if (selectedBoxnowLocker) {
+      carrierMetadata.boxnow_locker_id = selectedBoxnowLocker.id
+      carrierMetadata.boxnow_locker_title = selectedBoxnowLocker.title
+      carrierMetadata.boxnow_locker_address =
+        selectedBoxnowLocker.addressLine1 ?? ""
+      carrierMetadata.boxnow_locker_postal =
+        selectedBoxnowLocker.postalCode ?? ""
+    }
+
+    const shippingMethodId = selectedShippingMethod
+    if (!shippingMethodId) {
+      throw new Error("No shipping method selected")
+    }
+    const paymentProvider = paymentTab === "card" ? cardId : codId
+    if (!paymentProvider) {
+      throw new Error("No payment provider available")
+    }
+
+    return {
+      shipping_address: {
+        first_name: formData["shipping_address.first_name"] ?? "",
+        last_name: formData["shipping_address.last_name"] ?? "",
+        address_1: formData["shipping_address.address_1"] ?? "",
+        address_2: "",
+        city: formData["shipping_address.city"] ?? "",
+        postal_code: formData["shipping_address.postal_code"] ?? "",
+        country_code: formData["shipping_address.country_code"] ?? "",
+        phone: formData["shipping_address.phone"] ?? "",
+      },
+      shipping_method_id: shippingMethodId,
+      carrier_metadata: carrierMetadata,
+      payment_provider: paymentProvider,
+    }
+  }, [
+    formData,
+    selectedShippingMethod,
+    selectedEcontOffice,
+    selectedBoxnowLocker,
+    paymentTab,
+    cardId,
+    codId,
+  ])
+
+  // ── Buy click ───────────────────────────────────────────────────────
+  // Single source of truth for the Buy-click flow. Called by PaymentButton.
+  // Steps:
+  //   1. Flush any pending address auto-save (so Medusa has the latest
+  //      email/name/phone for tracking + abandoned-cart).
+  //   2. (Card path) elements.submit() — validates the form inside the
+  //      Stripe iframe before any server call.
+  //   3. POST /store/carts/:id/prepare-checkout — atomic write of
+  //      address/shipping/COD-fee + create PaymentIntent.
+  //   4. (Card path) stripe.confirmPayment(elements, clientSecret) —
+  //      attaches the payment method and confirms. On 3DS this redirects
+  //      and we resume in the threeDSHandledRef effect.
+  //   5. placeOrder() (Medusa's standard /cart/:id/complete) — creates
+  //      the order. authorizePaymentSession passes because the PI is
+  //      now in requires_capture / succeeded.
+  type BuyClickStripe = {
+    submit: () => Promise<{ error?: { message?: string } | null }>
+    stripe: {
+      confirmPayment: (args: {
+        elements: unknown
+        clientSecret: string
+        confirmParams: { return_url: string }
+        redirect: "if_required"
+      }) => Promise<{ error?: { message?: string } | null }>
+    }
+    elements: unknown
+  }
+
+  const performBuyClick = useCallback(
+    async (stripeBundle?: BuyClickStripe): Promise<void> => {
+      setPaymentError(null)
+
+      await flushAddressSave()
+
+      if (paymentTab === "card") {
+        if (!stripeBundle) {
+          throw new Error("Stripe not ready")
+        }
+        const { error: submitError } = await stripeBundle.submit()
+        if (submitError) {
+          throw submitError
+        }
+      }
+
+      const payload = buildPrepareCheckoutPayload()
+      const prep = await prepareCheckout(cart.id, payload)
+
+      if (paymentTab === "card") {
+        if (!stripeBundle || !prep.client_secret) {
+          throw new Error("Stripe client_secret missing after prepare")
+        }
+        const returnUrl =
+          typeof window !== "undefined" ? window.location.href : ""
+        const { error } = await stripeBundle.stripe.confirmPayment({
+          elements: stripeBundle.elements,
+          clientSecret: prep.client_secret,
+          confirmParams: { return_url: returnUrl },
+          redirect: "if_required",
+        })
+        if (error) {
+          throw error
+        }
+      }
+
+      const tracking = resolvePlaceOrderTracking?.()
+      await placeOrder(undefined, tracking, orderConfirmedPath)
+    },
+    [
+      cart.id,
+      paymentTab,
+      flushAddressSave,
+      buildPrepareCheckoutPayload,
+      orderConfirmedPath,
+      resolvePlaceOrderTracking,
+    ]
+  )
 
   return {
     // Completed-cart guard
@@ -1103,6 +1081,11 @@ export function useCheckoutOrchestration({
     setOptimisticCodFee,
     handlePaymentTab,
     handlePaymentElementChange,
+
+    // Buy click (deferred-intent flow)
+    optimisticTotalCents,
+    buildPrepareCheckoutPayload,
+    performBuyClick,
 
     // Misc
     summaryCart,

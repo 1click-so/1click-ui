@@ -5,29 +5,21 @@ import type { Appearance, StripeElementsOptions } from "@stripe/stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import type { ReactNode } from "react"
 
-import { isStripeLike } from "../lib/payment-constants"
 import { StripeScopeProvider } from "./stripe-wrapper"
 
 /**
  * PaymentWrapper — provides Stripe Elements scope context to descendants.
  *
- * IMPORTANT: this no longer wraps children in `<Elements>`. The actual
- * `<Elements key={clientSecret}>` mount lives at `<StripeElementsScope>`
- * inside payment-method-list.tsx, scoped to just the PaymentElement.
+ * As of the deferred-checkout architecture, this wrapper supplies an
+ * optimistic `amount` + `currency` (computed by the orchestration hook)
+ * to `<Elements>` so the iframe can mount and stay mounted across
+ * shipping/payment toggles. `elements.update({ amount })` keeps the
+ * displayed total in sync without remounting — see stripe-wrapper.tsx
+ * for the deferred-intent rationale.
  *
- * Why: every cart-amount change rotates the Stripe payment session
- * (Medusa's createPaymentSessionsWorkflow always deletes + recreates
- * — see @medusajs/core-flows/dist/payment-collection/workflows/
- * create-payment-session.js:112-118), producing a new client_secret.
- * If `<Elements>` wraps the whole checkout tree, every rotation
- * unmounts + remounts every form field, every tracking ref, the entire
- * Stripe iframe — for one shipping-method change. Scoping `<Elements>`
- * to just the payment widget contains the remount cost to that widget.
+ * Stores mount this at the top of their checkout page exactly as before:
  *
- * Stores still mount this at the top of their checkout page exactly
- * as before:
- *
- *   <PaymentWrapper cart={cart} appearance={...} fonts={...}>
+ *   <PaymentWrapper cart={cart} amount={...} appearance={...} fonts={...}>
  *     <CheckoutClient ... />
  *   </PaymentWrapper>
  *
@@ -53,9 +45,16 @@ const stripePromise = stripeKey
 type PaymentWrapperProps = {
   cart: HttpTypes.StoreCart
   /**
+   * Optimistic total in the smallest currency unit (cents/stotinki).
+   * Computed by `useCheckoutOrchestration` from cart.subtotal + tax +
+   * optimistic shipping + optimistic COD fee. Changes to this prop
+   * propagate via `elements.update({ amount })` without remounting.
+   */
+  amount: number
+  /**
    * Optional per-store Stripe Elements appearance — brand colors, font,
-   * radius, etc. Forwarded to the StripeElementsScope provider so the
-   * eventual `<Elements>` mount picks it up.
+   * radius, etc. Forwarded to the StripeElementsScope so the
+   * `<Elements>` mount picks it up.
    */
   appearance?: Appearance
   /**
@@ -69,33 +68,22 @@ type PaymentWrapperProps = {
 
 export function PaymentWrapper({
   cart,
+  amount,
   appearance,
   fonts,
   children,
 }: PaymentWrapperProps) {
-  const paymentSession = cart.payment_collection?.payment_sessions?.find(
-    (s) => s.status === "pending"
-  )
-
-  // "Ready" means: Stripe-backed pending session exists with a usable
-  // client_secret AND the publishable key + Stripe.js promise are
-  // available. Anything short of that and StripeElementsScope renders
-  // its fallback (skeleton) instead of mounting `<Elements>`.
-  const hasClientSecret = !!(
-    paymentSession?.data as { client_secret?: string } | undefined
-  )?.client_secret
-  const ready =
-    isStripeLike(paymentSession?.provider_id) &&
-    !!paymentSession &&
-    !!stripePromise &&
-    hasClientSecret
+  // "Ready" simply means: Stripe.js loadable. We no longer wait for a
+  // backend payment_session — deferred-intent mode mounts straight away.
+  const ready = !!stripePromise
 
   return (
     <StripeScopeProvider
       value={{
         ready,
-        paymentSession,
         stripePromise,
+        amount,
+        currency: cart.currency_code || "eur",
         appearance,
         fonts,
       }}

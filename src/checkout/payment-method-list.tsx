@@ -3,10 +3,9 @@
 import type { HttpTypes } from "@medusajs/types"
 import { PaymentElement } from "@stripe/react-stripe-js"
 import type { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
-import { useRouter } from "next/navigation"
-import { useContext, useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 
-import { logCheckoutError, refreshPaymentIfTerminal } from "../data/cart"
+import { logCheckoutError } from "../data/cart"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 import { ErrorMessage } from "./error-message"
@@ -44,6 +43,24 @@ type CheckoutPaymentMethodListProps = {
     complete: boolean
     selectedMethod: string | null
   }) => void
+  /** Buy-click flow from `useCheckoutOrchestration`. Wraps prepareCheckout
+   * → stripe.confirmPayment (card) → placeOrder. The button collects
+   * the local Stripe primitives and passes them in. */
+  performBuyClick: (stripeBundle?: {
+    submit: () => Promise<{ error?: { message?: string } | null }>
+    stripe: {
+      confirmPayment: (args: {
+        elements: unknown
+        clientSecret: string
+        confirmParams: { return_url: string }
+        redirect: "if_required"
+      }) => Promise<{ error?: { message?: string } | null }>
+    }
+    elements: unknown
+  }) => Promise<void>
+  /** True when address + shipping + carrier-destination are all filled.
+   * Needed to gate the Buy button alongside Stripe-element completion. */
+  buyButtonNotReady: boolean
   /** Optional content rendered directly above the Place Order button.
    * Used by CheckoutClient to slot the mobile order-summary bottom bar. */
   beforePaymentButton?: React.ReactNode
@@ -58,51 +75,27 @@ export function CheckoutPaymentMethodList({
   deliveryReady,
   paymentError,
   onPaymentElementChange,
+  performBuyClick,
+  buyButtonNotReady,
   beforePaymentButton,
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
-  const router = useRouter()
-  // Boolean context — true when the cart's pending session is Stripe-
-  // backed AND has a usable client_secret. Used to gate the inner
-  // PaymentElement skeleton vs the real element. Same value
-  // StripeElementsScope reads from useStripeScope().
+  // Boolean context — true when Stripe.js is loaded. In deferred-intent
+  // mode, the iframe mounts as soon as Stripe is ready (no PI required).
   const stripeReady = useContext(StripeContext)
 
-  // Local copy of Stripe's PaymentElement completion flag. The same
-  // value is forwarded to the parent via `onPaymentElementChange`, but
-  // we keep an internal copy so the Place Order button can be gated
-  // here without making consumers thread the state down themselves.
+  // Local copy of Stripe's PaymentElement completion flag. Forwarded
+  // to the parent via `onPaymentElementChange` AND used here to gate
+  // the Buy button on the card path.
   const [paymentElementComplete, setPaymentElementComplete] = useState(false)
 
-  // One-shot guard against the rotate-and-refresh loop. The previous
-  // implementation reloaded on every terminal-state error which, when
-  // the new PI ALSO hit a transient issue, looped. We only attempt
-  // recovery ONCE per (clientSecret, paymentTab) combination — a fresh
-  // client_secret after rotation is a new opportunity to recover, but
-  // a repeated terminal state on the SAME secret means the rotation
-  // didn't help and we'd loop.
-  //
-  // The clientSecret reset is keyed off the cart's pending payment
-  // session — it changes whenever the session rotates. Since Elements
-  // is now scoped to just the PaymentElement (StripeElementsScope),
-  // this component does NOT remount on rotation; the ref persists
-  // across rotations and we have to clear it explicitly.
-  const recoveryAttempted = useRef(false)
-  const currentClientSecret = (
-    cart.payment_collection?.payment_sessions?.find(
-      (s) => s.status === "pending"
-    )?.data as { client_secret?: string } | undefined
-  )?.client_secret
-
-  // Reset on tab change OR when clientSecret rotates. PaymentElement
-  // only renders while `paymentTab === "card"`, so when the user
-  // switches away the element unmounts and the flag must drop to false
-  // — otherwise switching back to a fresh (empty) PaymentElement would
-  // leave the button erroneously enabled from the previous fill.
+  // Reset completion flag on tab change. PaymentElement is unmounted
+  // when paymentTab !== "card" so a re-mount starts empty — without
+  // this reset, switching away then back would leave the button
+  // erroneously enabled from a previous fill.
   useEffect(() => {
     setPaymentElementComplete(false)
-    recoveryAttempted.current = false
-  }, [paymentTab, currentClientSecret])
+  }, [paymentTab])
 
   const handlePaymentElementChange = (event: StripePaymentElementChangeEvent) => {
     setPaymentElementComplete(event.complete)
@@ -112,71 +105,23 @@ export function CheckoutPaymentMethodList({
     })
   }
 
-  // PaymentElement load error handler — reactive recovery for stale
-  // Stripe PaymentIntents.
+  // PaymentElement load error handler — log only.
   //
-  // The cart's payment_session can hold a client_secret pointing at a
-  // PI in terminal state (canceled / succeeded / requires_capture).
-  // This happens because Medusa's payment-webhook subscriber explicitly
-  // drops `payment_intent.canceled` and `payment_intent.payment_failed`
-  // events (see node_modules/@medusajs/medusa/dist/subscribers/
-  // payment-webhook.js lines 17-23), so the session record never moves
-  // off "pending" even after Stripe declares the PI dead. Mounting
-  // Elements with that dead client_secret triggers Stripe's:
-  //   "PaymentIntent is in a terminal state and cannot be used to
-  //    initialize Elements."
-  //
-  // Recovery: ask the backend to reconcile against Stripe and rotate
-  // the session if the PI is actually terminal. On success, refresh
-  // the route — the server component re-fetches the cart, gets the
-  // fresh client_secret, PaymentWrapper remounts Elements with it.
-  //
-  // Loop safety:
-  //   1. ONE attempt per Elements mount (recoveryAttempted ref).
-  //      A previous version rotated on every terminal-state error
-  //      including ones the rotation couldn't fix → infinite loop.
-  //   2. We ONLY trigger when the error message indicates a terminal
-  //      state. Other PaymentElement load errors (network, missing
-  //      payment methods, config) get logged and left alone.
-  //   3. The backend only rotates when Stripe confirms terminal state.
-  //      Transient Stripe errors → backend returns rotated:false → no
-  //      refresh, no loop.
-  const handlePaymentElementLoadError = (event: { error?: { message?: string } }) => {
+  // In the eager-session model this used to call `refreshPaymentIfTerminal`
+  // because the cart could hold a stale client_secret pointing at a
+  // terminal Stripe PaymentIntent. In the deferred-intent model the PI
+  // is created at Buy click, so there's no stale-PI failure mode at
+  // mount time. We keep the logger to capture any other load issues
+  // (key misconfiguration, network, etc).
+  const handlePaymentElementLoadError = (event: {
+    error?: { message?: string }
+  }) => {
     const message = event?.error?.message ?? ""
-
     if (typeof console !== "undefined") {
       // eslint-disable-next-line no-console
       console.warn("[PaymentElement] load error:", message || event)
     }
-
-    // Log every load error to the backend so we have operational
-    // visibility on which carts are hitting which Stripe Elements
-    // failures. Append-only, write-only from storefront perspective.
-    const isTerminalStateError = /terminal state/i.test(message)
-    void logCheckoutError("elements_load_error", message, {
-      is_terminal_state: isTerminalStateError,
-      will_attempt_recovery:
-        isTerminalStateError && !recoveryAttempted.current,
-    })
-
-    if (!isTerminalStateError) return
-    if (recoveryAttempted.current) return
-    recoveryAttempted.current = true
-
-    void (async () => {
-      try {
-        const result = await refreshPaymentIfTerminal(cart.id)
-        if (result.rotated) {
-          // Re-render the server component to pull the fresh cart with
-          // the rotated session's new client_secret. PaymentWrapper
-          // will remount Elements once the new prop arrives.
-          router.refresh()
-        }
-      } catch {
-        // Server action failed — leave the user on the error state.
-        // They can manually reload; we won't loop.
-      }
-    })()
+    void logCheckoutError("elements_load_error", message, {})
   }
 
   return (
@@ -330,15 +275,11 @@ export function CheckoutPaymentMethodList({
           )}
 
           <div className="mt-5">
-            {/*
-              For card we forward the live PaymentElement completion flag
-              so the button stays disabled until the user has filled in
-              valid details (or Stripe Elements managed to initialise at
-              all). For COD the flag is irrelevant — pass `true` so the
-              button gates only on cart-level prerequisites.
-            */}
             <PaymentButton
               cart={cart}
+              paymentTab={paymentTab}
+              notReady={buyButtonNotReady}
+              performBuyClick={performBuyClick}
               paymentElementComplete={
                 paymentTab === "cod" ? true : paymentElementComplete
               }
