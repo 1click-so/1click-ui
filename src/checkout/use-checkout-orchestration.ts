@@ -984,27 +984,83 @@ export function useCheckoutOrchestration({
     async (stripeBundle?: BuyClickStripe): Promise<void> => {
       setPaymentError(null)
 
+      // STATE-AT-CLICK SNAPSHOT — logs the EXACT state the storefront sees
+      // when the customer clicks Buy. Goes to browser console + backend
+      // log via logCheckoutError. Diagnostic-only; no PII beyond what's
+      // already in the order.
+      const stateSnapshot = {
+        cart_id: cart.id,
+        paymentTab,
+        cardId,
+        codId,
+        selectedShippingMethod,
+        selectedEcontOffice: selectedEcontOffice
+          ? { code: selectedEcontOffice.code, name: selectedEcontOffice.name }
+          : null,
+        selectedBoxnowLocker: selectedBoxnowLocker
+          ? {
+              id: selectedBoxnowLocker.id,
+              title: selectedBoxnowLocker.title,
+            }
+          : null,
+        hasStripeBundle: !!stripeBundle,
+      }
+      // eslint-disable-next-line no-console
+      console.log("[buy-click] STATE", stateSnapshot)
+      void logCheckoutError("other", "buy_click_state", stateSnapshot)
+
       await flushAddressSave()
 
       if (paymentTab === "card") {
         if (!stripeBundle) {
+          // eslint-disable-next-line no-console
+          console.error("[buy-click] card path but no stripe bundle")
           throw new Error("Stripe not ready")
         }
+        // eslint-disable-next-line no-console
+        console.log("[buy-click] elements.submit() …")
         const { error: submitError } = await stripeBundle.submit()
         if (submitError) {
+          // eslint-disable-next-line no-console
+          console.error("[buy-click] elements.submit() error", submitError)
           throw submitError
         }
       }
 
       const payload = buildPrepareCheckoutPayload()
-      const prep = await prepareCheckout(cart.id, payload)
+      // eslint-disable-next-line no-console
+      console.log("[buy-click] PAYLOAD →", payload)
+      void logCheckoutError("other", "buy_click_payload", {
+        provider_id: payload.payment_provider,
+        shipping_method_id: payload.shipping_method_id,
+        carrier_metadata_keys: Object.keys(payload.carrier_metadata ?? {}),
+        country_code: payload.shipping_address.country_code,
+      })
+
+      const prep = await prepareCheckout(cart.id, payload).catch((e: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error("[buy-click] prepareCheckout threw", e)
+        throw e
+      })
+      // eslint-disable-next-line no-console
+      console.log("[buy-click] prepareCheckout response", {
+        has_client_secret: !!prep.client_secret,
+        provider_id: prep.provider_id,
+      })
 
       if (paymentTab === "card") {
         if (!stripeBundle || !prep.client_secret) {
+          // eslint-disable-next-line no-console
+          console.error(
+            "[buy-click] card path missing client_secret",
+            { has_bundle: !!stripeBundle, has_secret: !!prep.client_secret }
+          )
           throw new Error("Stripe client_secret missing after prepare")
         }
         const returnUrl =
           typeof window !== "undefined" ? window.location.href : ""
+        // eslint-disable-next-line no-console
+        console.log("[buy-click] stripe.confirmPayment() …")
         const { error } = await stripeBundle.stripe.confirmPayment({
           elements: stripeBundle.elements,
           clientSecret: prep.client_secret,
@@ -1012,16 +1068,31 @@ export function useCheckoutOrchestration({
           redirect: "if_required",
         })
         if (error) {
+          // eslint-disable-next-line no-console
+          console.error("[buy-click] stripe.confirmPayment error", error)
           throw error
         }
       }
 
+      // eslint-disable-next-line no-console
+      console.log("[buy-click] placeOrder() …")
       const tracking = resolvePlaceOrderTracking?.()
-      await placeOrder(undefined, tracking, orderConfirmedPath)
+      await placeOrder(undefined, tracking, orderConfirmedPath).catch(
+        (e: unknown) => {
+          // eslint-disable-next-line no-console
+          console.error("[buy-click] placeOrder threw", e)
+          throw e
+        }
+      )
     },
     [
       cart.id,
       paymentTab,
+      cardId,
+      codId,
+      selectedShippingMethod,
+      selectedEcontOffice,
+      selectedBoxnowLocker,
       flushAddressSave,
       buildPrepareCheckoutPayload,
       orderConfirmedPath,

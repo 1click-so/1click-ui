@@ -199,6 +199,22 @@ export function PaymentButton({
       inFlightRef.current = false
       setSubmitting(false)
     } catch (err: unknown) {
+      // Next.js's `redirect()` from a server action throws a NEXT_REDIRECT
+      // error — that is success, not failure. Don't translate it; let it
+      // propagate so the navigation actually happens.
+      const e = err as { digest?: string; message?: string }
+      const isNextRedirect =
+        typeof e?.digest === "string" && e.digest.startsWith("NEXT_REDIRECT")
+      if (isNextRedirect) {
+        throw err
+      }
+
+      // eslint-disable-next-line no-console
+      console.error("[buy-click] FAILED", {
+        message: e?.message,
+        raw: err,
+      })
+
       const translated = translatePaymentError(err, isCardPath ? "card" : "cod")
       setErrorMessage(translated)
       inFlightRef.current = false
