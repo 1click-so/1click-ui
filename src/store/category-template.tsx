@@ -1,9 +1,9 @@
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
+import Link from "next/link"
 import type { HttpTypes } from "@medusajs/types"
 import type { SortOptions } from "../lib/sort-products"
 import type { StoreLabels } from "./labels"
-import LocalizedLink from "../common/localized-link"
 import { SortSelect } from "./sort-select"
 import { PaginatedProducts, type ProductCardComponent } from "./paginated-products"
 import { SkeletonProductGrid } from "./skeleton-product-grid"
@@ -56,12 +56,12 @@ export function CategoryTemplate({
         <div className="flex flex-row mb-8 gap-4">
           {parents.map((parent) => (
             <span key={parent.id} className="text-muted-foreground text-2xl">
-              <LocalizedLink
+              <Link
                 className="mr-4 hover:text-foreground"
                 href={`/categories/${parent.handle}`}
               >
                 {parent.name}
-              </LocalizedLink>
+              </Link>
               /
             </span>
           ))}
@@ -82,12 +82,12 @@ export function CategoryTemplate({
             <ul className="grid grid-cols-1 gap-2">
               {category.category_children.map((c) => (
                 <li key={c.id}>
-                  <LocalizedLink
+                  <Link
                     href={`/categories/${c.handle}`}
                     className="text-primary hover:underline"
                   >
                     {c.name}
-                  </LocalizedLink>
+                  </Link>
                 </li>
               ))}
             </ul>

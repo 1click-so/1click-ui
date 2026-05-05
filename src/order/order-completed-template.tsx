@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
+import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
-import LocalizedLink from "../common/localized-link"
 import { defaultOrderLabels, type OrderLabels } from "./labels"
 import { OrderConfirmationHeader } from "./order-confirmation-header"
 import { OrderTimeline } from "./order-timeline"
@@ -68,13 +68,13 @@ export function OrderCompletedTemplate({
         </div>
 
         <div className="text-center mt-8">
-          <LocalizedLink
+          <Link
             href="/store"
             className="inline-flex items-center gap-2 px-6 py-3 bg-foreground text-card text-sm font-semibold rounded-xl hover:opacity-90 active:opacity-100 transition-opacity"
           >
             <ChevronLeft className="w-4 h-4" />
             {l.continueShopping}
-          </LocalizedLink>
+          </Link>
         </div>
       </div>
     </div>

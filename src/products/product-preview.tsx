@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
+import Link from "next/link"
 import { getProductPrice } from "../lib/get-product-price"
-import LocalizedLink from "../common/localized-link"
 import { Thumbnail } from "./thumbnail"
 import { PreviewPrice } from "./preview-price"
 
@@ -16,7 +16,7 @@ export function ProductPreview({
   const { cheapestPrice } = getProductPrice({ product })
 
   return (
-    <LocalizedLink href={`/products/${product.handle}`} className="group">
+    <Link href={`/products/${product.handle}`} className="group">
       <div data-testid="product-wrapper">
         <Thumbnail
           thumbnail={product.thumbnail}
@@ -33,7 +33,7 @@ export function ProductPreview({
           </div>
         </div>
       </div>
-    </LocalizedLink>
+    </Link>
   )
 }
 

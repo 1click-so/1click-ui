@@ -1,5 +1,5 @@
+import Link from "next/link"
 import { MessageSquare, Undo2 } from "lucide-react"
-import LocalizedLink from "../common/localized-link"
 import { defaultOrderLabels, type OrderLabels } from "./labels"
 
 type OrderHelpSectionProps = {
@@ -11,7 +11,7 @@ type OrderHelpSectionProps = {
 export function OrderHelpSection({
   labels,
   contactHref = "/contact",
-  returnsHref = "/contact",
+  returnsHref = "/returns",
 }: OrderHelpSectionProps) {
   const l = { ...defaultOrderLabels, ...labels }
 
@@ -21,20 +21,20 @@ export function OrderHelpSection({
         {l.needHelp}
       </h3>
       <div className="flex flex-col gap-2">
-        <LocalizedLink
+        <Link
           href={contactHref}
           className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
         >
           <MessageSquare className="w-4 h-4" />
           {l.contactUs}
-        </LocalizedLink>
-        <LocalizedLink
+        </Link>
+        <Link
           href={returnsHref}
           className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
         >
           <Undo2 className="w-4 h-4" />
           {l.returnsExchanges}
-        </LocalizedLink>
+        </Link>
       </div>
     </div>
   )

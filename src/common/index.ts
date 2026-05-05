@@ -1,4 +1,3 @@
-export { default as LocalizedLink } from "./localized-link"
 export { CartButton } from "./cart-button"
 export { CartButtonClient } from "./cart-button-client"
 export { DeleteButton, type DeleteButtonProps } from "./delete-button"
