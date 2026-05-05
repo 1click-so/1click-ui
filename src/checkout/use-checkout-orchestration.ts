@@ -134,6 +134,10 @@ export type UseCheckoutOrchestrationOptions = {
 /**
  * Address form fields the orchestration tracks. Matches the keys the
  * library's `CheckoutAddressForm` writes via `name=...`.
+ *
+ * `shipping_address.phone` is required — Bulgarian carriers (Econt,
+ * BoxNow) need it to contact the customer; it's the courier's primary
+ * recovery channel when the address is ambiguous.
  */
 const REQUIRED_ADDRESS_FIELDS = [
   "email",
@@ -143,7 +147,46 @@ const REQUIRED_ADDRESS_FIELDS = [
   "shipping_address.address_1",
   "shipping_address.city",
   "shipping_address.postal_code",
+  "shipping_address.phone",
 ] as const
+
+/**
+ * Debounce window for the auto-save effect — long enough that a user
+ * typing through fields without blurring triggers ONE save at the end,
+ * short enough that clicking a shipping option after the last keystroke
+ * doesn't race the persistence (the pre-action `flushAddressSave` is
+ * the belt-and-braces backstop for that race).
+ */
+const ADDRESS_AUTO_SAVE_DEBOUNCE_MS = 600
+
+/**
+ * Snapshot the address-relevant subset of formData. Used to skip
+ * redundant saves: if the snapshot matches what was last persisted,
+ * there's nothing to do. JSON-stringify keeps comparison cheap and
+ * correct (string keys + string values, no nested objects).
+ */
+function snapshotAddressForm(
+  formData: Record<string, string>,
+  sameAsBilling: boolean
+): string {
+  return JSON.stringify({
+    email: formData.email ?? "",
+    first_name: formData["shipping_address.first_name"] ?? "",
+    last_name: formData["shipping_address.last_name"] ?? "",
+    address_1: formData["shipping_address.address_1"] ?? "",
+    company: formData["shipping_address.company"] ?? "",
+    postal_code: formData["shipping_address.postal_code"] ?? "",
+    city: formData["shipping_address.city"] ?? "",
+    country_code: formData["shipping_address.country_code"] ?? "",
+    province: formData["shipping_address.province"] ?? "",
+    phone: formData["shipping_address.phone"] ?? "",
+    company_name: formData.company_name ?? "",
+    company_vat: formData.company_vat ?? "",
+    company_mol: formData.company_mol ?? "",
+    company_address: formData.company_address ?? "",
+    sameAsBilling,
+  })
+}
 
 export function useCheckoutOrchestration({
   cart,
@@ -186,6 +229,14 @@ export function useCheckoutOrchestration({
   // user edited between the two clicks gets reverted to the earlier
   // snapshot.
   const addressSavingRef = useRef(false)
+  // Snapshot of the formData that was last successfully persisted.
+  // Used to skip redundant saves and to detect when the user changed
+  // form fields while a save was in flight (so we re-fire after).
+  const lastSavedSnapshotRef = useRef<string>("")
+  // When a save is in flight and formData changes, we set this to the
+  // latest snapshot. The in-flight save's `finally` checks it and
+  // re-fires saveAddress so the latest form state always wins.
+  const pendingSnapshotRef = useRef<string | null>(null)
 
   const [formData, setFormData] = useState<Record<string, string>>(() => ({
     "shipping_address.first_name":
@@ -271,7 +322,20 @@ export function useCheckoutOrchestration({
 
   const saveAddress = useCallback(async () => {
     if (!allRequiredFilled) return
-    if (addressSavingRef.current) return
+    const snapshot = snapshotAddressForm(formData, sameAsBilling)
+    // Skip redundant saves — if the form hasn't changed since last
+    // successful persist, don't re-hit the network. Critical for the
+    // debounced auto-save: every formData change triggers the effect,
+    // but only meaningful changes should reach the server.
+    if (snapshot === lastSavedSnapshotRef.current) return
+    // If a save is already in flight, register this snapshot as
+    // pending. The in-flight save's `finally` will re-fire saveAddress
+    // so the latest form state always wins. Without this, formData
+    // edits that happen during a save get silently dropped.
+    if (addressSavingRef.current) {
+      pendingSnapshotRef.current = snapshot
+      return
+    }
     addressSavingRef.current = true
     setAddressSaving(true)
     setAddressError(null)
@@ -309,6 +373,7 @@ export function useCheckoutOrchestration({
       }
 
       await updateCart(addressData)
+      lastSavedSnapshotRef.current = snapshot
 
       if (customer) {
         // Only standard `StoreUpdateCustomer` fields; company fields are
@@ -324,14 +389,74 @@ export function useCheckoutOrchestration({
     } finally {
       setAddressSaving(false)
       addressSavingRef.current = false
+      // If formData changed during the save, fire again with the
+      // latest state. Loops at most once per real user edit because
+      // the snapshot guard skips duplicates.
+      const pending = pendingSnapshotRef.current
+      pendingSnapshotRef.current = null
+      if (pending && pending !== lastSavedSnapshotRef.current) {
+        void saveAddressRef.current?.()
+      }
     }
   }, [formData, allRequiredFilled, sameAsBilling, customer, cart?.metadata])
 
+  // Self-reference for the post-save re-fire path. Captured via ref so
+  // the callback can call the latest version of itself without making
+  // useCallback's dep list circular.
+  const saveAddressRef = useRef(saveAddress)
   useEffect(() => {
+    saveAddressRef.current = saveAddress
+  }, [saveAddress])
+
+  // ── Auto-save effect ───────────────────────────────────────────────
+  // The single source of truth for "form data → server cart" sync.
+  // Watches formData and fires saveAddress after a debounce window.
+  // This is what makes the persistence robust to:
+  //   - Browser autofill (1Password, Bitwarden, Chrome) which can fill
+  //     multiple fields without firing per-field blur events
+  //   - sessionStorage form restore on mount (the storefront's "I
+  //     refreshed and my form is still filled" UX)
+  //   - Programmatic / paste-driven fills with no blur
+  //   - Saved-customer-address selection (setFormAddress)
+  //
+  // Before this effect, persistence relied on `handleFieldBlur` —
+  // which made the cart silently empty whenever the form got filled
+  // by a non-blur path. That's the bug that left cart.email NULL on
+  // anonymous carts and kept the Place Order button disabled even
+  // when the form looked complete.
+  //
+  // `handleFieldBlur` is preserved as the immediate-save shortcut so
+  // the typical typing path doesn't wait for the debounce.
+  useEffect(() => {
+    if (!allRequiredFilled) return
+    const snapshot = snapshotAddressForm(formData, sameAsBilling)
+    if (snapshot === lastSavedSnapshotRef.current) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null
+      void saveAddress()
+    }, ADDRESS_AUTO_SAVE_DEBOUNCE_MS)
     return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
     }
-  }, [])
+  }, [formData, allRequiredFilled, sameAsBilling, saveAddress])
+
+  // flushAddressSave — used by shipping/payment selection handlers to
+  // guarantee the latest form state is persisted BEFORE a state-
+  // advancing mutation runs. Cancels any pending debounce and awaits
+  // the save synchronously. Without this, a fast user (clicks Econt
+  // < 600ms after their last keystroke) advances on a stale cart.
+  const flushAddressSave = useCallback(async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    if (!allRequiredFilled) return
+    await saveAddress()
+  }, [allRequiredFilled, saveAddress])
 
   const handleFormChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -605,6 +730,14 @@ export function useCheckoutOrchestration({
       setPaymentTab(tab)
       setPaymentError(null)
 
+      // Belt-and-braces: ensure address persistence has caught up to
+      // the latest formData before initiating a payment session.
+      // Without this, a user who fills the form, lands on COD, and
+      // clicks fast enough to beat the 600ms auto-save debounce sees
+      // the Place Order button stay disabled because cart.email /
+      // cart.billing_address haven't reached the server yet.
+      await flushAddressSave()
+
       // Optimistic prediction — paint totals BEFORE the network call.
       // Currency must match the configured fee currency or the middleware
       // skips the fee server-side, so optimistic must skip too.
@@ -637,7 +770,7 @@ export function useCheckoutOrchestration({
         if (codConfig) setOptimisticCodFee(null)
       }
     },
-    [cart, cardId, codId, codConfig]
+    [cart, cardId, codId, codConfig, flushAddressSave]
   )
 
   const handleSelectShipping = useCallback(
@@ -646,6 +779,12 @@ export function useCheckoutOrchestration({
       const prev = selectedShippingMethod
       setShippingLoading(true)
       setSelectedShippingMethod(id)
+
+      // Belt-and-braces: same reason as handlePaymentTab — make sure
+      // the form's email/address have reached the server before we
+      // run shipping mutations that the server may rely on (e.g.
+      // calculated price by region/postal).
+      await flushAddressSave()
 
       // Optimistic shipping cost from known-or-flat-priced options.
       const option = shippingMethods.find((m) => m.id === id)
@@ -727,6 +866,7 @@ export function useCheckoutOrchestration({
       paymentTab,
       cardId,
       codId,
+      flushAddressSave,
     ]
   )
 
