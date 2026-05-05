@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {

@@ -1068,8 +1068,30 @@ export function useCheckoutOrchestration({
           redirect: "if_required",
         })
         if (error) {
+          const stripeErr = error as {
+            type?: string
+            code?: string
+            decline_code?: string
+            message?: string
+            payment_intent?: { id?: string; status?: string }
+          }
           // eslint-disable-next-line no-console
-          console.error("[buy-click] stripe.confirmPayment error", error)
+          console.error("[buy-click] stripe.confirmPayment error", stripeErr)
+          // Log to server so we can read the actual Stripe error code +
+          // message from the DB without needing the browser console.
+          void logCheckoutError(
+            "stripe_confirm_error",
+            stripeErr.message ?? "unknown",
+            {
+              type: stripeErr.type,
+              code: stripeErr.code,
+              decline_code: stripeErr.decline_code,
+              pi_id: stripeErr.payment_intent?.id,
+              pi_status: stripeErr.payment_intent?.status,
+              cart_id: cart.id,
+              client_secret_prefix: prep.client_secret.slice(0, 8),
+            }
+          )
           throw error
         }
       }

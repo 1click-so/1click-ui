@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
 import { useContext, useRef, useState } from "react"
 
+import { logCheckoutError } from "../data/cart"
 import { DualPrice } from "../lib/dual-price"
 import { cn } from "../lib/utils"
 import { translatePaymentError } from "./payment-error-copy"
@@ -202,7 +203,15 @@ export function PaymentButton({
       // Next.js's `redirect()` from a server action throws a NEXT_REDIRECT
       // error — that is success, not failure. Don't translate it; let it
       // propagate so the navigation actually happens.
-      const e = err as { digest?: string; message?: string }
+      const e = err as {
+        digest?: string
+        message?: string
+        type?: string
+        code?: string
+        decline_code?: string
+        name?: string
+        stack?: string
+      }
       const isNextRedirect =
         typeof e?.digest === "string" && e.digest.startsWith("NEXT_REDIRECT")
       if (isNextRedirect) {
@@ -214,6 +223,33 @@ export function PaymentButton({
         message: e?.message,
         raw: err,
       })
+
+      // Log to checkout_error_log so we can read the actual error from
+      // the DB without needing the customer's browser console. This is
+      // the catch-all sink for any error that escapes performBuyClick
+      // (stripe.confirmPayment, prepareCheckout, placeOrder).
+      let dump = ""
+      try {
+        dump = JSON.stringify(err, Object.getOwnPropertyNames(err as object)).slice(
+          0,
+          2000
+        )
+      } catch {
+        dump = String(err)
+      }
+      void logCheckoutError(
+        "place_order_error",
+        e?.message ?? String(err) ?? "unknown",
+        {
+          path: isCardPath ? "card" : "cod",
+          err_name: e?.name,
+          err_type: e?.type,
+          err_code: e?.code,
+          decline_code: e?.decline_code,
+          cart_id: cart.id,
+          full_error_json: dump,
+        }
+      )
 
       const translated = translatePaymentError(err, isCardPath ? "card" : "cod")
       setErrorMessage(translated)
