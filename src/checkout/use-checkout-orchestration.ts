@@ -1093,29 +1093,36 @@ export function useCheckoutOrchestration({
         const returnUrl =
           typeof window !== "undefined" ? window.location.href : ""
 
-        // billing_details MUST be passed in confirmParams.payment_method_data
-        // because PaymentElement is mounted with fields.billingDetails.address
-        // = "never" (in payment-method-list.tsx). Without this Stripe throws
-        // an IntegrationError ("did not pass confirmParams.payment_method_data
-        // .billing_details.address.country"). Read straight from the address
-        // form state which is the same address we just persisted via
-        // prepareCheckout above.
+        // billing_details — passed for AVS / Radar / 3DS risk scoring /
+        // dispute defense. PaymentElement is NO LONGER mounted with
+        // fields.billingDetails.address = "never" (see payment-method-
+        // list.tsx) — that flag put Stripe into strict-completeness mode
+        // and threw IntegrationError on the first missing sub-field
+        // (country → state → next), which is what blocked card payments
+        // on 2026-05-06. Without it, Stripe accepts whatever billing
+        // details we provide and falls back to its iframe-collected data
+        // for anything missing. We still pass full billing_details here
+        // because the data improves auth rates regardless.
+        //
+        // `null` (not `undefined`) for empty fields — explicit null is
+        // robust against any future Stripe SDK reintroducing presence
+        // checks; undefined would read as "missing".
         const firstName = formData["shipping_address.first_name"] ?? ""
         const lastName = formData["shipping_address.last_name"] ?? ""
+        const fullName = `${firstName} ${lastName}`.trim()
         const billingDetails = {
-          name: `${firstName} ${lastName}`.trim() || undefined,
-          email: formData.email || undefined,
-          phone: formData["shipping_address.phone"] || undefined,
+          name: fullName || null,
+          email: formData.email || null,
+          phone: formData["shipping_address.phone"] || null,
           address: {
-            line1: formData["shipping_address.address_1"] || undefined,
-            line2: undefined,
-            city: formData["shipping_address.city"] || undefined,
-            state: formData["shipping_address.province"] || undefined,
-            postal_code: formData["shipping_address.postal_code"] || undefined,
+            line1: formData["shipping_address.address_1"] || null,
+            line2: null,
+            city: formData["shipping_address.city"] || null,
+            state: formData["shipping_address.province"] || null,
+            postal_code: formData["shipping_address.postal_code"] || null,
             // ISO 3166-1 alpha-2, uppercase per Stripe convention.
             country:
-              formData["shipping_address.country_code"]?.toUpperCase() ||
-              undefined,
+              formData["shipping_address.country_code"]?.toUpperCase() || null,
           },
         }
 

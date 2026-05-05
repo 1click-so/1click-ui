@@ -209,7 +209,20 @@ export function CheckoutPaymentMethodList({
                         onLoadError={handlePaymentElementLoadError}
                         options={{
                           layout: "accordion",
-                          fields: { billingDetails: { address: "never" } },
+                          // Intentionally NO `fields.billingDetails.address`
+                          // override. Setting it to "never" puts Stripe into
+                          // strict-completeness mode — every billing-details
+                          // sub-field MUST be passed in confirmParams or it
+                          // throws an IntegrationError naming the first
+                          // missing one (country → state → next). For card-
+                          // only payment methods (Card / Apple Pay / Google
+                          // Pay — alenika's only enabled methods), Stripe
+                          // doesn't show address fields by default, so
+                          // dropping the override has zero UI impact and
+                          // eliminates the IntegrationError class entirely.
+                          // We still pass full billing_details to
+                          // stripe.confirmPayment for AVS / Radar / 3DS
+                          // risk scoring / dispute defense.
                         }}
                       />
                     ) : (
