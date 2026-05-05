@@ -27,6 +27,7 @@
 
 export { MetaPixel } from "./meta-pixel"
 export { GA4 } from "./ga4"
+export { Rybbit } from "./rybbit"
 export {
   trackViewContent,
   trackAddToCart,
@@ -41,6 +42,16 @@ export {
   trackGABeginCheckout,
   trackGAPurchase,
 } from "./gtag"
+export {
+  trackRybbitViewItem,
+  trackRybbitAddToCart,
+  trackRybbitBeginCheckout,
+  trackRybbitPurchase,
+  type RybbitViewItemData,
+  type RybbitAddToCartData,
+  type RybbitBeginCheckoutData,
+  type RybbitPurchaseData,
+} from "./rybbit-events"
 export { getTrackingConfig } from "./get-tracking-config"
 export { getTrackingAttribution } from "./get-tracking-attribution"
 export {

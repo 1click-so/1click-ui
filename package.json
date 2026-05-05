@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "1.17.1",
+  "version": "1.18.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -159,6 +159,8 @@
     "./tracking/types": "./src/tracking/types.ts",
     "./tracking/meta-pixel": "./src/tracking/meta-pixel.tsx",
     "./tracking/ga4": "./src/tracking/ga4.tsx",
+    "./tracking/rybbit": "./src/tracking/rybbit.tsx",
+    "./tracking/rybbit-events": "./src/tracking/rybbit-events.ts",
     "./tracking/fbq": "./src/tracking/fbq.ts",
     "./tracking/gtag": "./src/tracking/gtag.ts",
     "./tracking/get-tracking-config": "./src/tracking/get-tracking-config.ts",

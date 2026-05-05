@@ -19,6 +19,7 @@ export type TrackingConfig = {
   gtm?: { containerId: string }
   ga4?: { measurementId: string }
   klaviyo?: { publicKey: string }
+  rybbit?: { siteId: string; baseUrl?: string }
 }
 
 export type TrackingConfigResponse = {
