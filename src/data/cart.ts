@@ -62,7 +62,28 @@ export async function retrieveCart(
       cache: noCache ? "no-store" : "force-cache",
     })
     .then(({ cart }: { cart: HttpTypes.StoreCart }) => cart)
-    .catch(() => null)
+    .catch(async (err: unknown) => {
+      // Previously this was `.catch(() => null)` — every retrieve
+      // failure (404, network, auth, region mismatch, 500) was
+      // indistinguishable from "no cart yet". Callers would treat as
+      // empty and CREATE a new cart, abandoning the real one silently.
+      // Now: log every failure with status + path so ops can see when
+      // the backend is degraded vs. when there's just no cookie.
+      const status = (err as { status?: number })?.status
+      await logEvent({
+        errorType: "cart_retrieve_failed",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        surface: "system",
+        severity: status && status >= 500 ? "critical" : "medium",
+        cartId: id,
+        context: {
+          http_status: status,
+          fields_summary: fields?.slice(0, 200),
+          no_cache: !!noCache,
+        },
+      })
+      return null
+    })
 }
 
 export async function getOrSetCart(
@@ -145,11 +166,39 @@ export async function addToCart({
   countryCode: string
 }): Promise<void> {
   if (!variantId) {
+    void logEvent({
+      errorType: "cart_add_failed",
+      errorMessage: "Missing variant ID when adding to cart",
+      surface: "cart_drawer",
+      severity: "high",
+      context: { country_code: countryCode, quantity, reason: "missing_variant_id" },
+    })
     throw new Error("Missing variant ID when adding to cart")
   }
 
-  const cart = await getOrSetCart(countryCode)
+  let cart: HttpTypes.StoreCart
+  try {
+    cart = await getOrSetCart(countryCode)
+  } catch (err: unknown) {
+    void logEvent({
+      errorType: "cart_create_failed",
+      errorMessage: err instanceof Error ? err.message : String(err),
+      surface: "cart_drawer",
+      severity: "critical",
+      variantId,
+      context: { country_code: countryCode, quantity, step: "get_or_set_cart" },
+    })
+    throw err
+  }
   if (!cart) {
+    void logEvent({
+      errorType: "cart_add_failed",
+      errorMessage: "Error retrieving or creating cart",
+      surface: "cart_drawer",
+      severity: "critical",
+      variantId,
+      context: { country_code: countryCode, quantity, reason: "no_cart" },
+    })
     throw new Error("Error retrieving or creating cart")
   }
 
@@ -166,7 +215,23 @@ export async function addToCart({
 
       refresh()
     })
-    .catch(medusaError)
+    .catch(async (err: unknown) => {
+      await logEvent({
+        errorType: "cart_add_failed",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        surface: "cart_drawer",
+        severity: "critical",
+        cartId: cart.id,
+        variantId,
+        context: {
+          country_code: countryCode,
+          region_id: cart.region_id,
+          quantity,
+          err_status: (err as { status?: number })?.status,
+        },
+      })
+      return medusaError(err as Parameters<typeof medusaError>[0])
+    })
 }
 
 export async function updateLineItem({
@@ -177,11 +242,25 @@ export async function updateLineItem({
   quantity: number
 }): Promise<void> {
   if (!lineId) {
+    void logEvent({
+      errorType: "cart_line_update_failed",
+      errorMessage: "Missing lineItem ID when updating line item",
+      surface: "cart_drawer",
+      severity: "high",
+      context: { quantity, reason: "missing_line_id" },
+    })
     throw new Error("Missing lineItem ID when updating line item")
   }
 
   const cartId = await getCartId()
   if (!cartId) {
+    void logEvent({
+      errorType: "cart_line_update_failed",
+      errorMessage: "Missing cart ID when updating line item",
+      surface: "cart_drawer",
+      severity: "high",
+      context: { line_id: lineId, quantity, reason: "no_cart" },
+    })
     throw new Error("Missing cart ID when updating line item")
   }
 
@@ -198,16 +277,44 @@ export async function updateLineItem({
 
       refresh()
     })
-    .catch(medusaError)
+    .catch(async (err: unknown) => {
+      await logEvent({
+        errorType: "cart_line_update_failed",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        surface: "cart_drawer",
+        severity: "high",
+        cartId,
+        context: {
+          line_id: lineId,
+          attempted_quantity: quantity,
+          err_status: (err as { status?: number })?.status,
+        },
+      })
+      return medusaError(err as Parameters<typeof medusaError>[0])
+    })
 }
 
 export async function deleteLineItem(lineId: string): Promise<void> {
   if (!lineId) {
+    void logEvent({
+      errorType: "cart_line_delete_failed",
+      errorMessage: "Missing lineItem ID when deleting line item",
+      surface: "cart_drawer",
+      severity: "high",
+      context: { reason: "missing_line_id" },
+    })
     throw new Error("Missing lineItem ID when deleting line item")
   }
 
   const cartId = await getCartId()
   if (!cartId) {
+    void logEvent({
+      errorType: "cart_line_delete_failed",
+      errorMessage: "Missing cart ID when deleting line item",
+      surface: "cart_drawer",
+      severity: "high",
+      context: { line_id: lineId, reason: "no_cart" },
+    })
     throw new Error("Missing cart ID when deleting line item")
   }
 
@@ -224,7 +331,20 @@ export async function deleteLineItem(lineId: string): Promise<void> {
 
       refresh()
     })
-    .catch(medusaError)
+    .catch(async (err: unknown) => {
+      await logEvent({
+        errorType: "cart_line_delete_failed",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        surface: "cart_drawer",
+        severity: "high",
+        cartId,
+        context: {
+          line_id: lineId,
+          err_status: (err as { status?: number })?.status,
+        },
+      })
+      return medusaError(err as Parameters<typeof medusaError>[0])
+    })
 }
 
 export async function setShippingMethod({
@@ -482,46 +602,97 @@ export async function refreshPaymentIfTerminal(
 }
 
 /**
- * Logs a checkout-side error or event to the backend's
- * `checkout_error_log` table. Best-effort, append-only — used by the
- * library's recovery paths and onLoadError handlers to give us
- * operational visibility into what's failing on real users' browsers.
+ * Funnel observability event payload. Mirrors the backend's extended
+ * `checkout_error_log` schema (medusa-mindpages,
+ * src/modules/checkout-error-log/migrations/Migration20260506200000.ts).
  *
- * Backend: POST /store/carts/:id/checkout-error-log
- * (medusa-mindpages, src/api/store/carts/[id]/checkout-error-log/route.ts)
+ * Required: `errorType`. Everything else optional. Unknown errorType
+ * strings get coerced to "other" by the backend, so prefer constants
+ * from CHECKOUT_ERROR_TYPES rather than ad-hoc strings.
+ */
+export type FunnelEventPayload = {
+  errorType: string
+  errorMessage?: string
+  context?: Record<string, unknown>
+  /** Originating funnel surface — cart_drawer, pdp, checkout, etc. */
+  surface?: string
+  /** Severity — critical | high | medium | low | info. */
+  severity?: string
+  /** Request URL path the event originated from. */
+  pagePath?: string
+  /** Optional cart override. Defaults to the cookie cart_id when absent. */
+  cartId?: string
+  /** For logged-in customer attribution. */
+  customerId?: string
+  /** Set on cart-add / PDP / cart-drawer item failures. */
+  productId?: string
+  /** Sibling of productId. */
+  variantId?: string
+  /** Set on subscriber-side and order-confirmed failures. */
+  orderId?: string
+}
+
+/**
+ * Canonical funnel-observability sink. Routes to the cart-scoped
+ * backend endpoint when a cart_id is available (cookie or override)
+ * and to the cartless sibling otherwise. Never throws.
  *
- * Never throws. The log table is a write-only sink from the
- * storefront's perspective — there is no read endpoint at /store/.
+ * Backend routes:
+ *   - POST /store/carts/:id/checkout-error-log   (cart known)
+ *   - POST /store/funnel-event-log               (pre-cart, post-order)
  *
- * @param errorType — must match one of CHECKOUT_ERROR_TYPES in the
- *   backend service. Common values: "elements_load_error",
- *   "stripe_confirm_error", "place_order_error". Unknown strings get
- *   coerced to "other" by the backend.
+ * Both write to the same `checkout_error_log` table — single source of
+ * truth for the entire cart→order funnel.
+ */
+export async function logEvent(payload: FunnelEventPayload): Promise<void> {
+  const cartId = payload.cartId ?? (await getCartId())
+  const headers = { ...(await getAuthHeaders()) }
+
+  const body = {
+    error_type: payload.errorType,
+    error_message: payload.errorMessage,
+    context: payload.context ?? {},
+    surface: payload.surface,
+    severity: payload.severity,
+    page_path: payload.pagePath,
+    customer_id: payload.customerId,
+    product_id: payload.productId,
+    variant_id: payload.variantId,
+    order_id: payload.orderId,
+  }
+
+  const path = cartId
+    ? `/store/carts/${cartId}/checkout-error-log`
+    : `/store/funnel-event-log`
+
+  try {
+    await sdkFetch(path, {
+      method: "POST",
+      headers,
+      body,
+      cache: "no-store",
+    })
+  } catch {
+    // Best-effort — never throw from the logger. If the log POST itself
+    // fails (network down, backend 500) the event is dropped. Acceptable;
+    // calling sites still console.error the original error so container
+    // stderr captures it for forensic recovery.
+  }
+}
+
+/**
+ * Backwards-compatible wrapper for the original 3-arg call shape. New
+ * call sites should use `logEvent(...)` directly so they can pass
+ * surface / severity / product_id etc.
+ *
+ * @deprecated Use `logEvent` for new call sites.
  */
 export async function logCheckoutError(
   errorType: string,
   errorMessage?: string,
   context?: Record<string, unknown>
 ): Promise<void> {
-  const id = await getCartId()
-  if (!id) return // pre-cart errors aren't useful to log against a cart
-
-  const headers = { ...(await getAuthHeaders()) }
-
-  try {
-    await sdkFetch(`/store/carts/${id}/checkout-error-log`, {
-      method: "POST",
-      headers,
-      body: {
-        error_type: errorType,
-        error_message: errorMessage,
-        context: context ?? {},
-      },
-      cache: "no-store",
-    })
-  } catch {
-    // Best-effort — never throw from the logger.
-  }
+  return logEvent({ errorType, errorMessage, context })
 }
 
 export async function applyPromotions(codes: string[]): Promise<void> {

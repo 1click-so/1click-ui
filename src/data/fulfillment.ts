@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 
 import { sdk, sdkFetch } from "./config"
+import { logEvent } from "./cart"
 import { getAuthHeaders, getCacheOptions } from "./cookies"
 
 /**
@@ -26,7 +27,17 @@ export const listCartShippingMethods = async (
       cache: "force-cache",
     })
     .then(({ shipping_options }) => shipping_options)
-    .catch(() => null)
+    .catch(async (err: unknown) => {
+      await logEvent({
+        errorType: "checkout_shipping_fetch_failed",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        surface: "checkout",
+        severity: "high",
+        cartId,
+        context: { http_status: (err as { status?: number })?.status },
+      })
+      return null
+    })
 }
 
 export const calculatePriceForShippingOption = async (
@@ -45,5 +56,15 @@ export const calculatePriceForShippingOption = async (
       { method: "POST", body, headers, next }
     )
     .then(({ shipping_option }) => shipping_option)
-    .catch(() => null)
+    .catch(async (err: unknown) => {
+      await logEvent({
+        errorType: "checkout_shipping_fetch_failed",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        surface: "checkout",
+        severity: "high",
+        cartId,
+        context: { option_id: optionId, calculate: true },
+      })
+      return null
+    })
 }

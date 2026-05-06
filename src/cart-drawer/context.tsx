@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from "react"
 
+import { logEvent } from "../data/cart"
 import { isProductLine } from "../lib/cart-helpers"
 import { defaultCartDrawerLabels, type CartDrawerLabels } from "./labels"
 
@@ -296,9 +297,45 @@ export function CartDrawerProvider({
         dispatchOptimistic(action)
         try {
           await serverAction()
-        } catch {
+        } catch (err) {
           // Optimistic state auto-reverts because parent `cart` prop
-          // hasn't updated. Caller is responsible for surfacing errors.
+          // hasn't updated. Caller is responsible for surfacing errors
+          // to the user — but we MUST log every failure here. This
+          // catch is the single funnel for every PDP add, cross-sell
+          // add, drawer remove, drawer quantity change. Without this
+          // log, those failures are invisible to ops.
+          //
+          // Best-effort console + backend log. We do NOT rethrow —
+          // useOptimistic semantics require the transition to settle
+          // cleanly. Adding the per-action context lets the dashboard
+          // identify which UI surface is failing without a stack.
+          const err_ = err as { message?: string; name?: string }
+          // eslint-disable-next-line no-console
+          console.error("[cart-optimistic]", action.type, err_)
+          const ctx: Record<string, unknown> = { action_type: action.type }
+          let productId: string | undefined
+          let variantId: string | undefined
+          if (action.type === "add") {
+            ctx.quantity = action.quantity
+            productId = action.product_id
+            variantId = action.variant_id
+          } else if (action.type === "remove") {
+            ctx.line_id = action.lineId
+          } else if (action.type === "update_quantity") {
+            ctx.line_id = (action as { lineId?: string }).lineId
+            ctx.quantity = (action as { quantity?: number }).quantity
+          }
+          void logEvent({
+            errorType: "cart_optimistic_action_failed",
+            errorMessage: err_?.message ?? String(err),
+            severity: "high",
+            surface: "cart_drawer",
+            productId,
+            variantId,
+            pagePath:
+              typeof window !== "undefined" ? window.location.pathname : undefined,
+            context: { ...ctx, err_name: err_?.name },
+          })
         }
       })
     },
