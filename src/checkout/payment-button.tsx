@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
-import { useContext, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 
 import { logCheckoutError } from "../data/cart"
 import { DualPrice } from "../lib/dual-price"
@@ -11,6 +11,9 @@ import { translatePaymentError } from "./payment-error-copy"
 import { useCheckoutLabels } from "./context"
 import { ErrorMessage } from "./error-message"
 import { StripeContext } from "./stripe-wrapper"
+
+/** Cycle interval for the processing-state messages, in ms. */
+const PROCESSING_MESSAGE_INTERVAL_MS = 1800
 
 /**
  * PaymentButton — top-level "place order" button.
@@ -172,6 +175,39 @@ export function PaymentButton({
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // ── Processing-state cycling messages ───────────────────────────────
+  // While `submitting` is true, cycle through a short list of messages
+  // narrating what's actually happening server-side. Loops back to 0
+  // on long flows (3DS challenges, slow networks). Card and COD have
+  // separate sequences because the card path includes a bank handshake
+  // step that doesn't apply to COD.
+  //
+  // Why this exists: a spinning button alone reads as "thinking" but
+  // not "thinking about WHAT" — customers get nervous on the 3-30s
+  // wait. Stripe / Booking.com / Apple Pay all narrate the same way.
+  // Trust > novelty during the moment money leaves the account.
+  const [messageIndex, setMessageIndex] = useState(0)
+  useEffect(() => {
+    if (!submitting) {
+      setMessageIndex(0)
+      return
+    }
+    const messages =
+      paymentTab === "card" ? labels.processingCard : labels.processingCod
+    if (!messages || messages.length === 0) return
+    const id = setInterval(() => {
+      setMessageIndex((i) => (i + 1) % messages.length)
+    }, PROCESSING_MESSAGE_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [submitting, paymentTab, labels.processingCard, labels.processingCod])
+
+  const processingMessages =
+    paymentTab === "card" ? labels.processingCard : labels.processingCod
+  const currentProcessingMessage =
+    submitting && processingMessages?.length
+      ? processingMessages[messageIndex % processingMessages.length]
+      : null
+
   // Hard re-entry guard. `submitting` state alone isn't enough: React
   // batches state updates so two synchronous clicks both pass the
   // submitting check before the first one's setState commits. A ref
@@ -278,6 +314,26 @@ export function PaymentButton({
         testId={dataTestId}
         label={labels.placeOrder}
       />
+      {/*
+        Cycling processing message. Fixed-height wrapper prevents layout
+        shift when the message appears/disappears. aria-live="polite"
+        announces each message swap to screen readers.
+        `key={messageIndex}` re-mounts the span on every cycle so
+        Tailwind's animate-in fade-in fires fresh each time.
+      */}
+      <div
+        className="mt-3 h-5 flex items-center justify-center"
+        aria-live="polite"
+      >
+        {currentProcessingMessage && (
+          <span
+            key={messageIndex}
+            className="text-sm text-muted-foreground animate-in fade-in duration-500"
+          >
+            {currentProcessingMessage}
+          </span>
+        )}
+      </div>
       <ErrorMessage
         error={errorMessage}
         data-testid={

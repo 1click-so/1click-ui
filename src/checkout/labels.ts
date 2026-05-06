@@ -95,6 +95,21 @@ export type CheckoutLabels = {
   placeOrder: string
   selectPaymentMethod: string
 
+  /**
+   * Processing-state messages shown beneath the spinning Buy button
+   * while `performBuyClick` is in flight. Cycle through with a fade
+   * transition every ~1.8s; on long flows (3DS challenges, slow
+   * networks) the cycle loops back to index 0.
+   *
+   * Two arrays so card and COD show different micro-narratives — card
+   * mentions the bank handshake (the slow part), COD jumps straight
+   * to delivery + order. The closing entry should be a brand-flavored
+   * line that's still honest to the "processing" moment (don't say
+   * "packing" — nothing is being packed yet).
+   */
+  processingCard: string[]
+  processingCod: string[]
+
   // Econt office selector
   econtLoadingOffices: string
   econtNearestOffices: string
@@ -180,6 +195,18 @@ export const defaultCheckoutLabels: CheckoutLabels = {
 
   placeOrder: "Place order",
   selectPaymentMethod: "Select a payment method",
+
+  processingCard: [
+    "Connecting to the bank...",
+    "Confirming the payment...",
+    "Recording the order...",
+    "Attending to every detail...",
+  ],
+  processingCod: [
+    "Reserving the delivery...",
+    "Preparing the order...",
+    "Attending to every detail...",
+  ],
 
   econtLoadingOffices: "Loading offices...",
   econtNearestOffices: "Nearest offices",

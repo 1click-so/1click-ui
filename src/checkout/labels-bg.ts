@@ -85,6 +85,18 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
   placeOrder: "Поръчай",
   selectPaymentMethod: "Изберете начин на плащане",
 
+  processingCard: [
+    "Свързваме се с банката...",
+    "Потвърждаваме плащането...",
+    "Записваме поръчката...",
+    "Внимаваме за всеки детайл...",
+  ],
+  processingCod: [
+    "Резервираме доставката...",
+    "Подготвяме поръчката...",
+    "Внимаваме за всеки детайл...",
+  ],
+
   econtLoadingOffices: "Зареждане на офиси...",
   econtNearestOffices: "Най-близки офиси",
   econtSearchAnother: "Търси друг офис",
