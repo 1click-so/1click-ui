@@ -80,6 +80,7 @@ export function CheckoutClient({
       <MobileCheckoutTopBar
         cart={o.summaryCart}
         optimisticShippingCost={o.optimisticShippingCost}
+        optimisticCodFee={o.optimisticCodFee}
       />
 
       <div className="max-w-[1140px] mx-auto px-5 py-8 sm:py-12">
@@ -134,10 +135,12 @@ export function CheckoutClient({
               onPaymentElementChange={o.handlePaymentElementChange}
               performBuyClick={o.performBuyClick}
               buyButtonNotReady={buyButtonNotReady}
+              total={o.optimisticTotal}
               beforePaymentButton={
                 <MobileCheckoutBottomBar
                   cart={o.summaryCart}
                   optimisticShippingCost={o.optimisticShippingCost}
+                  optimisticCodFee={o.optimisticCodFee}
                 />
               }
             />
@@ -152,6 +155,8 @@ export function CheckoutClient({
                 onOptimisticShippingClear={() =>
                   o.setOptimisticShippingCost(null)
                 }
+                optimisticCodFee={o.optimisticCodFee}
+                onOptimisticCodFeeClear={() => o.setOptimisticCodFee(null)}
               />
             </div>
           </div>

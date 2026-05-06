@@ -64,6 +64,11 @@ type CheckoutPaymentMethodListProps = {
   /** Optional content rendered directly above the Place Order button.
    * Used by CheckoutClient to slot the mobile order-summary bottom bar. */
   beforePaymentButton?: React.ReactNode
+  /** Display total in main currency units. Forwarded to `PaymentButton`.
+   * Pass `useCheckoutOrchestration`'s `optimisticTotal` so the button
+   * shows the same number as the order summary. Falls back to
+   * `cart.total` when omitted. */
+  total?: number
 }
 
 export function CheckoutPaymentMethodList({
@@ -78,6 +83,7 @@ export function CheckoutPaymentMethodList({
   performBuyClick,
   buyButtonNotReady,
   beforePaymentButton,
+  total,
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
   // Boolean context — true when Stripe.js is loaded. In deferred-intent
@@ -296,6 +302,7 @@ export function CheckoutPaymentMethodList({
               paymentElementComplete={
                 paymentTab === "cod" ? true : paymentElementComplete
               }
+              total={total}
               data-testid="submit-order-button"
             />
           </div>

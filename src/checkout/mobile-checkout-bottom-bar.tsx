@@ -5,7 +5,7 @@ import { useState } from "react"
 
 import { cn } from "../lib/utils"
 import { DualPrice } from "../lib/dual-price"
-import { isProductLine } from "../lib/cart-helpers"
+import { findFeeLine, isProductLine } from "../lib/cart-helpers"
 import { useCheckoutLabels } from "./context"
 import { MobileOrderSummaryBody } from "./mobile-order-summary-body"
 
@@ -26,6 +26,11 @@ type MobileCheckoutBottomBarProps = {
     promotions?: HttpTypes.StorePromotion[]
   }
   optimisticShippingCost: number | null
+  /** Optimistic COD-fee prediction. Mirrors the desktop summary so the
+   * displayed total updates instantly on tab toggle, before the
+   * server-side fee line item arrives via prepare-checkout. Pass
+   * `useCheckoutOrchestration`'s `optimisticCodFee`. */
+  optimisticCodFee?: number | null
   /** Admin-editable label for the COD fee row in the expanded body. */
   codFeeLabel?: string
 }
@@ -33,6 +38,7 @@ type MobileCheckoutBottomBarProps = {
 export function MobileCheckoutBottomBar({
   cart,
   optimisticShippingCost,
+  optimisticCodFee,
   codFeeLabel,
 }: MobileCheckoutBottomBarProps) {
   const labels = useCheckoutLabels()
@@ -51,12 +57,19 @@ export function MobileCheckoutBottomBar({
     optimisticShippingCost !== null
       ? optimisticShippingCost
       : cart.shipping_total
-  const displayTotal =
-    optimisticShippingCost !== null
-      ? (cart.total ?? 0) -
-        (cart.shipping_total ?? 0) +
-        optimisticShippingCost
-      : (cart.total ?? 0)
+  // Same formula as `useCheckoutOrchestration`'s optimisticTotal /
+  // AlenikaOrderSummary's displayedTotal — kept in lockstep so every
+  // total surface shows the same number pre-Buy when shipping & COD
+  // fee aren't yet on the cart.
+  const realCodFeeAmount = findFeeLine(cart.items ?? null)?.total ?? 0
+  let displayTotal = cart.total ?? 0
+  if (optimisticShippingCost !== null) {
+    displayTotal =
+      displayTotal - (cart.shipping_total ?? 0) + optimisticShippingCost
+  }
+  if (optimisticCodFee !== null && optimisticCodFee !== undefined) {
+    displayTotal = displayTotal - realCodFeeAmount + optimisticCodFee
+  }
 
   if (!firstItem) return null
 
@@ -68,6 +81,7 @@ export function MobileCheckoutBottomBar({
             cart={cart}
             shippingCost={shippingCost}
             displayTotal={displayTotal}
+            optimisticCodFee={optimisticCodFee}
             codFeeLabel={codFeeLabel}
           />
         </div>

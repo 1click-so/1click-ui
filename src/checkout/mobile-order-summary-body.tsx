@@ -28,6 +28,11 @@ type MobileOrderSummaryBodyProps = {
   /** Kept for parity with prior API; the final total is rendered by the
    * parent bar's collapsed header (no need to duplicate inside the body). */
   displayTotal?: number
+  /** Optimistic COD-fee prediction. When set, drives the row instead of
+   * the cart line item — so the row shows the predicted fee before
+   * prepare-checkout writes it to the cart. Mirror of the desktop
+   * summary's effectiveCodFee. */
+  optimisticCodFee?: number | null
   /** Admin-editable label for the COD fee row. Falls back to the line
    * item's title, then to `labels.codFee`. */
   codFeeLabel?: string
@@ -36,6 +41,7 @@ type MobileOrderSummaryBodyProps = {
 export function MobileOrderSummaryBody({
   cart,
   shippingCost,
+  optimisticCodFee,
   codFeeLabel,
 }: MobileOrderSummaryBodyProps) {
   const labels = useCheckoutLabels()
@@ -56,7 +62,14 @@ export function MobileOrderSummaryBody({
     return Math.max(0, (cart.item_total ?? 0) - feeNet)
   }, [cart.item_total, codFeeItem])
 
-  const codFeeAmount = codFeeItem?.total ?? 0
+  // Effective COD fee for display: optimistic prediction wins until the
+  // server-side cart catches up via prepare-checkout. Mirror of the
+  // desktop summary's effectiveCodFee.
+  const realCodFeeAmount = codFeeItem?.total ?? 0
+  const codFeeAmount =
+    optimisticCodFee !== null && optimisticCodFee !== undefined
+      ? optimisticCodFee
+      : realCodFeeAmount
   const productItemCount = productItems.reduce((s, i) => s + i.quantity, 0)
 
   return (

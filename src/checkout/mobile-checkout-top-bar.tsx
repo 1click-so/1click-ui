@@ -5,6 +5,7 @@ import { useState } from "react"
 
 import { cn } from "../lib/utils"
 import { DualPrice } from "../lib/dual-price"
+import { findFeeLine } from "../lib/cart-helpers"
 import { useCheckoutLabels } from "./context"
 import { MobileOrderSummaryBody } from "./mobile-order-summary-body"
 
@@ -26,6 +27,8 @@ type MobileCheckoutTopBarProps = {
     promotions?: HttpTypes.StorePromotion[]
   }
   optimisticShippingCost: number | null
+  /** Optimistic COD-fee prediction. See MobileCheckoutBottomBar. */
+  optimisticCodFee?: number | null
   /** Admin-editable label for the COD fee row in the expanded body. */
   codFeeLabel?: string
 }
@@ -33,6 +36,7 @@ type MobileCheckoutTopBarProps = {
 export function MobileCheckoutTopBar({
   cart,
   optimisticShippingCost,
+  optimisticCodFee,
   codFeeLabel,
 }: MobileCheckoutTopBarProps) {
   const labels = useCheckoutLabels()
@@ -42,12 +46,16 @@ export function MobileCheckoutTopBar({
     optimisticShippingCost !== null
       ? optimisticShippingCost
       : cart.shipping_total
-  const displayTotal =
-    optimisticShippingCost !== null
-      ? (cart.total ?? 0) -
-        (cart.shipping_total ?? 0) +
-        optimisticShippingCost
-      : (cart.total ?? 0)
+  // See MobileCheckoutBottomBar — same formula kept in lockstep.
+  const realCodFeeAmount = findFeeLine(cart.items ?? null)?.total ?? 0
+  let displayTotal = cart.total ?? 0
+  if (optimisticShippingCost !== null) {
+    displayTotal =
+      displayTotal - (cart.shipping_total ?? 0) + optimisticShippingCost
+  }
+  if (optimisticCodFee !== null && optimisticCodFee !== undefined) {
+    displayTotal = displayTotal - realCodFeeAmount + optimisticCodFee
+  }
 
   return (
     <div className="sm:hidden bg-muted border-y border-border">
@@ -90,6 +98,7 @@ export function MobileCheckoutTopBar({
             cart={cart}
             shippingCost={shippingCost}
             displayTotal={displayTotal}
+            optimisticCodFee={optimisticCodFee}
             codFeeLabel={codFeeLabel}
           />
         </div>

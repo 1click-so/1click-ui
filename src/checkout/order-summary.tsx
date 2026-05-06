@@ -29,6 +29,17 @@ type OrderSummaryProps = {
   optimisticShippingCost: number | null
   onOptimisticShippingClear?: () => void
   /**
+   * Optimistic COD-fee prediction. Three values:
+   *   - null         → no prediction; render whatever the cart says.
+   *   - 0            → predict no fee (toggling away from COD).
+   *   - positive     → predict the fee at this amount.
+   * Pass `useCheckoutOrchestration`'s `optimisticCodFee`. Same pattern
+   * as `optimisticShippingCost` — needed because the deferred-checkout
+   * architecture (v1.21.0) defers fee writes until Buy click.
+   */
+  optimisticCodFee?: number | null
+  onOptimisticCodFeeClear?: () => void
+  /**
    * Admin-editable label for the cash-on-delivery fee row, sourced from
    * the cash_on_delivery integration_setting on the backend. Optional —
    * falls back to the fee line item's title, then to `labels.codFee`.
@@ -40,6 +51,8 @@ export function OrderSummary({
   cart,
   optimisticShippingCost,
   onOptimisticShippingClear,
+  optimisticCodFee,
+  onOptimisticCodFeeClear,
   codFeeLabel,
 }: OrderSummaryProps) {
   const labels = useCheckoutLabels()
@@ -59,12 +72,31 @@ export function OrderSummary({
     optimisticShippingCost !== null ? optimisticShippingCost : cart.shipping_total
   const shippingKnown = shippingCost !== null && shippingCost !== undefined
 
-  const displayTotal =
-    optimisticShippingCost !== null
-      ? (cart.total ?? 0) -
-        (cart.shipping_total ?? 0) +
-        optimisticShippingCost
-      : cart.total
+  // Effective COD fee: optimistic prediction wins until the cart catches
+  // up. Three states (null / 0 / positive) per AlenikaOrderSummary.
+  const realCodFeeAmount = codFeeItem?.total ?? 0
+  const effectiveCodFee =
+    optimisticCodFee !== null && optimisticCodFee !== undefined
+      ? optimisticCodFee
+      : realCodFeeAmount
+
+  const displayTotal = useMemo(() => {
+    let total = cart.total ?? 0
+    if (optimisticShippingCost !== null) {
+      total = total - (cart.shipping_total ?? 0) + optimisticShippingCost
+    }
+    if (optimisticCodFee !== null && optimisticCodFee !== undefined) {
+      total = total - realCodFeeAmount + effectiveCodFee
+    }
+    return total
+  }, [
+    cart.total,
+    cart.shipping_total,
+    optimisticShippingCost,
+    optimisticCodFee,
+    effectiveCodFee,
+    realCodFeeAmount,
+  ])
 
   // Subtotal excludes the fee line. Medusa's `cart.item_total` sums all
   // items including the fee — for the visible breakdown we want only
@@ -77,7 +109,7 @@ export function OrderSummary({
     return Math.max(0, (cart.item_total ?? 0) - feeNet)
   }, [cart.item_total, codFeeItem])
 
-  const codFeeAmount = codFeeItem?.total ?? 0
+  const codFeeAmount = effectiveCodFee
 
   // Clear optimistic override once server cart reflects the new shipping cost
   useEffect(() => {
@@ -88,6 +120,18 @@ export function OrderSummary({
       onOptimisticShippingClear?.()
     }
   }, [cart.shipping_total, optimisticShippingCost, onOptimisticShippingClear])
+
+  // Clear optimistic COD fee once the cart's actual line item state
+  // matches the prediction. Mirrors AlenikaOrderSummary.
+  useEffect(() => {
+    if (optimisticCodFee === null || optimisticCodFee === undefined) return
+    const synced =
+      (optimisticCodFee === 0 && !codFeeItem) ||
+      (optimisticCodFee > 0 &&
+        !!codFeeItem &&
+        codFeeItem.total === optimisticCodFee)
+    if (synced) onOptimisticCodFeeClear?.()
+  }, [optimisticCodFee, codFeeItem, onOptimisticCodFeeClear])
 
   return (
     <div>

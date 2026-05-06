@@ -64,6 +64,14 @@ type PaymentButtonProps = {
    * Ignored on the COD path. Defaults to `true`.
    */
   paymentElementComplete?: boolean
+  /**
+   * Display total in main currency units. Pass `useCheckoutOrchestration`'s
+   * `optimisticTotal` so the button reflects the same number the order
+   * summary shows, even pre-Buy when shipping & COD fee aren't on the
+   * cart yet. Falls back to `cart.total` for callers that haven't wired
+   * it up.
+   */
+  total?: number
   "data-testid"?: string
 }
 
@@ -154,6 +162,7 @@ export function PaymentButton({
   notReady,
   performBuyClick,
   paymentElementComplete = true,
+  total,
   "data-testid": dataTestId,
 }: PaymentButtonProps) {
   const labels = useCheckoutLabels()
@@ -264,7 +273,7 @@ export function PaymentButton({
         onClick={handleClick}
         disabled={disabled}
         loading={submitting}
-        total={cart.total ?? undefined}
+        total={total ?? cart.total ?? undefined}
         currencyCode={cart.currency_code}
         testId={dataTestId}
         label={labels.placeOrder}

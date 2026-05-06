@@ -19,6 +19,7 @@ import {
 import { calculatePriceForShippingOption } from "../data/fulfillment"
 import { updateCustomer } from "../data/customer"
 import compareAddresses from "../data/util/compare-addresses"
+import { findFeeLine } from "../lib/cart-helpers"
 import { isManual, isStripeLike } from "../lib/payment-constants"
 
 import { useOrderConfirmedPath } from "./context"
@@ -883,44 +884,53 @@ export function useCheckoutOrchestration({
     promotions?: HttpTypes.StorePromotion[]
   }
 
-  // ── Optimistic total (for Stripe Elements deferred-intent mode) ─────
-  // Stripe's deferred-intent <Elements> needs `amount` + `currency` at
-  // mount time (no PaymentIntent on the backend yet). We compute the
-  // displayed total from cart.subtotal + tax + optimistic shipping +
-  // optimistic COD fee. Reflects what the customer sees in the order
-  // summary, so the iframe's "Pay €X" matches it.
+  // ── Optimistic total (display, main currency units) ────────────────
+  // Single source of truth for "what total to show on every checkout
+  // surface that previously read cart.total" — order summary, mobile
+  // bars, Place Order button.
   //
-  // amount is in the smallest currency unit (cents/stotinki). Round to
-  // protect against float drift in optimistic deltas.
-  const optimisticTotalCents = useMemo(() => {
-    const cartSubtotal = cart?.subtotal ?? 0
-    const cartTaxTotal = cart?.tax_total ?? 0
-    const cartShipping = cart?.shipping_total ?? 0
-    const cartTotal = cart?.total ?? 0
-    // Prefer the optimistic shipping when set (toggle just happened);
-    // otherwise fall back to whatever the cart already has (e.g. a
-    // returning user with persisted shipping_methods, though in the
-    // deferred model that won't happen until Buy click).
-    const shippingCost =
-      optimisticShippingCost !== null ? optimisticShippingCost : cartShipping
-    const codFee = optimisticCodFee ?? 0
-
-    // If we have any optimistic delta, recompute from parts. Otherwise
-    // trust cart.total (covers tax adjustments correctly during typing).
-    const computedTotal =
-      optimisticShippingCost !== null || optimisticCodFee !== null
-        ? cartSubtotal + cartTaxTotal + shippingCost + codFee
-        : cartTotal
-
-    return Math.max(50, Math.round(computedTotal * 100))
+  // Why this exists. The deferred-checkout architecture (v1.21.0) made
+  // cart.total stale until Buy click: shipping & COD fee are now client
+  // state, not written to the cart pre-Buy. Surfaces reading cart.total
+  // raw drift visibly. This memo applies the same compensating math
+  // that AlenikaOrderSummary already does, hoisted so every consumer
+  // shares one formula.
+  //
+  // Formula (mirrors AlenikaOrderSummary):
+  //   start = cart.total (covers subtotal + tax + any already-written
+  //                       shipping/fee — most importantly captures tax
+  //                       drift from the active region's rate)
+  //   if optimisticShippingCost set: replace cart.shipping_total with it
+  //   if optimisticCodFee set: replace realCodFee from cart.items with it
+  // When nothing is optimistic, this collapses to cart.total.
+  const optimisticTotal = useMemo(() => {
+    const realCodFeeAmount = findFeeLine(cart?.items ?? null)?.total ?? 0
+    let total = cart?.total ?? 0
+    if (optimisticShippingCost !== null) {
+      total = total - (cart?.shipping_total ?? 0) + optimisticShippingCost
+    }
+    if (optimisticCodFee !== null && optimisticCodFee !== undefined) {
+      total = total - realCodFeeAmount + optimisticCodFee
+    }
+    return total
   }, [
-    cart?.subtotal,
-    cart?.tax_total,
-    cart?.shipping_total,
     cart?.total,
+    cart?.shipping_total,
+    cart?.items,
     optimisticShippingCost,
     optimisticCodFee,
   ])
+
+  // ── Optimistic total in cents (for Stripe Elements deferred-intent) ─
+  // Stripe's deferred-intent <Elements> needs `amount` + `currency` at
+  // mount time (no PaymentIntent on the backend yet). Same value as
+  // `optimisticTotal` above, just in the smallest currency unit and
+  // floor-clamped to Stripe's minimum charge. Round to protect against
+  // float drift in optimistic deltas.
+  const optimisticTotalCents = useMemo(
+    () => Math.max(50, Math.round(optimisticTotal * 100)),
+    [optimisticTotal]
+  )
 
   // ── Buy-click payload builder ───────────────────────────────────────
   // Constructs the prepareCheckout request body from current client
@@ -1267,6 +1277,7 @@ export function useCheckoutOrchestration({
     handlePaymentElementChange,
 
     // Buy click (deferred-intent flow)
+    optimisticTotal,
     optimisticTotalCents,
     buildPrepareCheckoutPayload,
     performBuyClick,
