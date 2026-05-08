@@ -17,6 +17,7 @@ import {
   prepareCheckout,
   updateCart,
 } from "../data/cart"
+import { translateAddressError } from "./address-error-copy"
 import { calculatePriceForShippingOption } from "../data/fulfillment"
 import { updateCustomer } from "../data/customer"
 import compareAddresses from "../data/util/compare-addresses"
@@ -480,7 +481,12 @@ export function useCheckoutOrchestration({
           postal_code: formData["shipping_address.postal_code"] || null,
         },
       })
-      setAddressError(errObj ? errObj.message : String(e))
+      // Translate to Bulgarian — the raw error.message in production
+      // is either Medusa English ("Invalid request: Invalid email.") or
+      // the Next.js canned digest text. Neither is acceptable to show
+      // a Bulgarian shopper at the moment of failure. Unknown errors
+      // get the generic fallback rather than half-translated text.
+      setAddressError(translateAddressError(errObj ?? e))
     } finally {
       setAddressSaving(false)
       addressSavingRef.current = false
