@@ -12,6 +12,7 @@ import {
 
 import {
   logCheckoutError,
+  logEvent,
   placeOrder,
   prepareCheckout,
   updateCart,
@@ -442,7 +443,44 @@ export function useCheckoutOrchestration({
         }).catch(() => {})
       }
     } catch (e: unknown) {
-      setAddressError(e instanceof Error ? e.message : String(e))
+      // ── Visibility ─────────────────────────────────────────────────
+      // Without this logEvent, address-save failures are completely
+      // silent in checkout_error_log. In production a Server Action
+      // throw arrives here as `e.message = "An error occurred in the
+      // Server Components render. The specific message is omitted in
+      // production builds…"` — Next.js redacts the real cause and
+      // exposes only `digest`. Match the digest to Vercel runtime logs
+      // to recover the underlying Medusa rejection.
+      //
+      // PII discipline: log only structured/non-PII fields
+      // (country_code, postal_code, flags). No names, email, phone,
+      // address line, or company VAT/MOL.
+      const errObj = e instanceof Error ? e : null
+      const digest =
+        (errObj as (Error & { digest?: string }) | null)?.digest ?? null
+      void logEvent({
+        errorType: "address_save_failed",
+        errorMessage: errObj?.message ?? String(e),
+        surface: "checkout",
+        severity: "high",
+        cartId: cart?.id,
+        customerId: customer?.id,
+        pagePath:
+          typeof window !== "undefined"
+            ? window.location.pathname
+            : "/checkout",
+        context: {
+          digest,
+          err_name: errObj?.name ?? null,
+          err_stack: errObj?.stack?.slice(0, 2000) ?? null,
+          all_required_filled: allRequiredFilled,
+          same_as_billing: sameAsBilling,
+          has_company: Boolean(formData.company_name?.trim()),
+          country_code: formData["shipping_address.country_code"] || null,
+          postal_code: formData["shipping_address.postal_code"] || null,
+        },
+      })
+      setAddressError(errObj ? errObj.message : String(e))
     } finally {
       setAddressSaving(false)
       addressSavingRef.current = false
