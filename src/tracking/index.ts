@@ -52,6 +52,8 @@ export {
   trackGAAddToCart,
   trackGABeginCheckout,
   trackGAPurchase,
+  setEnhancedConversions,
+  type EnhancedConversionsInput,
 } from "./gtag"
 export {
   trackRybbitViewItem,
