@@ -67,6 +67,23 @@ export type PurchaseData = {
 }
 
 /**
+ * Lead event payload — shape per Meta's Lead standard event spec.
+ * All fields optional (Meta accepts an empty Lead). Storefront wraps
+ * popup signups + newsletter forms in a Lead event so Meta can
+ * optimize ad delivery for "likely subscribers" and build Lead
+ * lookalike audiences from our funnel.
+ */
+export type LeadData = {
+  /** Optional lead value (e.g. expected LTV for a subscriber). */
+  value?: number
+  currency?: string
+  /** Free-text label describing what the visitor signed up for —
+   *  e.g. "newsletter_popup", "newsletter_footer". */
+  content_name?: string
+  content_category?: string
+}
+
+/**
  * Attribution payload written to `cart.metadata` before completion.
  * Backend subscriber reads exactly these keys from `order.metadata`.
  *
@@ -85,6 +102,12 @@ export type TrackingAttribution = {
   fb_user_agent?: string
   fb_client_ip?: string
   fb_event_source_url?: string
+  /** Per-browser anonymous visitor id (cookie `_1c_anon`). Backend
+   *  uses this as `external_id` on the Purchase CAPI when no
+   *  customer_id is available, AND alongside customer_id when both
+   *  are known (Meta accepts external_id as an array, so dedup +
+   *  cross-session attribution both improve). */
+  fb_anon_id?: string
   ga_client_id?: string
   ga_session_id?: string
   ga_engagement_time_msec?: number

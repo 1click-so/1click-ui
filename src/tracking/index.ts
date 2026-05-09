@@ -25,7 +25,7 @@
  * Next.js's RSC boundary detection both work better with subpaths.
  */
 
-export { MetaPixel } from "./meta-pixel"
+export { MetaPixel, updatePixelAdvancedMatching } from "./meta-pixel"
 export { GA4 } from "./ga4"
 export { Rybbit } from "./rybbit"
 export {
@@ -33,9 +33,20 @@ export {
   trackAddToCart,
   trackInitiateCheckout,
   trackPurchase,
+  trackLead,
   type ExtraTrackingContext,
+  type LeadContext,
 } from "./fbq"
 export { fireCapiEvent, generateEventId, type CapiEventInput, type CapiUserData } from "./capi"
+export {
+  setTrackingDefaults,
+  getOrCreateAnonId,
+  getOrCreateFbp,
+  getOrCreateFbc,
+  getKnownVisitor,
+  rememberKnownVisitor,
+  type KnownVisitor,
+} from "./attribution"
 export {
   trackGAViewItem,
   trackGAAddToCart,
@@ -69,6 +80,7 @@ export type {
   AddToCartData,
   InitiateCheckoutData,
   PurchaseData,
+  LeadData,
 } from "./types"
 
 export type {

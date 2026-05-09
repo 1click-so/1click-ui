@@ -1,5 +1,12 @@
 "use client"
 
+import {
+  getOrCreateAnonId,
+  getOrCreateFbc,
+  getOrCreateFbp,
+  getKnownVisitor,
+} from "./attribution"
+
 /**
  * Browser-side CAPI client.
  *
@@ -18,35 +25,27 @@
  * IP/UA from headers and forwards to Meta. We send fbp/fbc from cookies
  * because backend can't read first-party cookies set on the storefront
  * domain (different origin from the Medusa backend).
+ *
+ * Attribution defaults:
+ *   - fbp / fbc / external_id / em / ph / fn / ln / ct / st / zp / country
+ *     are auto-defaulted from `./attribution` helpers (cookies +
+ *     localStorage). Caller-supplied values always take precedence.
+ *     This is what fixes the EMQ gaps in Events Manager — every event
+ *     ships dedup keys + identity + locale even when the caller doesn't
+ *     know to pass them.
  */
 
 const CAPI_PATH = "/store/integrations/facebook/event"
-
-/**
- * Read a cookie value by name from `document.cookie`. Returns
- * `undefined` on SSR or when the cookie isn't present.
- *
- * `_fbp` and `_fbc` are first-party cookies set by Meta Pixel:
- *   _fbp = fb.1.<timestamp>.<random>          (every visitor)
- *   _fbc = fb.1.<timestamp>.<fbclid value>    (visitors arriving via
- *                                              an ad with ?fbclid=...)
- */
-function readCookie(name: string): string | undefined {
-  if (typeof document === "undefined") return undefined
-  const match = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith(`${name}=`))
-  if (!match) return undefined
-  const value = match.split("=").slice(1).join("=")
-  return value || undefined
-}
 
 export type CapiUserData = {
   fbp?: string
   fbc?: string
   email?: string
   phone?: string
-  external_id?: string
+  /** Single id or array — Meta accepts both. We pass customer_id and
+   *  anon_id together when the visitor has signed up so dedup AND
+   *  cross-session attribution both improve. */
+  external_id?: string | string[]
   first_name?: string
   last_name?: string
   city?: string
@@ -58,11 +57,15 @@ export type CapiUserData = {
 export type CapiEventInput = {
   /** Must match the eventID passed to fbq() for Meta to dedupe. */
   event_id: string
+  /** Unix seconds at the moment of user action. Backend honours this
+   *  instead of stamping at receive time, eliminating 50-300ms drift
+   *  on the wire. Defaults to now() at fireCapiEvent call time. */
+  event_time?: number
   /** Defaults to `window.location.href`. */
   event_source_url?: string
   /** When provided, backend enriches user_data from cart.shipping_address. */
   cart_id?: string
-  /** Hashed server-side. Only fields you have. */
+  /** Caller-supplied user_data overrides defaults from attribution. */
   user_data?: CapiUserData
   /** Whatever Meta wants for this event (currency, value, content_ids, etc.). */
   custom_data?: Record<string, unknown>
@@ -84,15 +87,30 @@ function getConfig(): Config | null {
  * Fire a CAPI event in parallel to the Pixel call. The two MUST
  * carry the same `event_id` for Meta to dedupe.
  *
- * Auto-merges fbp/fbc from cookies if the caller didn't pass them.
- * Defaults `event_source_url` to the current page URL.
+ * Auto-defaults from attribution.ts:
+ *   - fbp / fbc — self-managed cookies with Meta's exact format,
+ *     written on first call so the Pixel race-condition doesn't
+ *     leave us with empty values
+ *   - external_id — anon_id UUID (or appended to caller-supplied
+ *     customer_id when both known)
+ *   - email / phone / first_name / last_name / city / state / postal_code /
+ *     country — read from rememberKnownVisitor's localStorage
+ *     (populated when visitor types email in checkout, signs up via
+ *     popup, or logs in)
  *
- * Fire-and-forget: this returns void and never throws. Tracking
- * failures must never break the user flow. Errors are silently
- * swallowed; the Pixel side still arrives at Meta independently.
+ * Caller can override any default by passing `user_data.<field>`.
+ *
+ * Fire-and-forget: returns void and never throws. Tracking failures
+ * must never break the user flow.
  */
 export function fireCapiEvent(
-  eventName: "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase" | "PageView",
+  eventName:
+    | "ViewContent"
+    | "AddToCart"
+    | "InitiateCheckout"
+    | "Purchase"
+    | "PageView"
+    | "Lead",
   input: CapiEventInput
 ): void {
   if (typeof window === "undefined") return
@@ -100,23 +118,40 @@ export function fireCapiEvent(
   const config = getConfig()
   if (!config) return // Tracking not configured — no-op silently.
 
+  const known = getKnownVisitor()
+  const callerExternalId = input.user_data?.external_id
+  const anonId = getOrCreateAnonId()
+  // When a customer_id was supplied, send BOTH it and the anon_id so
+  // Meta can dedupe by either AND link cross-session activity. When
+  // only the anon_id is available, send just that.
+  const externalId: string | string[] | undefined = callerExternalId
+    ? Array.isArray(callerExternalId)
+      ? anonId && !callerExternalId.includes(anonId)
+        ? [...callerExternalId, anonId]
+        : callerExternalId
+      : anonId && callerExternalId !== anonId
+        ? [callerExternalId, anonId]
+        : callerExternalId
+    : anonId
+
   const userData: CapiUserData = {
-    fbp: input.user_data?.fbp ?? readCookie("_fbp"),
-    fbc: input.user_data?.fbc ?? readCookie("_fbc"),
-    email: input.user_data?.email,
-    phone: input.user_data?.phone,
-    external_id: input.user_data?.external_id,
-    first_name: input.user_data?.first_name,
-    last_name: input.user_data?.last_name,
-    city: input.user_data?.city,
-    state: input.user_data?.state,
-    country: input.user_data?.country,
-    postal_code: input.user_data?.postal_code,
+    fbp: input.user_data?.fbp ?? getOrCreateFbp(),
+    fbc: input.user_data?.fbc ?? getOrCreateFbc(),
+    external_id: externalId,
+    email: input.user_data?.email ?? known.email,
+    phone: input.user_data?.phone ?? known.phone,
+    first_name: input.user_data?.first_name ?? known.firstName,
+    last_name: input.user_data?.last_name ?? known.lastName,
+    city: input.user_data?.city ?? known.city,
+    state: input.user_data?.state ?? known.state,
+    postal_code: input.user_data?.postal_code ?? known.postalCode,
+    country: input.user_data?.country ?? known.country,
   }
 
   const body = {
     event_name: eventName,
     event_id: input.event_id,
+    event_time: input.event_time ?? Math.floor(Date.now() / 1000),
     event_source_url: input.event_source_url ?? window.location.href,
     cart_id: input.cart_id,
     user_data: userData,

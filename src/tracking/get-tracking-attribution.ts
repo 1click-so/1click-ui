@@ -34,6 +34,7 @@ export async function getTrackingAttribution(
   // Cookies (best-effort — throws outside a request context)
   let fbp: string | undefined
   let fbc: string | undefined
+  let anonId: string | undefined
   let gaCookieRaw: string | undefined
   let gaSessionCookieRaw: string | undefined
 
@@ -41,6 +42,11 @@ export async function getTrackingAttribution(
     const cookieStore = await cookies()
     fbp = cookieStore.get("_fbp")?.value
     fbc = cookieStore.get("_fbc")?.value
+    // _1c_anon — our self-managed per-browser visitor id, written by
+    // attribution.ts on first tracking call. Surfaces server-side here
+    // so the order.placed CAPI Purchase can include it as external_id
+    // (alongside customer_id when both exist — Meta accepts an array).
+    anonId = cookieStore.get("_1c_anon")?.value
     gaCookieRaw = cookieStore.get("_ga")?.value
 
     // _ga_<MEASUREMENT_ID> uses the GA4 measurementId (e.g., G-ABCDEF1234)
@@ -58,6 +64,7 @@ export async function getTrackingAttribution(
 
   if (fbp) result.fb_fbp = fbp
   if (fbc) result.fb_fbc = fbc
+  if (anonId) result.fb_anon_id = anonId
 
   // _ga cookie format: "GA1.1.<client_id>.<timestamp>" — backend wants
   // the full <client_id>.<timestamp> portion (the canonical GA client_id).

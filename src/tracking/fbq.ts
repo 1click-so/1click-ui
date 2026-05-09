@@ -4,6 +4,7 @@ import { fireCapiEvent, generateEventId } from "./capi"
 import type {
   AddToCartData,
   InitiateCheckoutData,
+  LeadData,
   PurchaseData,
   ViewContentData,
 } from "./types"
@@ -29,6 +30,14 @@ import type {
 
 type FbqFn = {
   (command: "init", pixelId: string): void
+  /** Re-init with Advanced Matching params (em / ph / fn / ln / ct / zp,
+   *  pre-hashed). Per Meta docs the Pixel merges these with any prior
+   *  init values and applies them to ALL subsequent track() calls. */
+  (
+    command: "init",
+    pixelId: string,
+    advancedMatching: Record<string, string>
+  ): void
   (
     command: "track",
     eventName: string,
@@ -166,4 +175,56 @@ export function trackPurchase(
     user_data: { email: context.email },
     custom_data: data as unknown as Record<string, unknown>,
   })
+}
+
+export type LeadContext = ExtraTrackingContext & {
+  /** Override the auto-generated event id. Used by callers that need
+   *  to send the same id to a backend route so server-side CAPI can
+   *  dedupe with the browser-fired Pixel + browser-CAPI events. */
+  eventId?: string
+  /** Free-text label for the lead source — e.g. "popup_welcome10" or
+   *  "newsletter_footer". Surfaces in Meta as `content_name`. */
+  contentName?: string
+  /** Optional intent slug from popup (intent_picker option). Surfaces
+   *  as a custom_data field so audiences can segment on it. */
+  intent?: string
+}
+
+/**
+ * Lead event — fired when a visitor submits the marketing popup or
+ * any newsletter signup form. Highest-intent pre-purchase signal.
+ * Without this Meta has no way to optimize ad delivery for "likely
+ * subscribers" or build a Lead lookalike audience from our funnel.
+ *
+ * Returns the eventId so the caller can pass it to the backend
+ * subscribe route — the server fires its own CAPI Lead with the same
+ * id, and Meta dedupes Browser Pixel + Browser CAPI + Server CAPI
+ * into one conversion. Belt-and-suspenders: server fire ensures the
+ * event lands even when the browser is ad-blocker-killed.
+ */
+export function trackLead(
+  data: LeadData = {},
+  context: LeadContext = {}
+): string {
+  const eventId = context.eventId ?? generateEventId("Lead")
+
+  const fbq = safeFbq()
+  if (fbq) {
+    fbq("track", "Lead", data as unknown as Record<string, unknown>, {
+      eventID: eventId,
+    })
+  }
+
+  fireCapiEvent("Lead", {
+    event_id: eventId,
+    cart_id: context.cartId,
+    user_data: { email: context.email },
+    custom_data: {
+      ...(data as unknown as Record<string, unknown>),
+      ...(context.contentName ? { content_name: context.contentName } : {}),
+      ...(context.intent ? { intent: context.intent } : {}),
+    },
+  })
+
+  return eventId
 }
