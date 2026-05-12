@@ -111,6 +111,36 @@ export type TrackingAttribution = {
   ga_client_id?: string
   ga_session_id?: string
   ga_engagement_time_msec?: number
+
+  // ── UTM attribution ────────────────────────────────────────────────
+  // Captured by browser-side `captureUtmsFromUrl()` (attribution.ts)
+  // into `_1c_utm_first` / `_1c_utm_last` cookies, then read here at
+  // checkout completion. Flat keys (instead of nested objects) so a
+  // raw `SELECT metadata->>'utm_first_source' FROM "order"` query
+  // works without `jsonb_path_query`. Each tuple's `captured_at` is
+  // Unix seconds — `attribution_window_days = (order.created_at_unix
+  // - captured_at) / 86400`.
+
+  /** Acquisition (first-touch) UTM source — the campaign that
+   *  originally brought this visitor in. 365-day TTL. Stable across
+   *  multiple ad-click revisits. */
+  utm_first_source?: string
+  utm_first_medium?: string
+  utm_first_campaign?: string
+  utm_first_term?: string
+  utm_first_content?: string
+  utm_first_captured_at?: number
+
+  /** Closer (last-touch) UTM source — the campaign whose click
+   *  immediately preceded this order. 90-day TTL, refreshed on every
+   *  UTM-bearing visit. Aligns with Meta / Google Ads attribution
+   *  windows. */
+  utm_last_source?: string
+  utm_last_medium?: string
+  utm_last_campaign?: string
+  utm_last_term?: string
+  utm_last_content?: string
+  utm_last_captured_at?: number
 }
 
 /**

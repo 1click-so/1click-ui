@@ -31,11 +31,22 @@ const FBP_COOKIE = "_fbp"
 const FBC_COOKIE = "_fbc"
 const ANON_ID_COOKIE = "_1c_anon"
 const KNOWN_VISITOR_LS = "_1c_visitor_v1"
+const UTM_FIRST_COOKIE = "_1c_utm_first"
+const UTM_LAST_COOKIE = "_1c_utm_last"
 
 /** _fbp / _fbc TTL per Meta spec — 90 days first-party. */
 const FB_COOKIE_TTL_DAYS = 90
 /** anon_id persists much longer so cross-session attribution survives. */
 const ANON_ID_TTL_DAYS = 365
+/** First-touch UTM survives longer than any single ad campaign — the
+ *  campaign that originally acquired this visitor should still be
+ *  attributable a year later when they convert. Klaviyo acquisition
+ *  flows + cohort analysis want this. */
+const UTM_FIRST_TTL_DAYS = 365
+/** Last-touch UTM matches Meta's _fbc 90-day dedup window — the
+ *  campaign that closed the deal is what Meta / Google Ads dashboards
+ *  attribute conversions to. */
+const UTM_LAST_TTL_DAYS = 90
 
 /** Module-level config set by setTrackingDefaults — used by getKnownVisitor
  *  to default country when the storefront knows it (e.g. alenika is BG-only). */
@@ -252,4 +263,156 @@ export function normalisePhoneForHash(raw: string): string {
     digits = "359" + digits.slice(1)
   }
   return digits
+}
+
+// ── UTM attribution capture ──────────────────────────────────────────
+//
+// Captures `utm_source / utm_medium / utm_campaign / utm_term /
+// utm_content` from the current URL into TWO cookies:
+//
+//   - `_1c_utm_first` — first-touch (write once, 365d TTL). The
+//     campaign that originally acquired this visitor. Klaviyo flows +
+//     acquisition cohort analysis want this.
+//   - `_1c_utm_last`  — last-touch (write every visit with UTMs,
+//     90d TTL). The campaign that closed the deal. Meta / Google Ads
+//     dashboards attribute conversions to this.
+//
+// Both stored as a JSON blob so a single cookie carries all five UTM
+// params + a captured-at timestamp. The server-side
+// `get-tracking-attribution.ts` reads both cookies and flattens them
+// into `utm_first_*` / `utm_last_*` keys for `cart.metadata`.
+//
+// Cookie size: ~150-300 bytes per cookie at typical campaign-name
+// lengths. Well under any browser limit; the storefront's total
+// cookie footprint stays under 1KB even with both UTM cookies set.
+
+/** Captured UTM tuple stored as JSON in `_1c_utm_first` / `_1c_utm_last`. */
+export type CapturedUtms = {
+  utm_source: string | null
+  utm_medium: string | null
+  utm_campaign: string | null
+  utm_term: string | null
+  utm_content: string | null
+  /** Unix seconds at the moment of capture. Lets the server compute
+   *  "days since first touch" and similar attribution slicing. */
+  captured_at: number
+}
+
+const UTM_FIELDS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+] as const
+
+/** Parse UTM params from a URL search string. Returns null when the
+ *  URL carries no UTM params (so the caller can leave existing cookies
+ *  untouched on UTM-less visits). */
+function readUtmsFromSearch(search: string): CapturedUtms | null {
+  let params: URLSearchParams
+  try {
+    params = new URLSearchParams(search)
+  } catch {
+    return null
+  }
+  let hasAny = false
+  const collected: Record<string, string | null> = {}
+  for (const field of UTM_FIELDS) {
+    const raw = params.get(field)
+    if (raw && raw.trim().length > 0) {
+      collected[field] = raw.trim()
+      hasAny = true
+    } else {
+      collected[field] = null
+    }
+  }
+  if (!hasAny) return null
+  return {
+    utm_source: collected.utm_source ?? null,
+    utm_medium: collected.utm_medium ?? null,
+    utm_campaign: collected.utm_campaign ?? null,
+    utm_term: collected.utm_term ?? null,
+    utm_content: collected.utm_content ?? null,
+    captured_at: Math.floor(Date.now() / 1000),
+  }
+}
+
+/** Read + parse one of the two UTM cookies. Defensive — malformed JSON
+ *  or shape drift returns null so the caller treats it as missing
+ *  instead of crashing. */
+function readUtmsCookie(name: string): CapturedUtms | null {
+  const raw = getCookie(name)
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(decodeURIComponent(raw)) as Partial<CapturedUtms>
+    if (typeof parsed.captured_at !== "number") return null
+    return {
+      utm_source: parsed.utm_source ?? null,
+      utm_medium: parsed.utm_medium ?? null,
+      utm_campaign: parsed.utm_campaign ?? null,
+      utm_term: parsed.utm_term ?? null,
+      utm_content: parsed.utm_content ?? null,
+      captured_at: parsed.captured_at,
+    }
+  } catch {
+    return null
+  }
+}
+
+function writeUtmsCookie(name: string, utms: CapturedUtms, days: number): void {
+  if (!isBrowser()) return
+  setCookie(name, encodeURIComponent(JSON.stringify(utms)), days)
+}
+
+/**
+ * Capture UTM parameters from the current URL into first-touch +
+ * last-touch cookies. Idempotent and safe to call on every page mount —
+ * does nothing when the URL has no `utm_*` params.
+ *
+ *   - First-touch: written ONLY if no existing `_1c_utm_first` cookie.
+ *     Preserves the original acquisition campaign for 365 days.
+ *   - Last-touch:  overwritten on every visit that carries UTMs.
+ *     Refreshed to 90 days each time so it tracks the most recent ad
+ *     click that brought the visitor back.
+ *
+ * Storefronts should call this from a top-level client component
+ * (e.g. `TrackInit`) so the cookies are set before any subsequent
+ * checkout step calls `getTrackingAttribution()` to read them.
+ */
+export function captureUtmsFromUrl(): void {
+  if (!isBrowser()) return
+  const utms = readUtmsFromSearch(window.location.search)
+  if (!utms) return
+
+  // First-touch: write only when the cookie is currently absent.
+  // Re-arriving with a fresh UTM does NOT overwrite the original
+  // acquisition record — that's the whole point of "first-touch".
+  if (!readUtmsCookie(UTM_FIRST_COOKIE)) {
+    writeUtmsCookie(UTM_FIRST_COOKIE, utms, UTM_FIRST_TTL_DAYS)
+  }
+  // Last-touch: always overwrite when the URL carries UTMs. Refreshes
+  // the 90-day TTL on every campaign click so it always points at the
+  // most recent attributable touch.
+  writeUtmsCookie(UTM_LAST_COOKIE, utms, UTM_LAST_TTL_DAYS)
+}
+
+/**
+ * Browser-side accessor for the captured first-touch UTM cookie.
+ * Returns null when no first-touch has been recorded yet. Server-side
+ * code MUST use `getTrackingAttribution()` (which reads via Next's
+ * cookies() API) instead — this function is browser-only.
+ */
+export function getCapturedFirstTouchUtms(): CapturedUtms | null {
+  return readUtmsCookie(UTM_FIRST_COOKIE)
+}
+
+/**
+ * Browser-side accessor for the captured last-touch UTM cookie.
+ * Returns null when no UTM-bearing visit has happened in the last
+ * 90 days. Server-side code MUST use `getTrackingAttribution()` —
+ * this is browser-only.
+ */
+export function getCapturedLastTouchUtms(): CapturedUtms | null {
+  return readUtmsCookie(UTM_LAST_COOKIE)
 }

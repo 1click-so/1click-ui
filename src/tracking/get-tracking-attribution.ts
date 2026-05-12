@@ -38,6 +38,9 @@ export async function getTrackingAttribution(
   let gaCookieRaw: string | undefined
   let gaSessionCookieRaw: string | undefined
 
+  let utmFirstRaw: string | undefined
+  let utmLastRaw: string | undefined
+
   try {
     const cookieStore = await cookies()
     fbp = cookieStore.get("_fbp")?.value
@@ -48,6 +51,12 @@ export async function getTrackingAttribution(
     // (alongside customer_id when both exist — Meta accepts an array).
     anonId = cookieStore.get("_1c_anon")?.value
     gaCookieRaw = cookieStore.get("_ga")?.value
+    // _1c_utm_first / _1c_utm_last — JSON-encoded UTM tuples written
+    // by browser-side captureUtmsFromUrl(). First-touch records the
+    // acquisition campaign (365-day TTL); last-touch records the
+    // closer (90-day TTL, refreshed on each UTM-bearing visit).
+    utmFirstRaw = cookieStore.get("_1c_utm_first")?.value
+    utmLastRaw = cookieStore.get("_1c_utm_last")?.value
 
     // _ga_<MEASUREMENT_ID> uses the GA4 measurementId (e.g., G-ABCDEF1234)
     // with the "G-" prefix stripped: cookie name = `_ga_ABCDEF1234`.
@@ -65,6 +74,15 @@ export async function getTrackingAttribution(
   if (fbp) result.fb_fbp = fbp
   if (fbc) result.fb_fbc = fbc
   if (anonId) result.fb_anon_id = anonId
+
+  // Flatten UTM cookies into utm_first_* / utm_last_* keys so the
+  // backend (and the order.metadata writeback that follows) can read
+  // them with simple JSON path queries — no jsonb_path_query needed.
+  // Missing keys are dropped from `result` (not set to undefined) so a
+  // partial-touch (e.g. utm_source only) doesn't pollute metadata with
+  // null fields.
+  applyUtmCookie(utmFirstRaw, "utm_first", result)
+  applyUtmCookie(utmLastRaw, "utm_last", result)
 
   // _ga cookie format: "GA1.1.<client_id>.<timestamp>" — backend wants
   // the full <client_id>.<timestamp> portion (the canonical GA client_id).
@@ -115,4 +133,66 @@ export async function getTrackingAttribution(
   }
 
   return result
+}
+
+// ── UTM cookie parsing ───────────────────────────────────────────────
+
+type ParsedUtmCookie = {
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_term?: string
+  utm_content?: string
+  captured_at?: number
+}
+
+/**
+ * Decode a `_1c_utm_first` or `_1c_utm_last` cookie value (URI-encoded
+ * JSON) and flatten its fields onto the attribution result with the
+ * given prefix ("utm_first" or "utm_last"). Missing/blank UTM fields
+ * are dropped from `out` rather than written as undefined so a
+ * partial-touch never pollutes order.metadata with empty keys.
+ *
+ * Defensive against:
+ *   - Missing cookie (raw=undefined) → no-op
+ *   - Invalid URI encoding → caught + no-op
+ *   - Invalid JSON → caught + no-op
+ *   - Schema drift (captured_at missing or non-number) → no-op
+ *
+ * Treating malformed cookies as missing is the right call: a hostile
+ * or stale cookie shouldn't be able to inject keys into order.metadata
+ * via the type cast at the writeback boundary.
+ */
+function applyUtmCookie(
+  raw: string | undefined,
+  prefix: "utm_first" | "utm_last",
+  out: TrackingAttribution
+): void {
+  if (!raw) return
+  let parsed: ParsedUtmCookie | null = null
+  try {
+    parsed = JSON.parse(decodeURIComponent(raw)) as ParsedUtmCookie
+  } catch {
+    return
+  }
+  if (!parsed || typeof parsed.captured_at !== "number") return
+
+  // Spelling-out each field keeps the type system honest (rather than
+  // a string-keyed loop that would require `as any`).
+  if (parsed.utm_source) {
+    out[`${prefix}_source` as const] = parsed.utm_source
+  }
+  if (parsed.utm_medium) {
+    out[`${prefix}_medium` as const] = parsed.utm_medium
+  }
+  if (parsed.utm_campaign) {
+    out[`${prefix}_campaign` as const] = parsed.utm_campaign
+  }
+  if (parsed.utm_term) {
+    out[`${prefix}_term` as const] = parsed.utm_term
+  }
+  if (parsed.utm_content) {
+    out[`${prefix}_content` as const] = parsed.utm_content
+  }
+  out[`${prefix}_captured_at` as const] = parsed.captured_at
 }
