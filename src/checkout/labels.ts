@@ -44,6 +44,13 @@ export type CheckoutLabels = {
   deliveryDisabled: string
   noShippingOptions: string
   paymentDisabled: string
+  /** Shown above the shipping options when they render as a read-only
+   * price preview before the address is entered (stores that opt into
+   * `previewWhenAddressNotReady`). */
+  deliveryPreviewHint: string
+  /** Hint under the disabled Buy button explaining what's still missing. */
+  buyNeedsAddress: string
+  buyNeedsDelivery: string
 
   // Payment tabs
   codNote: string
@@ -156,6 +163,9 @@ export const defaultCheckoutLabels: CheckoutLabels = {
     "Enter your delivery address to see available shipping options.",
   noShippingOptions: "No shipping options available for your address.",
   paymentDisabled: "Select a shipping method to continue.",
+  deliveryPreviewHint: "Enter your address to choose a delivery method.",
+  buyNeedsAddress: "Enter your delivery address",
+  buyNeedsDelivery: "Choose a delivery method",
 
   codNote: "Cash on delivery. Additional fees may apply.",
   payOnline: "Pay online",

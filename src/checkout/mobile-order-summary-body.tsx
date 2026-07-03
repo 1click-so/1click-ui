@@ -36,6 +36,12 @@ type MobileOrderSummaryBodyProps = {
   /** Admin-editable label for the COD fee row. Falls back to the line
    * item's title, then to `labels.codFee`. */
   codFeeLabel?: string
+  /** Hide the inline promo-code entry inside this summary body. Default
+   * false (promo field shown). A store that surfaces its own always-
+   * visible discount field elsewhere in the flow (e.g. Alenika's mobile
+   * checkout renders one directly above the bottom bar) passes `true` on
+   * the bar where the collapsed copy would be redundant. */
+  hideDiscount?: boolean
 }
 
 export function MobileOrderSummaryBody({
@@ -43,6 +49,7 @@ export function MobileOrderSummaryBody({
   shippingCost,
   optimisticCodFee,
   codFeeLabel,
+  hideDiscount = false,
 }: MobileOrderSummaryBodyProps) {
   const labels = useCheckoutLabels()
   const allItems = cart.items ?? []
@@ -90,7 +97,7 @@ export function MobileOrderSummaryBody({
           ))}
       </div>
 
-      <DiscountSection cart={cart} />
+      {!hideDiscount && <DiscountSection cart={cart} />}
 
       <div className="space-y-2 pt-2">
         <div className="flex justify-between text-sm">

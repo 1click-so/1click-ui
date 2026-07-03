@@ -61,6 +61,20 @@ type CheckoutPaymentMethodListProps = {
   /** True when address + shipping + carrier-destination are all filled.
    * Needed to gate the Buy button alongside Stripe-element completion. */
   buyButtonNotReady: boolean
+  /** Why the Buy button is still disabled — drives a short hint under it
+   * so a shopper who's looking at a live, interactive payment section
+   * (see `gatePaymentUntilDelivery={false}`) understands what's missing
+   * instead of reading a greyed button as broken. Only rendered while
+   * `buyButtonNotReady`. Omit / null to show no hint. */
+  buyButtonNotReadyReason?: "address" | "delivery" | null
+  /** Gate the whole payment section behind delivery-readiness (the
+   * classic flow: payment stays dimmed + hidden until a shipping method
+   * is chosen). Default `true` — mindpages and every existing store keep
+   * their current behavior. Pass `false` to keep the payment section
+   * ALWAYS visible + interactive (Shopify-style "everything on screen");
+   * the Buy button still can't fire because `buyButtonNotReady` gates it
+   * independently. */
+  gatePaymentUntilDelivery?: boolean
   /** Optional content rendered directly above the Place Order button.
    * Used by CheckoutClient to slot the mobile order-summary bottom bar. */
   beforePaymentButton?: React.ReactNode
@@ -82,10 +96,19 @@ export function CheckoutPaymentMethodList({
   onPaymentElementChange,
   performBuyClick,
   buyButtonNotReady,
+  buyButtonNotReadyReason,
+  gatePaymentUntilDelivery = true,
   beforePaymentButton,
   total,
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
+
+  // When the store opts out of gating (gatePaymentUntilDelivery=false),
+  // the payment section is always shown + interactive regardless of
+  // delivery readiness. The Buy button remains independently gated by
+  // `buyButtonNotReady`, so nothing can be submitted early — this only
+  // changes visibility, not the order-placement guard.
+  const paymentGated = gatePaymentUntilDelivery && !deliveryReady
   // Boolean context — true when Stripe.js is loaded. In deferred-intent
   // mode, the iframe mounts as soon as Stripe is ready (no PI required).
   const stripeReady = useContext(StripeContext)
@@ -134,7 +157,7 @@ export function CheckoutPaymentMethodList({
     <div
       className={cn(
         "mt-8 transition-opacity duration-300",
-        !deliveryReady && "opacity-30 pointer-events-none select-none"
+        paymentGated && "opacity-30 pointer-events-none select-none"
       )}
     >
       <h2 className="text-lg font-semibold text-foreground mb-1 tracking-tight">
@@ -142,7 +165,7 @@ export function CheckoutPaymentMethodList({
       </h2>
       <p className="text-xs text-muted-foreground mb-4">{labels.termsText}</p>
 
-      {!deliveryReady ? (
+      {paymentGated ? (
         <div className="p-4 bg-muted rounded-lg border border-border">
           <p className="text-sm text-muted-foreground">{labels.paymentDisabled}</p>
         </div>
@@ -291,6 +314,27 @@ export function CheckoutPaymentMethodList({
 
           {beforePaymentButton && (
             <div className="mt-5">{beforePaymentButton}</div>
+          )}
+
+          {buyButtonNotReady && buyButtonNotReadyReason && (
+            <div className="mt-4 flex items-center justify-center gap-1.5 text-muted-foreground">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="w-3.5 h-3.5 flex-shrink-0"
+                aria-hidden="true"
+              >
+                <rect x="5" y="11" width="14" height="10" rx="2" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+              <span className="text-xs font-medium">
+                {buyButtonNotReadyReason === "address"
+                  ? labels.buyNeedsAddress
+                  : labels.buyNeedsDelivery}
+              </span>
+            </div>
           )}
 
           <div className="mt-5">

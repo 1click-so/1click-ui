@@ -65,6 +65,15 @@ type CheckoutShippingMethodListProps = {
    * (radio + text only) layout.
    */
   logoByFulfillmentOptionId?: Record<string, { src: string; alt: string }>
+  /** Show the shipping options as a read-only price PREVIEW before the
+   * address is entered, instead of the "enter your address" placeholder.
+   * Rows render with their names + (flat) prices + carrier logos but are
+   * non-selectable — a hint tells the shopper to enter their address to
+   * choose. For flat-priced stores this lets people see the cost up front
+   * (a common reason carts stall) without letting them pick a method that
+   * needs a city (Econt office / BoxNow locker). Default `false` keeps the
+   * classic address-gated placeholder for every existing store. */
+  previewWhenAddressNotReady?: boolean
 }
 
 // Detection uses the stable fulfillment-option id set by the backend
@@ -99,23 +108,31 @@ export function CheckoutShippingMethodList({
   econt,
   boxnow,
   logoByFulfillmentOptionId,
+  previewWhenAddressNotReady = false,
 }: CheckoutShippingMethodListProps) {
   const labels = useCheckoutLabels()
   const detectEcont = econt?.detect ?? defaultEcontDetect
   const detectBoxnow = boxnow?.detect ?? defaultBoxnowDetect
 
+  // Preview mode: address not filled yet, but the store wants the options
+  // shown as a read-only price preview rather than a placeholder. Rows are
+  // rendered but locked (no selection) — see `previewWhenAddressNotReady`.
+  const showPreview = !addressReady && previewWhenAddressNotReady
+  // Only the classic (non-preview) not-ready state dims + hides the list.
+  const gatePlaceholder = !addressReady && !previewWhenAddressNotReady
+
   return (
     <div
       className={cn(
         "mt-8 transition-opacity duration-300",
-        !addressReady && "opacity-30 pointer-events-none select-none"
+        gatePlaceholder && "opacity-30 pointer-events-none select-none"
       )}
     >
       <h2 className="text-lg font-semibold text-foreground mb-4 tracking-tight">
         {labels.shippingServices}
       </h2>
 
-      {!addressReady ? (
+      {gatePlaceholder ? (
         <div className="p-4 bg-muted rounded-lg border border-border">
           <p className="text-sm text-muted-foreground">{labels.deliveryDisabled}</p>
         </div>
@@ -124,7 +141,37 @@ export function CheckoutShippingMethodList({
           <p className="text-sm text-muted-foreground">{labels.noShippingOptions}</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div
+          className={cn(
+            showPreview &&
+              "rounded-[2px] border border-dashed border-border/80 bg-muted/40 px-3.5 pt-3 pb-3.5"
+          )}
+        >
+          {showPreview && (
+            <div className="flex items-center gap-2 mb-3">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0"
+                aria-hidden="true"
+              >
+                <rect x="5" y="11" width="14" height="10" rx="2" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                {labels.deliveryPreviewHint}
+              </p>
+            </div>
+          )}
+          <div
+            className={cn(
+              "space-y-2",
+              showPreview &&
+                "grayscale opacity-60 pointer-events-none select-none"
+            )}
+          >
           {shippingMethods.map((option) => {
             // `cantCalc` fades a calculated-price option to opacity-40
             // when its price never resolved. Critically gated on BOTH
@@ -165,11 +212,12 @@ export function CheckoutShippingMethodList({
               >
                 <button
                   type="button"
-                  disabled={cantCalc || shippingLoading}
-                  onClick={() => onSelect(option.id)}
+                  disabled={cantCalc || shippingLoading || showPreview}
+                  onClick={showPreview ? undefined : () => onSelect(option.id)}
                   className={cn(
                     "flex items-center w-full px-4 py-3.5 text-left",
-                    cantCalc && "opacity-40 cursor-not-allowed"
+                    cantCalc && "opacity-40 cursor-not-allowed",
+                    showPreview && "cursor-default"
                   )}
                 >
                   <div
@@ -268,6 +316,7 @@ export function CheckoutShippingMethodList({
               </div>
             )
           })}
+          </div>
         </div>
       )}
 

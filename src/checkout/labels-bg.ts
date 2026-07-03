@@ -45,6 +45,9 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
     "Въведете адреса си за доставка, за да видите наличните варианти за доставяне.",
   noShippingOptions: "Няма налични опции за доставка за вашия адрес.",
   paymentDisabled: "Изберете начин на доставка, за да продължите.",
+  deliveryPreviewHint: "Въведете адрес, за да изберете доставка.",
+  buyNeedsAddress: "Въведете адрес за доставка",
+  buyNeedsDelivery: "Изберете начин на доставка",
 
   codNote: "Плащане при доставка. Възможна е допълнителна такса.",
   payOnline: "Плащане онлайн",

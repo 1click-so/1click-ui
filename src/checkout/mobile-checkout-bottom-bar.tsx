@@ -33,6 +33,10 @@ type MobileCheckoutBottomBarProps = {
   optimisticCodFee?: number | null
   /** Admin-editable label for the COD fee row in the expanded body. */
   codFeeLabel?: string
+  /** Hide the inline promo-code field inside this bar's expanded body.
+   * For stores that surface their own always-visible discount field near
+   * the buy button, the collapsed copy here is redundant. Default false. */
+  hideDiscount?: boolean
 }
 
 export function MobileCheckoutBottomBar({
@@ -40,6 +44,7 @@ export function MobileCheckoutBottomBar({
   optimisticShippingCost,
   optimisticCodFee,
   codFeeLabel,
+  hideDiscount,
 }: MobileCheckoutBottomBarProps) {
   const labels = useCheckoutLabels()
   const [open, setOpen] = useState(false)
@@ -83,6 +88,7 @@ export function MobileCheckoutBottomBar({
             displayTotal={displayTotal}
             optimisticCodFee={optimisticCodFee}
             codFeeLabel={codFeeLabel}
+            hideDiscount={hideDiscount}
           />
         </div>
       )}
