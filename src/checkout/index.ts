@@ -43,3 +43,4 @@ export {
   type CheckoutCodConfig,
 } from "./use-checkout-orchestration"
 export { translatePaymentError } from "./payment-error-copy"
+export { translatePromotionError } from "./promotion-error-copy"

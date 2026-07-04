@@ -7,6 +7,7 @@ import { applyPromotions } from "../data/cart"
 import { convertToLocale } from "../lib/money"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
+import { translatePromotionError } from "./promotion-error-copy"
 
 /**
  * DiscountSection — collapsible promo-code input shown inside the order
@@ -45,7 +46,9 @@ export function DiscountSection({ cart }: DiscountSectionProps) {
       await applyPromotions(codes)
       setCode("")
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e))
+      // Never surface the raw Medusa / Next RSC error string to the
+      // shopper — map to a proper localized message.
+      setError(translatePromotionError(e, { hasEmail: !!cart.email }))
     } finally {
       setLoading(false)
     }

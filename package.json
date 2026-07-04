@@ -101,6 +101,7 @@
     "./checkout/use-checkout-orchestration": "./src/checkout/use-checkout-orchestration.ts",
     "./checkout/payment-error-copy": "./src/checkout/payment-error-copy.ts",
     "./checkout/address-error-copy": "./src/checkout/address-error-copy.ts",
+    "./checkout/promotion-error-copy": "./src/checkout/promotion-error-copy.ts",
     "./lib/get-product-price": "./src/lib/get-product-price.ts",
     "./lib/get-percentage-diff": "./src/lib/get-percentage-diff.ts",
     "./lib/product": "./src/lib/product.ts",
