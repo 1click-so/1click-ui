@@ -9,6 +9,7 @@ import {
   sha256Hex,
   type KnownVisitor,
 } from "./attribution"
+import { CONSENT_COOKIE } from "./consent"
 
 /**
  * MetaPixel — client-side base pixel injector.
@@ -30,6 +31,12 @@ import {
  * Subsequent route navigations DON'T need a manual PageView — the
  * single base init covers the initial page; further events are fired
  * explicitly via the helpers in `./fbq.ts`.
+ *
+ * Consent gate: fbq('consent', …) is pushed from the `_1c_consent`
+ * cookie BEFORE fbq('init') — Meta only honors a pre-init revoke, which
+ * makes the Pixel queue every event (incl. this PageView) client-side
+ * until the <ConsentBanner> grants; a later fbq('consent','grant')
+ * flushes the queue. No cookie (first visit) = revoke.
  */
 export function MetaPixel({ pixelId }: { pixelId?: string }) {
   if (!pixelId) return null
@@ -44,6 +51,14 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
+(function(){
+  var ads=false;
+  try{
+    var m=document.cookie.match(/(?:^|; )${CONSENT_COOKIE}=([^;]*)/);
+    if(m){ads=!!JSON.parse(decodeURIComponent(m[1])).ads;}
+  }catch(e){}
+  fbq('consent', ads?'grant':'revoke');
+})();
 fbq('init', '${pixelId}');
 fbq('track', 'PageView');
 `.trim()

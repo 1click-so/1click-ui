@@ -28,6 +28,17 @@
 export { MetaPixel, updatePixelAdvancedMatching } from "./meta-pixel"
 export { GA4 } from "./ga4"
 export { Rybbit } from "./rybbit"
+export { ConsentInit } from "./consent-init"
+export { ConsentBanner, ConsentSettingsLink } from "./consent-banner"
+export {
+  applyConsent,
+  openConsentSettings,
+  readConsentCookie,
+  writeConsentCookie,
+  CONSENT_COOKIE,
+  CONSENT_OPEN_EVENT,
+  type ConsentChoices,
+} from "./consent"
 export {
   trackViewContent,
   trackAddToCart,
