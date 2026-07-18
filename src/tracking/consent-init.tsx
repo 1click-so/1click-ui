@@ -3,12 +3,14 @@ import { CONSENT_COOKIE } from "./consent"
 /**
  * ConsentInit — the synchronous Consent Mode v2 "default" snippet.
  *
- * MUST be rendered inside the document <head>, BEFORE <GA4> /
- * <MetaPixel> mount their loaders. It is a plain inline <script>
- * (deliberately NOT next/script): Google's consent-mode docs require
- * the default state to be set synchronously ahead of the tag — an
- * async/afterInteractive default races the loader and the first hit
- * of a returning consented visitor would ship denied.
+ * Render it as the FIRST child of <body> (App Router layouts don't
+ * expose <head> for inline scripts). A plain inline <script>
+ * (deliberately NOT next/script) executes at HTML-parse time — long
+ * before the afterInteractive <GA4>/<MetaPixel> loaders, which run
+ * post-hydration. Google's consent-mode docs require the default to be
+ * set synchronously ahead of the tag; an async default races the
+ * loader and the first hit of a returning consented visitor would
+ * ship denied.
  *
  * Behavior:
  *   - No stored choice (first visit) → default ALL DENIED. Tags still
