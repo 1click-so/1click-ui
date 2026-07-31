@@ -108,6 +108,12 @@ export function fireCapiEvent(
     | "ViewContent"
     | "AddToCart"
     | "InitiateCheckout"
+    // Mid-funnel checkout steps. `AddPaymentInfo` is a Meta standard
+    // event; `AddShippingInfo` is a custom event (Meta has no standard
+    // equivalent). CAPI accepts custom event names verbatim, so both
+    // travel the same server-side path.
+    | "AddShippingInfo"
+    | "AddPaymentInfo"
     | "Purchase"
     | "PageView"
     | "Lead",

@@ -67,6 +67,46 @@ export type PurchaseData = {
 }
 
 /**
+ * Mid-funnel checkout-step payloads (Meta side).
+ *
+ * These fill the gap between InitiateCheckout and Purchase. Per Meta's
+ * standard-event reference, `AddPaymentInfo` accepts `content_ids`,
+ * `contents`, `currency` and `value` — ALL OPTIONAL. We still send them
+ * because value-based optimization and catalog matching need them, but
+ * the types mirror Meta's spec so a caller with partial data is valid.
+ *
+ * `AddShippingInfo` has no Meta standard equivalent (Meta's `Contact`
+ * means "customer contacted the business" — a support event, not a
+ * checkout step). It ships as a Pixel CUSTOM event via `trackCustom`,
+ * which Meta supports as a first-class optimization target once a
+ * Custom Conversion is defined for it in Events Manager.
+ */
+export type AddShippingInfoData = {
+  content_ids?: string[]
+  content_type?: "product" | "product_group"
+  currency?: string
+  value?: number
+  num_items?: number
+  contents?: MetaContentItem[]
+  /** Delivery option chosen, when already known at fire time (e.g.
+   *  "econt_office", "boxnow_locker"). Mirrors GA4's `shipping_tier`. */
+  shipping_tier?: string
+}
+
+export type AddPaymentInfoData = {
+  content_ids?: string[]
+  content_type?: "product" | "product_group"
+  currency?: string
+  value?: number
+  num_items?: number
+  contents?: MetaContentItem[]
+  /** How the customer chose to pay. Cash-on-delivery IS a payment type
+   *  under both Meta's and GA4's definitions — the customer completed
+   *  the payment-selection step, they just didn't enter card details. */
+  payment_type?: string
+}
+
+/**
  * Lead event payload — shape per Meta's Lead standard event spec.
  * All fields optional (Meta accepts an empty Lead). Storefront wraps
  * popup signups + newsletter forms in a Lead event so Meta can

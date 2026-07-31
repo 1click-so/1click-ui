@@ -43,11 +43,15 @@ export {
   trackViewContent,
   trackAddToCart,
   trackInitiateCheckout,
+  trackAddShippingInfo,
+  trackAddPaymentInfo,
   trackPurchase,
   trackLead,
+  type CheckoutStepContext,
   type ExtraTrackingContext,
   type LeadContext,
 } from "./fbq"
+export { markFiredOnce, hasFired, checkoutStepEventId } from "./once"
 export { fireCapiEvent, generateEventId, type CapiEventInput, type CapiUserData } from "./capi"
 export {
   setTrackingDefaults,
@@ -62,6 +66,8 @@ export {
   trackGAViewItem,
   trackGAAddToCart,
   trackGABeginCheckout,
+  trackGAAddShippingInfo,
+  trackGAAddPaymentInfo,
   trackGAPurchase,
   setEnhancedConversions,
   type EnhancedConversionsInput,
@@ -70,10 +76,14 @@ export {
   trackRybbitViewItem,
   trackRybbitAddToCart,
   trackRybbitBeginCheckout,
+  trackRybbitAddShippingInfo,
+  trackRybbitAddPaymentInfo,
   trackRybbitPurchase,
   type RybbitViewItemData,
   type RybbitAddToCartData,
   type RybbitBeginCheckoutData,
+  type RybbitAddShippingInfoData,
+  type RybbitAddPaymentInfoData,
   type RybbitPurchaseData,
 } from "./rybbit-events"
 export { getTrackingConfig } from "./get-tracking-config"

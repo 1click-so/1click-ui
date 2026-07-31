@@ -179,6 +179,30 @@ export type RybbitBeginCheckoutData = {
   value: number
 }
 
+/**
+ * Mid-funnel checkout steps. Names match GA4's recommended events so
+ * the same funnel reads identically in Rybbit and GA4.
+ *
+ * `shipping_tier` / `payment_type` are optional in GA4's spec and stay
+ * optional here — Rybbit drops undefined props rather than sending
+ * empty strings.
+ */
+export type RybbitAddShippingInfoData = {
+  item_ids: string[]
+  num_items: number
+  currency: string
+  value: number
+  shipping_tier?: string
+}
+
+export type RybbitAddPaymentInfoData = {
+  item_ids: string[]
+  num_items: number
+  currency: string
+  value: number
+  payment_type?: string
+}
+
 export type RybbitPurchaseData = {
   transaction_id: string
   item_ids: string[]
@@ -214,6 +238,31 @@ export function trackRybbitBeginCheckout(
     num_items: data.num_items,
     currency: data.currency,
     value: data.value,
+  })
+}
+
+export function trackRybbitAddShippingInfo(
+  data: RybbitAddShippingInfoData
+): void {
+  fireEvent("add_shipping_info", {
+    item_ids: joinIds(data.item_ids),
+    num_items: data.num_items,
+    currency: data.currency,
+    value: data.value,
+    // Rybbit only accepts string|number — omit rather than send "".
+    ...(data.shipping_tier ? { shipping_tier: data.shipping_tier } : {}),
+  })
+}
+
+export function trackRybbitAddPaymentInfo(
+  data: RybbitAddPaymentInfoData
+): void {
+  fireEvent("add_payment_info", {
+    item_ids: joinIds(data.item_ids),
+    num_items: data.num_items,
+    currency: data.currency,
+    value: data.value,
+    ...(data.payment_type ? { payment_type: data.payment_type } : {}),
   })
 }
 

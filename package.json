@@ -1,6 +1,6 @@
 {
   "name": "@1click/ui",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "private": true,
   "description": "Shared frontend UI component library for 1click storefronts. Source-shipped, consumed via git install.",
   "repository": {
@@ -172,7 +172,8 @@
     "./tracking/get-tracking-attribution": "./src/tracking/get-tracking-attribution.ts",
     "./tracking/use-engagement-time": "./src/tracking/use-engagement-time.ts",
     "./tracking/attribution": "./src/tracking/attribution.ts",
-    "./tracking/capi": "./src/tracking/capi.ts"
+    "./tracking/capi": "./src/tracking/capi.ts",
+    "./tracking/once": "./src/tracking/once.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

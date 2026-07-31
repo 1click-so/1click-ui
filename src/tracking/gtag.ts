@@ -52,6 +52,34 @@ type GA4BeginCheckoutData = {
   coupon?: string
 }
 
+/**
+ * GA4 `add_shipping_info` / `add_payment_info` — the two recommended
+ * ecommerce events that sit between begin_checkout and purchase.
+ *
+ * Per Google's reference, BOTH require `currency`, `value` and `items`;
+ * `coupon` is optional on both, plus `shipping_tier` on add_shipping_info
+ * and `payment_type` on add_payment_info. The types below mirror that
+ * split exactly — required stays required.
+ */
+type GA4AddShippingInfoData = {
+  currency: string
+  value: number
+  items: GA4Item[]
+  coupon?: string
+  /** "The shipping tier selected for delivery", e.g. Ground / Next-day.
+   *  Here: the carrier/method the shopper picked. */
+  shipping_tier?: string
+}
+
+type GA4AddPaymentInfoData = {
+  currency: string
+  value: number
+  items: GA4Item[]
+  coupon?: string
+  /** "The chosen method of payment" — e.g. "card" or "cod". */
+  payment_type?: string
+}
+
 type GA4PurchaseData = {
   transaction_id: string
   currency: string
@@ -95,6 +123,18 @@ export function trackGABeginCheckout(data: GA4BeginCheckoutData): void {
   const gtag = safeGtag()
   if (!gtag) return
   gtag("event", "begin_checkout", data)
+}
+
+export function trackGAAddShippingInfo(data: GA4AddShippingInfoData): void {
+  const gtag = safeGtag()
+  if (!gtag) return
+  gtag("event", "add_shipping_info", data)
+}
+
+export function trackGAAddPaymentInfo(data: GA4AddPaymentInfoData): void {
+  const gtag = safeGtag()
+  if (!gtag) return
+  gtag("event", "add_payment_info", data)
 }
 
 /**

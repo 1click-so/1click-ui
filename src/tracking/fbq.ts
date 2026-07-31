@@ -2,6 +2,8 @@
 
 import { fireCapiEvent, generateEventId } from "./capi"
 import type {
+  AddPaymentInfoData,
+  AddShippingInfoData,
   AddToCartData,
   InitiateCheckoutData,
   LeadData,
@@ -122,9 +124,12 @@ export function trackAddToCart(
 
 export function trackInitiateCheckout(
   data: InitiateCheckoutData,
-  context: ExtraTrackingContext = {}
+  context: CheckoutStepContext = {}
 ): void {
-  const eventId = generateEventId("InitiateCheckout")
+  // Callers that dedupe (see `once.checkoutStepEventId`) pass a
+  // cart-derived id so a refresh or second tab collapses into one
+  // conversion instead of inflating InitiateCheckout counts.
+  const eventId = context.eventId ?? generateEventId("InitiateCheckout")
 
   const fbq = safeFbq()
   if (fbq) {
@@ -137,6 +142,92 @@ export function trackInitiateCheckout(
   }
 
   fireCapiEvent("InitiateCheckout", {
+    event_id: eventId,
+    cart_id: context.cartId,
+    user_data: { email: context.email },
+    custom_data: data as unknown as Record<string, unknown>,
+  })
+}
+
+export type CheckoutStepContext = ExtraTrackingContext & {
+  /** Deterministic event id from `once.checkoutStepEventId(...)`. Pass
+   *  it so a duplicate fire (two tabs, restored session) collapses
+   *  server-side in Meta instead of double-counting. Falls back to a
+   *  random id when omitted. */
+  eventId?: string
+}
+
+/**
+ * AddShippingInfo — the customer has supplied complete, valid contact
+ * and delivery details. Fires between InitiateCheckout and Purchase.
+ *
+ * Meta has NO standard event for this step. `Contact` is a standard
+ * event but means "a person initiated contact with your business via
+ * phone/SMS/email/chat" — a support signal, not a funnel step, so
+ * using it would poison that channel. We therefore emit a Pixel CUSTOM
+ * event, which Meta supports as an optimization target once a Custom
+ * Conversion is defined for it in Events Manager.
+ *
+ * This is the highest match-quality event in the funnel: it fires at
+ * the exact moment email, phone, name, city and postcode are known, so
+ * CAPI ships a fully-populated hashed user_data payload.
+ */
+export function trackAddShippingInfo(
+  data: AddShippingInfoData = {},
+  context: CheckoutStepContext = {}
+): void {
+  const eventId = context.eventId ?? generateEventId("AddShippingInfo")
+
+  const fbq = safeFbq()
+  if (fbq) {
+    // trackCustom, not track — AddShippingInfo is not in Meta's
+    // standard-event vocabulary. Calling track() with an unknown name
+    // makes the Pixel log a warning and treat it as custom anyway.
+    fbq(
+      "trackCustom",
+      "AddShippingInfo",
+      data as unknown as Record<string, unknown>,
+      { eventID: eventId }
+    )
+  }
+
+  fireCapiEvent("AddShippingInfo", {
+    event_id: eventId,
+    cart_id: context.cartId,
+    user_data: { email: context.email },
+    custom_data: data as unknown as Record<string, unknown>,
+  })
+}
+
+/**
+ * AddPaymentInfo — the customer has chosen how they will pay.
+ *
+ * Meta standard event. Every field is optional per Meta's spec; we
+ * populate them anyway for value-based optimization and catalog match.
+ *
+ * Cash-on-delivery counts. Meta defines the event as "payment
+ * information is added in the checkout flow" and GA4 defines
+ * `payment_type` as "the chosen method of payment" — selecting COD
+ * completes that step, it just doesn't involve card entry. Pass
+ * `payment_type: "cod"` so the two paths stay separable in reporting.
+ */
+export function trackAddPaymentInfo(
+  data: AddPaymentInfoData = {},
+  context: CheckoutStepContext = {}
+): void {
+  const eventId = context.eventId ?? generateEventId("AddPaymentInfo")
+
+  const fbq = safeFbq()
+  if (fbq) {
+    fbq(
+      "track",
+      "AddPaymentInfo",
+      data as unknown as Record<string, unknown>,
+      { eventID: eventId }
+    )
+  }
+
+  fireCapiEvent("AddPaymentInfo", {
     event_id: eventId,
     cart_id: context.cartId,
     user_data: { email: context.email },
