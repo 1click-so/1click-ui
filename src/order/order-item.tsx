@@ -1,7 +1,7 @@
 import Image from "next/image"
 import type { HttpTypes } from "@medusajs/types"
 import { ImageOff } from "lucide-react"
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { defaultOrderLabels, type OrderLabels } from "./labels"
 
 type OrderItemProps = {
@@ -60,14 +60,14 @@ export function OrderItem({ item, currencyCode, labels }: OrderItemProps) {
           <div className="text-right flex-shrink-0">
             {hasDiscount && (
               <span className="text-xs text-muted-foreground line-through block leading-none mb-0.5">
-                <DualPrice
+                <Price
                   amount={item.original_total}
                   currencyCode={currencyCode}
                   className="text-xs text-muted-foreground"
                 />
               </span>
             )}
-            <DualPrice
+            <Price
               amount={item.total}
               currencyCode={currencyCode}
               className={`text-sm font-bold ${

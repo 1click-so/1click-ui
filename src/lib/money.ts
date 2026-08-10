@@ -2,7 +2,7 @@
  * Money utilities — pure, side-effect-free currency formatting helpers.
  *
  * Extracted from mindpages-storefront src/lib/util/money.ts + isEmpty.ts.
- * Used by DualPrice and any other price rendering in the library.
+ * Used by Price and any other price rendering in the library.
  */
 
 function isEmpty(value: unknown): boolean {

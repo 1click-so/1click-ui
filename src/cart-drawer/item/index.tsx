@@ -6,7 +6,7 @@ import { type ReactNode } from "react"
 import type { HttpTypes } from "@medusajs/types"
 
 import { deleteLineItem } from "../../data/cart"
-import { DualPrice } from "../../lib/dual-price"
+import { Price } from "../../lib/price"
 import { cn } from "../../lib/utils"
 import { useCartDrawer } from "../context"
 import { CartItemQuantity } from "./quantity"
@@ -17,7 +17,7 @@ import { CartItemVariant } from "./variant"
  * stepper, price (with dual-currency + optional strikethrough), remove button.
  *
  * Extracted from mindpages-storefront src/modules/cart-drawer/cart-item.tsx.
- * Uses the library's DualPrice, updateLineItem, deleteLineItem, and the
+ * Uses the library's Price, updateLineItem, deleteLineItem, and the
  * cart drawer context for labels + product link prefix.
  *
  * `children` is rendered below the main row — intended for per-item upsell
@@ -110,22 +110,20 @@ export function CartItem({ item, currencyCode, children }: CartItemProps) {
             <div className="text-right flex-shrink-0">
               {hasDiscount && (
                 <span className="text-xs text-muted-foreground line-through block leading-none mb-0.5">
-                  <DualPrice
+                  <Price
                     amount={originalTotal}
                     currencyCode={currencyCode}
                     className="text-xs text-muted-foreground"
-                    bgnClassName="hidden"
                   />
                 </span>
               )}
-              <DualPrice
+              <Price
                 amount={total}
                 currencyCode={currencyCode}
                 className={cn(
                   "text-sm font-bold",
                   hasDiscount ? "text-success" : "text-foreground"
                 )}
-                bgnClassName="text-muted-foreground text-[10px] ml-1"
               />
             </div>
           </div>

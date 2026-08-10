@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
 
 import { cn } from "../lib/utils"
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { findFeeLine } from "../lib/cart-helpers"
 import { useCheckoutLabels } from "./context"
 import { MobileOrderSummaryBody } from "./mobile-order-summary-body"
@@ -84,11 +84,10 @@ export function MobileCheckoutTopBar({
             />
           </svg>
         </span>
-        <DualPrice
+        <Price
           amount={displayTotal}
           currencyCode={cart.currency_code}
           className="text-base font-bold text-foreground tracking-tight"
-          bgnClassName="ml-1.5 text-xs text-muted-foreground/70 font-normal"
         />
       </button>
 

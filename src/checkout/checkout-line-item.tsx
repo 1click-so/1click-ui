@@ -5,7 +5,7 @@ import { Minus, Plus } from "lucide-react"
 import { useState } from "react"
 
 import { updateLineItem } from "../data/cart"
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 
@@ -105,7 +105,7 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
       <div className="hidden sm:flex flex-1 min-w-0 flex-col gap-2.5">
         <div className="flex items-baseline justify-between gap-3">
           {titleBlock}
-          <DualPrice
+          <Price
             amount={item.total ?? 0}
             currencyCode={currencyCode}
             className="text-sm font-bold text-foreground text-right flex-shrink-0"
@@ -120,7 +120,7 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
         {titleBlock}
         <div className="flex items-center justify-between gap-3">
           {qtyPill}
-          <DualPrice
+          <Price
             amount={item.total ?? 0}
             currencyCode={currencyCode}
             className="text-sm font-bold text-foreground text-right"

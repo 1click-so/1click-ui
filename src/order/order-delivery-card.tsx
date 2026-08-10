@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { MapPin, Truck } from "lucide-react"
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { defaultOrderLabels, type OrderLabels } from "./labels"
 
 type OrderDeliveryCardProps = {
@@ -119,7 +119,7 @@ function ShippingMethodRow({
       {(method.total ?? 0) === 0 ? (
         <span className="text-sm font-medium text-success">{labels.free}</span>
       ) : (
-        <DualPrice
+        <Price
           amount={method.total ?? 0}
           currencyCode={order.currency_code}
           className="text-sm font-medium text-foreground"

@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { findFeeLine } from "../lib/cart-helpers"
 import { defaultOrderLabels, type OrderLabels } from "./labels"
 
@@ -47,7 +47,7 @@ export function OrderTotals({ order, labels, codFeeLabel }: OrderTotalsProps) {
       <div className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">{l.subtotal}</span>
-          <DualPrice
+          <Price
             amount={productSubtotal}
             currencyCode={currencyCode}
             className="text-sm text-foreground"
@@ -59,7 +59,7 @@ export function OrderTotals({ order, labels, codFeeLabel }: OrderTotalsProps) {
           {(order.shipping_subtotal ?? 0) === 0 ? (
             <span className="text-sm font-medium text-success">{l.free}</span>
           ) : (
-            <DualPrice
+            <Price
               amount={order.shipping_subtotal ?? 0}
               currencyCode={currencyCode}
               className="text-sm text-foreground"
@@ -72,7 +72,7 @@ export function OrderTotals({ order, labels, codFeeLabel }: OrderTotalsProps) {
             <span className="text-muted-foreground">
               {codFeeLabel ?? codFeeItem?.title ?? l.codFee}
             </span>
-            <DualPrice
+            <Price
               amount={codFeeAmount}
               currencyCode={currencyCode}
               className="text-sm text-foreground"
@@ -85,7 +85,7 @@ export function OrderTotals({ order, labels, codFeeLabel }: OrderTotalsProps) {
             <span className="text-muted-foreground">{l.discount}</span>
             <span className="text-sm text-success">
               -{" "}
-              <DualPrice
+              <Price
                 amount={order.discount_total ?? 0}
                 currencyCode={currencyCode}
                 className="text-sm text-success"
@@ -96,7 +96,7 @@ export function OrderTotals({ order, labels, codFeeLabel }: OrderTotalsProps) {
 
         <div className="flex justify-between">
           <span className="text-muted-foreground">{l.tax}</span>
-          <DualPrice
+          <Price
             amount={order.tax_total ?? 0}
             currencyCode={currencyCode}
             className="text-sm text-foreground"
@@ -107,7 +107,7 @@ export function OrderTotals({ order, labels, codFeeLabel }: OrderTotalsProps) {
       <div className="h-px bg-border my-3" />
       <div className="flex justify-between items-baseline">
         <span className="text-[15px] font-bold text-foreground">{l.total}</span>
-        <DualPrice
+        <Price
           amount={order.total ?? 0}
           currencyCode={currencyCode}
           className="text-xl font-bold text-foreground tracking-tight"

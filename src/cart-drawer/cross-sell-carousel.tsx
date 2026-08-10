@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRef, useState } from "react"
 
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { cn } from "../lib/utils"
 import { useCartDrawer } from "./context"
 
@@ -173,11 +173,10 @@ export function CartCrossSellCarousel({
               >
                 {product.title}
               </Link>
-              <DualPrice
+              <Price
                 amount={product.price}
                 currencyCode={product.currencyCode}
                 className="text-[13px] font-bold text-foreground block mt-0.5"
-                bgnClassName="text-muted-foreground text-[10px] ml-1"
               />
             </div>
 

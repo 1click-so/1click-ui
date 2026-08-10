@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { cn } from "../lib/utils"
 import { useCartDrawer } from "./context"
 
@@ -67,11 +67,10 @@ export function CartGiftWrap({
         <span className="text-[13px] text-foreground flex-1">
           {labels.addGiftWrap}
         </span>
-        <DualPrice
+        <Price
           amount={price}
           currencyCode={currencyCode}
           className="text-[13px] text-muted-foreground font-medium"
-          bgnClassName="text-muted-foreground text-[10px] ml-1"
         />
       </button>
     </div>

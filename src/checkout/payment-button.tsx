@@ -5,7 +5,7 @@ import { useElements, useStripe } from "@stripe/react-stripe-js"
 import { useContext, useEffect, useRef, useState } from "react"
 
 import { logCheckoutError } from "../data/cart"
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { cn } from "../lib/utils"
 import { translatePaymentError } from "./payment-error-copy"
 import { useCheckoutLabels } from "./context"
@@ -144,11 +144,10 @@ function OrderButton({
             {total !== undefined && currencyCode && (
               <span className="inline-flex items-center gap-1">
                 <span aria-hidden="true"> · </span>
-                <DualPrice
+                <Price
                   amount={total}
                   currencyCode={currencyCode}
                   className="font-semibold"
-                  bgnClassName="text-card/70 text-[11px] ml-1"
                 />
               </span>
             )}

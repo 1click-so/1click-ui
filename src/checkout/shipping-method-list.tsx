@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 import {
@@ -268,7 +268,7 @@ export function CheckoutShippingMethodList({
                       isFree ? (
                         labels.shippingFree
                       ) : (
-                        <DualPrice amount={price} currencyCode={currencyCode} />
+                        <Price amount={price} currencyCode={currencyCode} />
                       )
                     ) : isLoadingPrices ? (
                       <svg

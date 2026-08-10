@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
 
 import { updateLineItem } from "../data/cart"
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { cn } from "../lib/utils"
 import { useCheckoutLabels } from "./context"
 
@@ -115,7 +115,7 @@ export function LineItemCard({ item, currencyCode }: LineItemCardProps) {
       </div>
 
       <div className="flex flex-col items-end justify-center flex-shrink-0">
-        <DualPrice
+        <Price
           amount={total}
           currencyCode={currencyCode}
           className="text-sm font-bold text-foreground"

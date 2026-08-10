@@ -21,7 +21,7 @@ export {
 } from "./lib/money"
 export { default as medusaError } from "./lib/medusa-error"
 export { isStripeLike, isPaypal, isManual } from "./lib/payment-constants"
-export { DualPrice, EUR_TO_BGN_RATE, type DualPriceProps } from "./lib/dual-price"
+export { Price, type PriceProps } from "./lib/price"
 
 // ── Floating-label form primitives ─────────────────────────────────────
 export { Field, type FieldProps } from "./primitives/field"

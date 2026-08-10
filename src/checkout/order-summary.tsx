@@ -3,7 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useEffect, useMemo } from "react"
 
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { findFeeLine, isProductLine } from "../lib/cart-helpers"
 import { CheckoutLineItem } from "./checkout-line-item"
 import { useCheckoutLabels } from "./context"
@@ -171,7 +171,7 @@ export function OrderSummary({
         <div className="px-5 sm:px-6 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{labels.subtotal}</span>
-            <DualPrice
+            <Price
               amount={productSubtotal}
               currencyCode={cart.currency_code}
               className="font-medium text-foreground"
@@ -186,7 +186,7 @@ export function OrderSummary({
                   {labels.shippingFree}
                 </span>
               ) : (
-                <DualPrice
+                <Price
                   amount={shippingCost ?? 0}
                   currencyCode={cart.currency_code}
                   className="font-medium text-foreground"
@@ -204,7 +204,7 @@ export function OrderSummary({
               <span className="text-muted-foreground">
                 {codFeeLabel ?? codFeeItem?.title ?? labels.codFee}
               </span>
-              <DualPrice
+              <Price
                 amount={codFeeAmount}
                 currencyCode={cart.currency_code}
                 className="font-medium text-foreground"
@@ -217,7 +217,7 @@ export function OrderSummary({
               <span>{labels.discount}</span>
               <span className="font-medium">
                 -
-                <DualPrice
+                <Price
                   amount={cart.discount_total}
                   currencyCode={cart.currency_code}
                 />
@@ -245,7 +245,7 @@ export function OrderSummary({
                 {labels.taxTooltip}
               </span>
             </span>
-            <DualPrice
+            <Price
               amount={cart.tax_total ?? 0}
               currencyCode={cart.currency_code}
               className="font-medium text-foreground"
@@ -259,11 +259,10 @@ export function OrderSummary({
               {labels.total}
             </span>
             <div className="text-right">
-              <DualPrice
+              <Price
                 amount={displayTotal ?? 0}
                 currencyCode={cart.currency_code}
                 className="text-2xl font-bold text-foreground tracking-tight"
-                bgnClassName="ml-2 text-sm text-muted-foreground/70 font-normal"
               />
             </div>
           </div>

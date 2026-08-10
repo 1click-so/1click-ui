@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useMemo } from "react"
 
 import { CheckoutLineItem } from "./checkout-line-item"
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { findFeeLine, isProductLine } from "../lib/cart-helpers"
 import { useCheckoutLabels } from "./context"
 import { DiscountSection } from "./discount-section"
@@ -104,7 +104,7 @@ export function MobileOrderSummaryBody({
           <span className="text-muted-foreground">
             {labels.subtotal} • {productItemCount} {labels.items}
           </span>
-          <DualPrice
+          <Price
             amount={productSubtotal}
             currencyCode={cart.currency_code}
             className="font-medium text-foreground"
@@ -119,7 +119,7 @@ export function MobileOrderSummaryBody({
                 {labels.shippingFree}
               </span>
             ) : (
-              <DualPrice
+              <Price
                 amount={shippingCost ?? 0}
                 currencyCode={cart.currency_code}
                 className="font-medium text-foreground"
@@ -137,7 +137,7 @@ export function MobileOrderSummaryBody({
             <span className="text-muted-foreground">
               {codFeeLabel ?? codFeeItem?.title ?? labels.codFee}
             </span>
-            <DualPrice
+            <Price
               amount={codFeeAmount}
               currencyCode={cart.currency_code}
               className="font-medium text-foreground"
@@ -150,7 +150,7 @@ export function MobileOrderSummaryBody({
             <span>{labels.discount}</span>
             <span className="font-medium">
               -
-              <DualPrice
+              <Price
                 amount={cart.discount_total}
                 currencyCode={cart.currency_code}
               />

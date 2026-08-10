@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 
-import { DualPrice } from "../lib/dual-price"
+import { Price } from "../lib/price"
 import { productTotal } from "../lib/cart-helpers"
 import { useCartDrawer } from "./context"
 
@@ -36,7 +36,7 @@ export function CartStickyFooter() {
         <span className="text-[15px] font-bold text-foreground">
           {labels.subtotal}
         </span>
-        <DualPrice
+        <Price
           amount={total}
           currencyCode={currencyCode}
           className="text-xl font-bold text-foreground tracking-tight"
