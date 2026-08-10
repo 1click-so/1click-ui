@@ -66,6 +66,7 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
   shipping: "Доставка",
   shippingCalc: "Ще бъде изчислена",
   shippingFree: "Безплатна",
+  freeItem: "Безплатно",
   tax: "Вкл. ДДС",
   taxTooltip: "ДДС 20% е включен в цените",
   total: "Обща сума",

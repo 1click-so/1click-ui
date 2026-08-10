@@ -75,6 +75,10 @@ export type CheckoutLabels = {
   shipping: string
   shippingCalc: string
   shippingFree: string
+  /** Replaces the price on a €0 line. Separate from `shippingFree`
+   *  because that one agrees with its noun ("Безплатна доставка"); this
+   *  stands alone in a price slot, so it takes the neuter form. */
+  freeItem: string
   tax: string
   taxTooltip: string
   total: string
@@ -184,6 +188,7 @@ export const defaultCheckoutLabels: CheckoutLabels = {
   shipping: "Shipping",
   shippingCalc: "Calculated at checkout",
   shippingFree: "Free",
+  freeItem: "Free",
   tax: "VAT incl.",
   taxTooltip: "20% VAT is included in prices",
   total: "Total",

@@ -79,6 +79,27 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
     </div>
   )
 
+  // "€0.00" at the moment of payment reads as a pricing fault, not as a
+  // gift. Same treatment the storefront already uses on its own desktop
+  // row: the free word in success green, never a zero.
+  const priceOrFree = (className: string) =>
+    isFree ? (
+      <span
+        className={cn(
+          "text-xs font-bold uppercase text-success flex-shrink-0",
+          className
+        )}
+      >
+        {labels.freeItem}
+      </span>
+    ) : (
+      <Price
+        amount={item.total ?? 0}
+        currencyCode={currencyCode}
+        className={cn("text-sm font-bold text-foreground", className)}
+      />
+    )
+
   const titleBlock = (
     <div className="min-w-0">
       <p className="text-[15px] font-semibold text-foreground leading-snug break-words">
@@ -116,11 +137,7 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
       <div className="hidden sm:flex flex-1 min-w-0 flex-col gap-2.5">
         <div className="flex items-baseline justify-between gap-3">
           {titleBlock}
-          <Price
-            amount={item.total ?? 0}
-            currencyCode={currencyCode}
-            className="text-sm font-bold text-foreground text-right flex-shrink-0"
-          />
+          {priceOrFree("text-right flex-shrink-0")}
         </div>
         {qtyPill}
       </div>
@@ -132,13 +149,9 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
         <div className="flex items-center justify-between gap-3">
           {qtyPill}
           {/* `ml-auto` rather than relying on `justify-between`: with the
-              qty pill gone on a free line the price is the only child,
-              and space-between would park it hard left. */}
-          <Price
-            amount={item.total ?? 0}
-            currencyCode={currencyCode}
-            className="ml-auto text-sm font-bold text-foreground text-right"
-          />
+              qty pill gone on a free line this is the only child, and
+              space-between would park it hard left. */}
+          {priceOrFree("ml-auto text-right")}
         </div>
       </div>
     </div>
