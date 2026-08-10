@@ -42,7 +42,18 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
     }
   }
 
-  const qtyPill = (
+  // A free line has no quantity to choose. Gift-with-purchase lines are
+  // granted by a threshold, not selected — leaving a working "+" on one
+  // lets any customer take as many as they like, and a storefront that
+  // reconciles the gift against its threshold will silently undo the
+  // change on the next cart read, so the control lies either way.
+  //
+  // Keyed on price rather than on a variant id so no store has to wire
+  // anything up: a €0 product with an adjustable quantity is a giveaway
+  // exploit in any catalogue.
+  const isFree = (item.unit_price ?? 0) === 0
+
+  const qtyPill = isFree ? null : (
     <div className="inline-flex items-center rounded-[2px] border border-border bg-card">
       <button
         type="button"
@@ -120,10 +131,13 @@ export function CheckoutLineItem({ item, currencyCode }: CheckoutLineItemProps) 
         {titleBlock}
         <div className="flex items-center justify-between gap-3">
           {qtyPill}
+          {/* `ml-auto` rather than relying on `justify-between`: with the
+              qty pill gone on a free line the price is the only child,
+              and space-between would park it hard left. */}
           <Price
             amount={item.total ?? 0}
             currencyCode={currencyCode}
-            className="text-sm font-bold text-foreground text-right"
+            className="ml-auto text-sm font-bold text-foreground text-right"
           />
         </div>
       </div>
