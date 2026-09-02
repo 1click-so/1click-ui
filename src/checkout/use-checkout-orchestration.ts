@@ -1430,6 +1430,13 @@ export function useCheckoutOrchestration({
     deliveryReady,
     optimisticCodFee,
     setOptimisticCodFee,
+    /** The COD fee the backend would apply for the CURRENTLY selected
+     *  shipping option and cart — flat, or the matched carrier tier.
+     *  Null when COD isn't configured. Recomputed every render; use it
+     *  for live copy such as a fee amount quoted under the COD radio. */
+    predictedCodFee: codConfig
+      ? resolveCodFeeForOption(selectedShippingOption)
+      : null,
     handlePaymentTab,
     handlePaymentElementChange,
 

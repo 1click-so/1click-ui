@@ -83,6 +83,14 @@ type CheckoutPaymentMethodListProps = {
    * shows the same number as the order summary. Falls back to
    * `cart.total` when omitted. */
   total?: number
+  /** Optional live override of the note under the COD radio. With
+   * carrier-tiered COD fees the note can quote an amount that depends on
+   * the selected shipping option, so a static label can't carry it —
+   * the store computes the string per render (e.g. the admin-set
+   * description with a `{fee}` placeholder resolved against the hook's
+   * `predictedCodFee`) and passes it here. Omitted → `labels.codNote`
+   * exactly as before. */
+  codNote?: string | null
 }
 
 export function CheckoutPaymentMethodList({
@@ -100,6 +108,7 @@ export function CheckoutPaymentMethodList({
   gatePaymentUntilDelivery = true,
   beforePaymentButton,
   total,
+  codNote,
 }: CheckoutPaymentMethodListProps) {
   const labels = useCheckoutLabels()
 
@@ -299,7 +308,7 @@ export function CheckoutPaymentMethodList({
                 {paymentTab === "cod" && (
                   <div className="px-4 pb-3 pt-0">
                     <p className="text-xs text-muted-foreground ml-[30px]">
-                      {labels.codNote}
+                      {codNote ?? labels.codNote}
                     </p>
                   </div>
                 )}
