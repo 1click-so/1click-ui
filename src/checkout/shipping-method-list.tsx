@@ -13,6 +13,10 @@ import {
   BoxNowLockerSelector,
   type BoxNowLocker,
 } from "./boxnow-locker-selector"
+import {
+  PigeonOfficeSelector,
+  type PigeonOffice,
+} from "./pigeon-office-selector"
 import { ErrorMessage } from "./error-message"
 
 /**
@@ -57,6 +61,17 @@ type CheckoutShippingMethodListProps = {
     userCity: string
     userAddress: string
   }
+  /** Optional: Pigeon Express office state + handler for inline-expand
+   * rows. Same contract as `econt` — Pigeon's office delivery works
+   * exactly like Econt's, only the office list travels through our
+   * backend proxy because Pigeon's catalogue API is credentialed. */
+  pigeon?: {
+    detect?: (option: HttpTypes.StoreCartShippingOption) => boolean
+    selectedOffice: PigeonOffice | null
+    onSelectOffice: (office: PigeonOffice | null) => void
+    userCity: string
+    userAddress: string
+  }
   /**
    * Optional per-store carrier branding. Keyed by the stable fulfillment
    * option id (shipping_option.data.id) — "econt-office", "boxnow-locker",
@@ -95,6 +110,10 @@ const defaultBoxnowDetect = (option: HttpTypes.StoreCartShippingOption): boolean
   return getFulfillmentOptionId(option) === "boxnow-locker"
 }
 
+const defaultPigeonDetect = (option: HttpTypes.StoreCartShippingOption): boolean => {
+  return getFulfillmentOptionId(option) === "pigeon-office"
+}
+
 export function CheckoutShippingMethodList({
   shippingMethods,
   selectedShippingMethodId,
@@ -107,12 +126,14 @@ export function CheckoutShippingMethodList({
   currencyCode,
   econt,
   boxnow,
+  pigeon,
   logoByFulfillmentOptionId,
   previewWhenAddressNotReady = false,
 }: CheckoutShippingMethodListProps) {
   const labels = useCheckoutLabels()
   const detectEcont = econt?.detect ?? defaultEcontDetect
   const detectBoxnow = boxnow?.detect ?? defaultBoxnowDetect
+  const detectPigeon = pigeon?.detect ?? defaultPigeonDetect
 
   // Preview mode: address not filled yet, but the store wants the options
   // shown as a read-only price preview rather than a placeholder. Rows are
@@ -195,7 +216,10 @@ export function CheckoutShippingMethodList({
             const isEcontOffice = econt && detectEcont(option)
             const isBoxnowLocker =
               boxnow && !isEcontOffice && detectBoxnow(option)
-            const hasExpanded = selected && (isEcontOffice || isBoxnowLocker)
+            const isPigeonOffice =
+              pigeon && !isEcontOffice && !isBoxnowLocker && detectPigeon(option)
+            const hasExpanded =
+              selected && (isEcontOffice || isBoxnowLocker || isPigeonOffice)
             const logo = logoByFulfillmentOptionId
               ? logoByFulfillmentOptionId[getFulfillmentOptionId(option) ?? ""]
               : undefined
@@ -257,6 +281,11 @@ export function CheckoutShippingMethodList({
                         {boxnow.selectedLocker.title}
                       </p>
                     )}
+                    {selected && isPigeonOffice && pigeon?.selectedOffice && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {pigeon.selectedOffice.name}
+                      </p>
+                    )}
                   </div>
                   <span
                     className={cn(
@@ -311,6 +340,15 @@ export function CheckoutShippingMethodList({
                     userAddress={boxnow.userAddress}
                     selectedLocker={boxnow.selectedLocker}
                     onSelect={boxnow.onSelectLocker}
+                  />
+                )}
+
+                {hasExpanded && isPigeonOffice && pigeon && (
+                  <PigeonOfficeSelector
+                    userCity={pigeon.userCity}
+                    userAddress={pigeon.userAddress}
+                    selectedOffice={pigeon.selectedOffice}
+                    onSelect={pigeon.onSelectOffice}
                   />
                 )}
               </div>

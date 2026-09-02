@@ -118,4 +118,14 @@ export const bulgarianCheckoutLabels: CheckoutLabels = {
     "BoxNow временно е недостъпен, моля изберете друг метод за доставка.",
   boxnowNoLockersInCity:
     "Няма BoxNow автомати във вашия град. Моля изберете друг метод за доставка.",
+  pigeonLoadingOffices: "Зареждане на офиси...",
+  pigeonNearestOffices: "Най-близки офиси",
+  pigeonSearchAnother: "Търси друг офис",
+  pigeonSearchPlaceholder: "Търси по име, адрес или пощенски код...",
+  pigeonNoResults: "Няма намерени офиси за",
+  pigeonChange: "Промени",
+  pigeonUnavailable:
+    "Pigeon Express временно е недостъпен, моля изберете друг метод за доставка.",
+  pigeonNoOfficesInCity:
+    "Няма офиси на Pigeon Express във вашия град. Моля изберете друг метод за доставка.",
 }

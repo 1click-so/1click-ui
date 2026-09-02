@@ -24,6 +24,10 @@ export {
   BoxNowLockerSelector,
   type BoxNowLocker,
 } from "./boxnow-locker-selector"
+export {
+  PigeonOfficeSelector,
+  type PigeonOffice,
+} from "./pigeon-office-selector"
 export { AddressSelect } from "./address-select"
 export { CompanyDetails } from "./company-details"
 export { DiscountSection } from "./discount-section"

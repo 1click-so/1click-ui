@@ -138,6 +138,14 @@ export type CheckoutLabels = {
   boxnowChange: string
   boxnowUnavailable: string
   boxnowNoLockersInCity: string
+  pigeonLoadingOffices: string
+  pigeonNearestOffices: string
+  pigeonSearchAnother: string
+  pigeonSearchPlaceholder: string
+  pigeonNoResults: string
+  pigeonChange: string
+  pigeonUnavailable: string
+  pigeonNoOfficesInCity: string
 }
 
 export const defaultCheckoutLabels: CheckoutLabels = {
@@ -240,4 +248,14 @@ export const defaultCheckoutLabels: CheckoutLabels = {
     "BoxNow is temporarily unavailable, please choose a different shipping method.",
   boxnowNoLockersInCity:
     "No BoxNow lockers found in your city. Please choose a different shipping method.",
+  pigeonLoadingOffices: "Loading offices...",
+  pigeonNearestOffices: "Nearest offices",
+  pigeonSearchAnother: "Search for another office",
+  pigeonSearchPlaceholder: "Search by name, address, or postal code...",
+  pigeonNoResults: "No offices found for",
+  pigeonChange: "Change",
+  pigeonUnavailable:
+    "Pigeon Express is temporarily unavailable, please choose a different shipping method.",
+  pigeonNoOfficesInCity:
+    "No Pigeon Express offices found in your city. Please choose a different shipping method.",
 }

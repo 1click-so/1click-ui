@@ -27,6 +27,7 @@ import { isManual, isStripeLike } from "../lib/payment-constants"
 import { useOrderConfirmedPath } from "./context"
 import type { EcontOffice } from "./econt-office-selector"
 import type { BoxNowLocker } from "./boxnow-locker-selector"
+import type { PigeonOffice } from "./pigeon-office-selector"
 import { translatePaymentError } from "./payment-error-copy"
 
 /**
@@ -86,6 +87,19 @@ export type CheckoutCodConfig = {
   fee_currency: string
   fee_label: string
   description?: string | null
+  /**
+   * Optional carrier-dependent fee tiers, keyed by the carrier prefix of
+   * the selected shipping option's fulfillment-option id ("pigeon" for
+   * "pigeon-office"/"pigeon-address"). Each tier applies while the cart's
+   * PRODUCT subtotal is strictly below `up_to`; the entry without `up_to`
+   * is the open-ended top tier. Carriers absent from the map keep the
+   * flat `fee_amount`. Mirrors the backend's cod-fee-helper resolution so
+   * the optimistic fee never disagrees with the fee the server applies.
+   */
+  fee_tiers?: Record<
+    string,
+    Array<{ up_to?: number | null; fee: number }>
+  > | null
 } | null
 
 export type UseCheckoutOrchestrationOptions = {
@@ -723,6 +737,31 @@ export function useCheckoutOrchestration({
     []
   )
 
+  const [selectedPigeonOffice, setSelectedPigeonOffice] =
+    useState<PigeonOffice | null>(
+      cart?.metadata?.pigeon_office_id
+        ? ({
+            id: Number(cart.metadata.pigeon_office_id),
+            name: (cart.metadata.pigeon_office_name as string) ?? "",
+            city: (cart.metadata.pigeon_office_city as string) ?? "",
+            city_id: cart.metadata.pigeon_city_id
+              ? Number(cart.metadata.pigeon_city_id)
+              : null,
+            address: (cart.metadata.pigeon_office_address as string) ?? "",
+            postal_code: "",
+            lat: null,
+            lng: null,
+          } as PigeonOffice)
+        : null
+    )
+
+  const handleSelectPigeonOffice = useCallback(
+    (office: PigeonOffice | null) => {
+      setSelectedPigeonOffice(office)
+    },
+    []
+  )
+
   // ── Payment ─────────────────────────────────────────────────────────
   const [paymentError, setPaymentError] = useState<string | null>(null)
 
@@ -756,6 +795,37 @@ export function useCheckoutOrchestration({
     null
   )
 
+  // Resolve the COD fee the backend will apply for a given shipping
+  // option. Flat `fee_amount` unless the option's carrier has fee tiers
+  // configured — then the tier is picked by the cart's PRODUCT subtotal
+  // (fee line excluded), mirroring the backend cod-fee-helper exactly so
+  // the optimistic number never disagrees with the applied line item.
+  const resolveCodFeeForOption = useCallback(
+    (option: HttpTypes.StoreCartShippingOption | null): number => {
+      if (!codConfig) return 0
+      const data = option?.data as { id?: string } | undefined | null
+      const carrier =
+        typeof data?.id === "string" ? data.id.split("-")[0] : null
+      const tiers = carrier ? codConfig.fee_tiers?.[carrier] : undefined
+      if (!tiers || tiers.length === 0) return codConfig.fee_amount
+
+      const productSubtotal = (cart.items ?? []).reduce((sum, item) => {
+        const meta = item.metadata as Record<string, unknown> | null | undefined
+        if (meta && meta.is_cod_fee === true) return sum
+        return (
+          sum + (Number(item.unit_price) || 0) * (Number(item.quantity) || 1)
+        )
+      }, 0)
+
+      for (const tier of tiers) {
+        if (tier.up_to === undefined || tier.up_to === null) return tier.fee
+        if (productSubtotal < tier.up_to) return tier.fee
+      }
+      return tiers[tiers.length - 1]?.fee ?? codConfig.fee_amount
+    },
+    [codConfig, cart.items]
+  )
+
   // Payment tab selection is client state only. No payment session is
   // created until Buy click. This eliminates the entire class of
   // session-rotation / amount-drift / iframe-remount bugs caused by the
@@ -773,13 +843,13 @@ export function useCheckoutOrchestration({
           codConfig.fee_currency.toLowerCase() ===
           (cart.currency_code || "").toLowerCase()
         if (tab === "cod" && codCurrencyMatches) {
-          setOptimisticCodFee(codConfig.fee_amount)
+          setOptimisticCodFee(resolveCodFeeForOption(selectedShippingOption))
         } else {
           setOptimisticCodFee(0)
         }
       }
     },
-    [cart.currency_code, codConfig]
+    [cart.currency_code, codConfig, resolveCodFeeForOption, selectedShippingOption]
   )
 
   // Shipping selection is client state only. No setShippingMethod call,
@@ -808,8 +878,28 @@ export function useCheckoutOrchestration({
       // locker). All client state — no eager metadata-clear updateCart.
       setSelectedBoxnowLocker(null)
       setSelectedEcontOffice(null)
+      setSelectedPigeonOffice(null)
+
+      // The COD fee can be carrier-dependent (fee_tiers), so switching
+      // carrier while the COD tab is active repaints the predicted fee
+      // for the newly selected option.
+      if (paymentTab === "cod" && codConfig && option) {
+        const codCurrencyMatches =
+          codConfig.fee_currency.toLowerCase() ===
+          (cart.currency_code || "").toLowerCase()
+        if (codCurrencyMatches) {
+          setOptimisticCodFee(resolveCodFeeForOption(option))
+        }
+      }
     },
-    [shippingMethods, calculatedPricesMap]
+    [
+      shippingMethods,
+      calculatedPricesMap,
+      paymentTab,
+      codConfig,
+      cart.currency_code,
+      resolveCodFeeForOption,
+    ]
   )
 
   // ── Delivery readiness ──────────────────────────────────────────────
@@ -822,6 +912,8 @@ export function useCheckoutOrchestration({
   }, [selectedShippingOption])
   const selectedIsBoxnow = selectedFulfillmentOptionId === "boxnow-locker"
   const selectedIsEcont = selectedFulfillmentOptionId === "econt-office"
+  const selectedIsPigeonOffice =
+    selectedFulfillmentOptionId === "pigeon-office"
 
   // Defensive: trust cart.metadata for locker/office IDs in addition to
   // local React state. On mobile we've seen the BoxNow locker selector
@@ -832,12 +924,16 @@ export function useCheckoutOrchestration({
   // ghost — even though the cart server-side knew the locker was set.
   const hasBoxnowLockerInCart = !!cart?.metadata?.boxnow_locker_id
   const hasEcontOfficeInCart = !!cart?.metadata?.econt_office_code
+  const hasPigeonOfficeInCart = !!cart?.metadata?.pigeon_office_id
 
   const deliveryReady =
     (!!selectedShippingMethod ||
       (cart?.shipping_methods?.length ?? 0) > 0) &&
     (!selectedIsBoxnow || !!selectedBoxnowLocker || hasBoxnowLockerInCart) &&
-    (!selectedIsEcont || !!selectedEcontOffice || hasEcontOfficeInCart)
+    (!selectedIsEcont || !!selectedEcontOffice || hasEcontOfficeInCart) &&
+    (!selectedIsPigeonOffice ||
+      !!selectedPigeonOffice ||
+      hasPigeonOfficeInCart)
 
   // Reconcile paymentTab with currently-available methods. When the
   // store's paymentMethodFilter strips a method in response to a shipping
@@ -1004,6 +1100,20 @@ export function useCheckoutOrchestration({
       carrierMetadata.boxnow_locker_postal =
         selectedBoxnowLocker.postalCode ?? ""
     }
+    if (selectedPigeonOffice) {
+      // pigeon_office_id / pigeon_city_id are the keys the backend's
+      // create-waybill route reads (medusa-mindpages
+      // /admin/integrations/pigeon/create-waybill) — numeric catalogue
+      // ids, sent verbatim. Name/city/address ride along for admin and
+      // email display.
+      carrierMetadata.pigeon_office_id = selectedPigeonOffice.id
+      carrierMetadata.pigeon_office_name = selectedPigeonOffice.name
+      carrierMetadata.pigeon_office_city = selectedPigeonOffice.city
+      carrierMetadata.pigeon_office_address = selectedPigeonOffice.address
+      if (selectedPigeonOffice.city_id) {
+        carrierMetadata.pigeon_city_id = selectedPigeonOffice.city_id
+      }
+    }
 
     const shippingMethodId = selectedShippingMethod
     if (!shippingMethodId) {
@@ -1034,6 +1144,7 @@ export function useCheckoutOrchestration({
     selectedShippingMethod,
     selectedEcontOffice,
     selectedBoxnowLocker,
+    selectedPigeonOffice,
     paymentTab,
     cardId,
     codId,
@@ -1305,6 +1416,8 @@ export function useCheckoutOrchestration({
     handleSelectEcontOffice,
     selectedBoxnowLocker,
     handleSelectBoxnowLocker,
+    selectedPigeonOffice,
+    handleSelectPigeonOffice,
 
     // Payment
     paymentTab,
